@@ -10,8 +10,6 @@ if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
 const logFile = path.join(LOG_DIR, `app-${new Date().toISOString().slice(0, 10)}.log`);
 const errorFile = path.join(LOG_DIR, `error-${new Date().toISOString().slice(0, 10)}.log`);
 
-const LEVELS = { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3 };
-
 const formatEntry = (level, message, meta) => {
   const entry = {
     timestamp: new Date().toISOString(),

@@ -1,6 +1,6 @@
 # AI Co-Founder — Complete Project Report
 
-> **Version:** 1.1.0 | **Build:** 398 KB JS, 7 KB CSS | **Status:** Production-Ready
+> **Version:** 1.6.0 | **Build:** 398 KB JS, 7 KB CSS | **Status:** Production-Ready
 
 ---
 
@@ -583,6 +583,8 @@ dist/             # Build output
 - **No WebSocket** — real-time features use polling/delays
 - **No background job system** — "AI Never Sleeps" is simulated on-demand
 - **Supabase RLS not configured** — relying on service_role key + server-side auth
+- **Web search** uses regex-based HTML scraping (brittle, may break with provider changes)
+- **WhatsApp reminders** poll every 60s instead of using cron
 
 ### Planned Enhancements
 - [ ] WebSocket for real-time AI responses
@@ -594,6 +596,8 @@ dist/             # Build output
 - [ ] Calendar integration for deadlines
 - [ ] Email campaign automation
 - [ ] Stripe integration for SaaS monetization
+- [ ] CI/CD pipeline with automated testing
+- [ ] Structured logging with log aggregation
 
 ---
 
@@ -642,12 +646,18 @@ dist/             # Build output
 │   │   ├── roadmap.js            # Roadmap planner
 │   │   └── simulation.js         # Decision simulator
 │   ├── routes/
-│   │       ├── api.js                # API route definitions
-│       └── auth.js               # JWT register/login/me
-│   └── services/
-│       └── ai.js                 # OpenAI SDK wrapper
+│   │   ├── api.js                # API route definitions
+│   │   └── auth.js               # JWT register/login/me
+│   ├── services/
+│   │   ├── ai.js                 # OpenAI SDK wrapper
+│   │   ├── search.js             # Web search (DuckDuckGo, Startpage)
+│   │   ├── logger.js             # File-based structured logging
+│   │   └── reminders.js          # WhatsApp reminder scheduler (Twilio)
+│   ├── engines/__tests__/        # Engine unit tests (3 files)
+│   ├── routes/__tests__/         # Route tests (1 file)
+│   └── services/__tests__/       # Service tests (1 file)
 │
-└── src/
+    └── src/
     ├── App.jsx                   # Root component + routing
     ├── main.jsx                  # React entry point
     ├── assets/
@@ -686,7 +696,8 @@ dist/             # Build output
     │   ├── DashboardPage.jsx
     │   ├── GoalPage.jsx
     │   ├── LandingPage.jsx
-    │   └── OnboardingPage.jsx
+    │   ├── OnboardingPage.jsx
+    │   └── ResetPasswordPage.jsx
     ├── store/
     │   ├── appStore.js
     │   ├── authStore.js
@@ -696,6 +707,12 @@ dist/             # Build output
     │   └── taskStore.js
     ├── styles/
     │   └── design-system.css
+    ├── test/
+    │   ├── setup.js
+    │   ├── stores/
+    │   │   └── authStore.test.js
+    │   └── components/
+    │       └── 16 dashboard component tests
     └── utils/
         ├── api.js
         ├── constants.js
@@ -707,9 +724,14 @@ dist/             # Build output
 ## 15. Version History
 
 | Version | Date | Changes |
-|---|---|---|
-| 1.0.0 | 2026-06-27 | Initial production release. All 14 dashboard views fully AI-powered. 12 AI engines. 28 API endpoints. Zero mock data in all primary features. 398 KB production build. |
-| 1.1.0 | 2026-06-27 | JWT authentication (login/signup), Supabase PostgreSQL migration, multi-turn board meetings, custom input fallback on all questions, user-scoped memory and data. |
+|---|---|---|---|
+| 1.0.0 | 2026-06-27 | Initial production release. All 14 dashboard views fully AI-powered. 12 AI engines. 28 API endpoints. |
+| 1.1.0 | 2026-06-27 | JWT authentication (login/signup), Supabase PostgreSQL migration, multi-turn board meetings, custom input fallback. |
+| 1.2.0 | 2026-06-27 | Security hardening, mobile responsive, testing infra, deployment, error boundaries. |
+| 1.3.0 | 2026-06-27 | Credibility fixes — deterministic scores, real thinking, AI-generated questions, CORS restrict. |
+| 1.4.0 | 2026-06-27 | Prompt injection hardening, runtime bug fixes, Docker build, dead button cleanup. |
+| 1.5.0 | 2026-06-27 | 104 tests across 22 files — all 14 dashboard views tested. |
+| 1.6.0 | 2026-06-27 | Production hardening — fixed sidebar syntax crash, removed 12 unused imports, fixed missing hook deps, added blueprint cache TTL, secured reset token logging, removed dead code and duplication. 22 test files, 106 tests passing, lint clean. |
 
 ---
 

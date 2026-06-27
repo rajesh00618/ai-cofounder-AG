@@ -78,7 +78,7 @@ export default function Sidebar({ activeView, onNavigate }) {
       </nav>
 
       {/* Profile */}
-      {!sidebarCollapsed && profile && (
+      {!effectiveCollapsed && profile && (
         <div style={styles.profile}>
           <div style={styles.avatar}>{profile.name?.[0]?.toUpperCase() || 'F'}</div>
           <div>
@@ -93,16 +93,16 @@ export default function Sidebar({ activeView, onNavigate }) {
         onClick={() => { logout(); navigate('/'); }}
         style={{
           ...styles.navItem,
-          justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+          justifyContent: effectiveCollapsed ? 'center' : 'flex-start',
           borderTop: '1px solid rgba(255,255,255,0.06)',
           paddingTop: '0.75rem',
           marginTop: '0.25rem',
           color: 'var(--color-danger)'
         }}
-        title={sidebarCollapsed ? 'Sign Out' : undefined}
+        title={effectiveCollapsed ? 'Sign Out' : undefined}
       >
         <LogOut size={18} />
-        {!sidebarCollapsed && <span>Sign Out</span>}
+        {!effectiveCollapsed && <span>Sign Out</span>}
       </button>
     </aside>
   );

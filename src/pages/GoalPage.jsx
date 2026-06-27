@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFounderStore } from '../store/founderStore';
-import { Target, Send, Brain, AlertTriangle, CheckCircle2, ArrowRight, Sparkles, TrendingUp, Shield, Loader2 } from 'lucide-react';
+import { Target, Send, Brain, AlertTriangle, ArrowRight, Sparkles, TrendingUp, Shield, Loader2 } from 'lucide-react';
 import { getScoreColor } from '../utils/helpers';
 import { api } from '../utils/api';
 
@@ -102,7 +102,7 @@ export default function GoalPage() {
       if (Array.isArray(parsed) && parsed.length > 0) {
         setClarQuestions(parsed.map((q, i) => ({
           id: i + 1,
-          q: q.replace(/^\d+[\.\)]\s*/, ''),
+          q: q.replace(/^\d+[.)]\s*/, ''),
           opts: ['Yes', 'No', 'I\'m not sure', 'Tell me more']
         })));
       } else {

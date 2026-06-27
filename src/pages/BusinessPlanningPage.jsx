@@ -24,7 +24,6 @@ const BLUEPRINT_SECTIONS = [
 
 export default function BusinessPlanningPage() {
   const navigate = useNavigate();
-  const { profile } = useFounderStore();
   const { setBlueprint, setBusinessHealth, setStartupScore } = useBusinessStore();
   const { addTask, createSprint } = useTaskStore();
   const [phase, setPhase] = useState('questions');
@@ -75,7 +74,7 @@ export default function BusinessPlanningPage() {
     }
     setGenerating(false);
     setPhase('blueprint');
-  }, [answers, profile]);
+  }, [answers, addTask, createSprint, setBlueprint, setBusinessHealth, setStartupScore]);
 
   return (
     <div style={styles.page}>

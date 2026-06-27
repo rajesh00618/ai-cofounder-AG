@@ -6,8 +6,33 @@ The world's first Startup Operating System. Not just an AI chatbot — an **AI C
 
 ---
 
-## What's New in v1.1
+## What's New
 
+### v1.6 — Production Hardening
+- **🐛 Fixed**: Dashboard sidebar syntax error causing crash on profile render
+- **🧹 Cleaned**: 12 unused imports, dead code, and duplicated logic removed
+- **🔒 Security**: Password reset token no longer logged to console; prompt injection defense-in-depth
+- **💾 Memory leak fix**: Blueprint cache now has TTL (1 hour) to prevent unbounded growth
+- **⚡ Performance**: Fixed missing React hook dependencies in 4 components
+- **🧪 All 106 tests passing**, lint clean (1 pre-existing control-regex warning)
+
+### v1.5 — Full Test Coverage
+- **104 tests across 22 files** covering all 14 dashboard views
+- Unit, integration, and E2E test suites
+
+### v1.4 — Final Review Fixes
+- Prompt injection hardening, runtime bug fixes, Docker build improvements
+- Dead button cleanup
+
+### v1.3 — Credibility Fixes
+- Deterministic AI scoring, real thinking animation, AI-generated questions
+- CORS restrictions
+
+### v1.2 — Security Hardening
+- Mobile responsive, testing infrastructure, deployment pipeline
+- Error boundaries
+
+### v1.1
 - **🔐 User Authentication** — JWT-based login/signup with protected routes; each user's data is isolated
 - **☁️ Supabase Migration** — moved from local SQLite to cloud PostgreSQL via Supabase; persistent data across restarts
 - **💬 Multi-Turn Board Meetings** — debate with AI agents in back-and-forth conversation, not one-shot
@@ -229,17 +254,24 @@ ai-cofounder-AG/
 │   │   ├── api.js               # 30+ API endpoints
 │   │   └── auth.js              # JWT register/login/me
 │   └── services/
-│       └── ai.js                # OpenAI SDK wrapper
+│       ├── ai.js                # OpenAI SDK wrapper
+│       ├── search.js            # Web search (DuckDuckGo, Startpage)
+│       ├── logger.js            # File-based logging
+│       └── reminders.js         # WhatsApp reminder scheduler
 ├── src/                         # React frontend
 │   ├── App.jsx                  # Root + routing
 │   ├── main.jsx                 # Entry point
-│   ├── pages/                   # 5 page components
+│   ├── pages/                   # 7 page components
 │   ├── components/              # 15 dashboard view components
-│   ├── store/                   # 5 Zustand stores
+│   ├── store/                   # 6 Zustand stores
 │   ├── styles/                  # Design system CSS
 │   └── utils/                   # API client, helpers, constants
+├── e2e/                         # Playwright E2E tests
 ├── index.html                   # HTML entry
 ├── vite.config.js               # Vite build config
+├── nginx.conf                   # Nginx reverse proxy config
+├── Dockerfile                   # Docker build
+├── docker-compose.yml           # Docker compose
 └── .env                         # Environment variables
 ```
 

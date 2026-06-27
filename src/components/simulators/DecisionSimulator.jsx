@@ -84,7 +84,7 @@ export default function DecisionSimulator() {
         })
         .finally(() => setFailureLoading(false));
     }
-  }, [tab]);
+  }, [tab, businessHealth, blueprint]);
 
   const runCustomerSim = async () => {
     if (!question.trim()) return;

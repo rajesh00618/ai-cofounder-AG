@@ -46,7 +46,7 @@ export default function CommandCenter({ onNavigate }) {
       api.getMission(ctx).then(r => setMission(r.mission)).catch(() => setApiError('Failed to load mission data')),
       api.getHealth(ctx).then(r => setRecommendation(r.recommendation)).catch(() => setApiError('Failed to load health data'))
     ]).finally(() => setLoading(false));
-  }, [businessHealth, startupScore, profile, blueprint]);
+  }, [businessHealth, startupScore, profile, blueprint, tasks, currentStage, dnaScores]);
 
   return (
     <div style={styles.page} className="page-enter">

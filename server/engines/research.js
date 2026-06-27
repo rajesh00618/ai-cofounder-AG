@@ -1,5 +1,5 @@
 import { callOpenAI, extractJSON } from '../services/ai.js';
-import { searchWeb, searchWebBatch } from '../services/search.js';
+import { searchWebBatch } from '../services/search.js';
 
 const RESEARCH_PROMPT = `You are an AI market researcher. Analyze the provided web search results and business context to produce realistic, sourced market research findings.
 Return valid JSON array of objects with: title, source (real source name), date (relative like "2 days ago"), priority (high/medium/low), category (trend/competitor/market/opportunity), summary`;

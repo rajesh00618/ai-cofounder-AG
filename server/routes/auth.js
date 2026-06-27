@@ -7,7 +7,15 @@ import { getDb } from '../db/database.js';
 const generateId = () => crypto.randomUUID();
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || (() => { throw new Error('JWT_SECRET must be set in .env') })();
+
+// Lazily validate JWT_SECRET to avoid crashing at module load time
+const getJwtSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET must be set in .env');
+  }
+  return secret;
+};
 
 router.post('/register', async (req, res) => {
   try {
@@ -22,16 +30,24 @@ router.post('/register', async (req, res) => {
     const supabase = getDb();
     if (!supabase) return res.status(500).json({ error: 'Database not configured' });
 
-    const { data: existing } = await supabase.from('users').select('id').eq('email', email).maybeSingle();
-    if (existing) {
-      return res.status(409).json({ error: 'Email already registered' });
-    }
-
     const id = generateId();
     const password_hash = await bcrypt.hash(password, 10);
-    const { error: insertError } = await supabase.from('users').insert({ id, name, email, password_hash });
-    if (insertError) throw insertError;
 
+    // Use a single insert with a catch for unique violation instead of select-then-insert
+    // This avoids the race condition between the check and the insert
+    const { error: insertError } = await supabase.from('users').insert({
+      id, name, email, password_hash
+    });
+
+    if (insertError) {
+      // Check for unique constraint violation (PostgreSQL error code 23505)
+      if (insertError.code === '23505' || (insertError.message && insertError.message.includes('duplicate'))) {
+        return res.status(409).json({ error: 'Email already registered' });
+      }
+      throw insertError;
+    }
+
+    const JWT_SECRET = getJwtSecret();
     const token = jwt.sign({ userId: id, email }, JWT_SECRET, { expiresIn: '7d' });
     res.status(201).json({ token, user: { id, name, email } });
   } catch (error) {
@@ -60,6 +76,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
+    const JWT_SECRET = getJwtSecret();
     const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
   } catch (error) {
@@ -74,6 +91,7 @@ router.get('/me', async (req, res) => {
       return res.status(401).json({ error: 'No token provided' });
     }
     const token = auth.split(' ')[1];
+    const JWT_SECRET = getJwtSecret();
     const decoded = jwt.verify(token, JWT_SECRET);
 
     const supabase = getDb();
@@ -82,7 +100,7 @@ router.get('/me', async (req, res) => {
     const { data: user } = await supabase.from('users').select('id, name, email, created_at').eq('id', decoded.userId).maybeSingle();
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json({ user });
-  } catch (error) {
+  } catch {
     res.status(401).json({ error: 'Invalid token' });
   }
 });
@@ -116,7 +134,7 @@ router.post('/forgot-password', async (req, res) => {
         console.warn('[Auth] Failed to send reset email:', mailErr.message);
       }
     } else {
-      console.log(`[Auth] Password reset link for ${email}: ${resetUrl}`);
+      console.log(`[Auth] Password reset link sent to ${email}`);
     }
 
     res.json({ message: 'If that email exists, a reset link has been sent.' });
@@ -165,4 +183,4 @@ router.post('/reset-password', async (req, res) => {
 });
 
 export default router;
-export { JWT_SECRET };
+export { getJwtSecret as JWT_SECRET };

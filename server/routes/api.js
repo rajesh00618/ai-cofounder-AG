@@ -14,7 +14,7 @@ import { analyzeDNA, generateAdaptations } from '../engines/dna.js';
 import { generateMission, generateHealthAnalysis } from '../engines/mission.js';
 import { generateReviewNote, suggestTasks } from '../engines/review.js';
 import { getCEOAdvice, getCTOAdvice, getCMOAdvice, getSalesAdvice, getFinanceAdvice, getResearchAdvice } from '../agents/index.js';
-import { JWT_SECRET } from './auth.js';
+import { JWT_SECRET as getJwtSecret } from './auth.js';
 
 const router = express.Router();
 
@@ -24,7 +24,7 @@ const requireJwt = (req, res, next) => {
     return res.status(401).json({ error: 'Authentication required' });
   }
   try {
-    const decoded = jwt.verify(auth.split(' ')[1], JWT_SECRET);
+    const decoded = jwt.verify(auth.split(' ')[1], getJwtSecret());
     req.userId = decoded.userId;
     next();
   } catch {
@@ -34,9 +34,14 @@ const requireJwt = (req, res, next) => {
 
 const pick = (body, ...keys) => { for (const k of keys) { if (body[k] !== undefined && body[k] !== null && body[k] !== '') return body[k]; } return undefined; };
 
+/**
+ * Middleware to get API key.
+ * NEVER falls back to process.env.NVIDIA_API_KEY for user requests.
+ * Users must provide their own x-api-key header.
+ */
 const requireApiKey = (req, res, next) => {
-  const apiKey = req.headers['x-api-key'] || process.env.NVIDIA_API_KEY;
-  if (!apiKey) return res.status(401).json({ error: 'API key is required. Set NVIDIA_API_KEY in .env or provide x-api-key header.' });
+  const apiKey = req.headers['x-api-key'];
+  if (!apiKey) return res.status(401).json({ error: 'API key is required. Provide your own x-api-key header.' });
   req.apiKey = apiKey;
   next();
 };
@@ -167,6 +172,10 @@ router.post('/board', requireApiKey, requireBody('question'), async (req, res) =
     const { question } = req.body;
     const response = await callOpenAI(req.apiKey, PROMPTS.BOARD_MEETING, `Debate this topic: ${question}`, 0.8);
     const parsed = extractJSON(response);
+    // Validate parsed structure before returning
+    if (!parsed || !parsed.responses || !Array.isArray(parsed.responses)) {
+      return res.status(502).json({ error: 'AI returned malformed board meeting response' });
+    }
     res.json(parsed);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -182,6 +191,9 @@ router.post('/board/chat', requireApiKey, requireBody('messages'), async (req, r
     const prompt = `Here is the board discussion so far:\n\n${formatted}\n\nBoard members, continue the debate responding to the latest points raised.`;
     const response = await callOpenAI(req.apiKey, PROMPTS.BOARD_MEETING, prompt, 0.8);
     const parsed = extractJSON(response);
+    if (!parsed || !parsed.responses || !Array.isArray(parsed.responses)) {
+      return res.status(502).json({ error: 'AI returned malformed board meeting response' });
+    }
     res.json(parsed);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -379,22 +391,34 @@ router.get('/memory/graph/:founderId', requireJwt, async (req, res) => {
 });
 
 // --- BUSINESS BLUEPRINT ---
-let _blueprintCache = null;
+const _blueprintCache = new Map();
+const BLUEPRINT_TTL = 3600000;
 
-router.post('/business/blueprint', requireApiKey, requireBody('answers'), async (req, res) => {
+const getCachedBlueprint = (userId) => {
+  const entry = _blueprintCache.get(userId);
+  if (!entry) return null;
+  if (Date.now() - entry.ts > BLUEPRINT_TTL) {
+    _blueprintCache.delete(userId);
+    return null;
+  }
+  return entry.data;
+};
+
+router.post('/business/blueprint', requireJwt, requireApiKey, requireBody('answers'), async (req, res) => {
   try {
     const { answers, profile } = req.body;
     const result = await generateBlueprint(req.apiKey, answers, profile);
-    _blueprintCache = result;
+    _blueprintCache.set(req.userId, { data: result, ts: Date.now() });
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-router.get('/business/blueprint', async (req, res) => {
-  if (_blueprintCache) return res.json(_blueprintCache);
-  res.status(404).json({ error: 'No blueprint found' });
+router.get('/business/blueprint', requireJwt, async (req, res) => {
+  const cached = getCachedBlueprint(req.userId);
+  if (cached) return res.json(cached);
+  res.status(404).json({ error: 'No blueprint found for this user' });
 });
 
 // --- EXECUTION ---
@@ -437,6 +461,10 @@ Business context: ${JSON.stringify(context)}`;
 
     const response = await callOpenAI(req.apiKey, 'You are a startup failure prediction engine. Analyze the provided business context and predict failure probability.', prompt, 0.7);
     const parsed = extractJSON(response);
+    // Validate structure
+    if (typeof parsed?.failureProbability !== 'number') {
+      return res.status(502).json({ error: 'AI returned malformed prediction response' });
+    }
     res.json(parsed);
   } catch (error) {
     res.status(500).json({ error: error.message });

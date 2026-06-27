@@ -1,4 +1,5 @@
-const API_BASE = 'http://localhost:3001/api';
+// Use relative URL so it works in both dev (via Vite proxy) and production
+const API_BASE = '/api';
 
 const getHeaders = () => {
   const apiKey = localStorage.getItem('ai-cofounder-apikey');
@@ -19,7 +20,10 @@ const apiPost = async (path, body) => {
     headers: getHeaders(),
     body: JSON.stringify(body)
   });
-  if (!res.ok) throw new Error((await res.json()).error || 'API Error');
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({ error: 'API Error' }));
+    throw new Error(errBody.error || `Request failed with status ${res.status}`);
+  }
   return res.json();
 };
 
@@ -27,7 +31,10 @@ const apiGet = async (path) => {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: getHeaders()
   });
-  if (!res.ok) throw new Error((await res.json()).error || 'API Error');
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({ error: 'API Error' }));
+    throw new Error(errBody.error || `Request failed with status ${res.status}`);
+  }
   return res.json();
 };
 
@@ -50,6 +57,11 @@ export const api = {
       body: JSON.stringify({ message, context }),
       signal: controller.signal,
     }).then(async (res) => {
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({ error: 'Stream request failed' }));
+        onError?.(errBody.error || `Request failed with status ${res.status}`);
+        return;
+      }
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
@@ -78,7 +90,7 @@ export const api = {
     return () => controller.abort();
   },
 
-  // Existing
+  // Existing endpoints
   chat: (message, context) => apiPost('/chat', { message, context }),
   chatWithAgent: (message, context, agent) => apiPost('/chat/agent', { message, context, agent }),
   evaluateGoal: (goal) => apiPost('/engines/reality', { goal }),

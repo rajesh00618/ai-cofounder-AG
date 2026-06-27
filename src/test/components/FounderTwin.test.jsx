@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import FounderTwin from '../../components/founder/FounderTwin';
-import { DNA_DIMENSIONS } from '../../utils/constants';
 
 const mockUseFounderStore = vi.fn();
 

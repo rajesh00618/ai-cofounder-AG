@@ -35,7 +35,7 @@ export default function ResearchCenter() {
       setLoading(false);
     };
     loadData();
-  }, [filter]);
+  }, [filter, profile, blueprint, businessHealth, currentStage]);
 
   const typeColor = { competitor: 'var(--color-warning)', market: 'var(--color-info)', opportunity: 'var(--color-success)', trend: 'var(--color-accent)' };
   const filtered = filter === 'all' ? researchData : (researchData.filter ? researchData.filter(r => r.type === filter || r.category === filter) : []);
@@ -62,7 +62,7 @@ export default function ResearchCenter() {
             <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{briefing.greeting}</div>
             {briefing.findings?.length > 0 && (
               <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
-                {briefing.findings.map((f, i) => typeof f === 'string' ? f : f.title || f.detail).join('. ')}
+                {briefing.findings.map((f) => typeof f === 'string' ? f : f.title || f.detail).join('. ')}
               </div>
             )}
           </div>

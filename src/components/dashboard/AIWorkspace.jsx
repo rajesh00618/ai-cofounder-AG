@@ -64,7 +64,7 @@ export default function AIWorkspace() {
     const msgId = `stream-${Date.now()}`;
     let accumulated = '';
 
-    const cancel = api.chatStream(userMsg, context,
+    api.chatStream(userMsg, context,
       (token, fullText) => {
         if (!accumulated) {
           addMessage({ id: msgId, role: 'assistant', content: '', confidence: 85, agent: 'ceo' });

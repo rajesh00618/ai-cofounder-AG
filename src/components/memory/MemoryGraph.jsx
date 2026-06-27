@@ -12,7 +12,7 @@ const NODE_COLORS = {
 const EDGE_TYPES = ['depends_on', 'triggers', 'relates_to', 'inspired_by', 'blocks', 'implements', 'references'];
 
 const forceLayout = (nodes, edges, width, height) => {
-  const positions = nodes.map((n, i) => ({
+  const positions = nodes.map(() => ({
     x: width * 0.15 + Math.random() * width * 0.7,
     y: height * 0.15 + Math.random() * height * 0.7,
     vx: 0, vy: 0,
@@ -69,7 +69,7 @@ const relationshipLabel = (rel) => {
   return labels[rel] || rel;
 };
 
-export default function MemoryGraph({ onNavigate }) {
+export default function MemoryGraph() {
   const { profile } = useFounderStore();
   const [graph, setGraph] = useState({ nodes: [], edges: [] });
   const [loading, setLoading] = useState(true);

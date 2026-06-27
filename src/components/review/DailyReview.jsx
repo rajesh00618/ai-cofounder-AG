@@ -59,7 +59,7 @@ export default function DailyReview() {
       persist({ submitted: true, aiNote: note });
     } catch (e) {
       setError(e.message);
-      setSubmitted(true);
+      // Do NOT setSubmitted(true) on error — user should retry
     }
     setLoading(false);
   };
@@ -73,10 +73,15 @@ export default function DailyReview() {
           <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1.5rem' }}>
             I've updated your memory and will adjust tomorrow's task load based on your responses.
           </p>
-          {(aiNote || !error) && (
+          {aiNote ? (
             <div style={styles.aiNote}>
               <Sparkles size={16} style={{ color: 'var(--color-accent-light)' }} />
-              <span>{aiNote || (mood === 'low' ? "I noticed you're feeling low today. I'll reduce tomorrow's workload." : energy === 'low' ? "Your energy is low — I'll schedule lighter tasks tomorrow." : "Great day! I'll keep the momentum going.")}</span>
+              <span>{aiNote}</span>
+            </div>
+          ) : (
+            <div style={styles.aiNote}>
+              <Sparkles size={16} style={{ color: 'var(--color-accent-light)' }} />
+              <span>{mood === 'low' ? "I noticed you're feeling low today. I'll reduce tomorrow's workload." : energy === 'low' ? "Your energy is low — I'll schedule lighter tasks tomorrow." : "Great day! I'll keep the momentum going."}</span>
             </div>
           )}
           {error && <div style={styles.errorBanner}><AlertCircle size={14} /> {error}</div>}
