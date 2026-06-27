@@ -8,16 +8,12 @@ export const useAuthStore = create(
   token: null,
 
   setAuth: (user, token) => {
-    localStorage.setItem('ai-cofounder-token', token);
     set({ user, token });
   },
 
   logout: () => {
-    localStorage.removeItem('ai-cofounder-token');
     set({ user: null, token: null });
   },
-
-  isAuthenticated: () => !!localStorage.getItem('ai-cofounder-token'),
     }),
     {
       name: 'ai-cofounder-auth-storage',

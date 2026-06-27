@@ -2,7 +2,11 @@ const API_BASE = 'http://localhost:3001/api';
 
 const getHeaders = () => {
   const apiKey = localStorage.getItem('ai-cofounder-apikey');
-  const token = localStorage.getItem('ai-cofounder-token');
+  let token = null;
+  try {
+    const stored = JSON.parse(localStorage.getItem('ai-cofounder-auth-storage'));
+    if (stored && stored.state && stored.state.token) token = stored.state.token;
+  } catch {}
   const headers = { 'Content-Type': 'application/json' };
   if (apiKey) headers['x-api-key'] = apiKey;
   if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -62,5 +66,5 @@ export const api = {
   submitReviewNote: (review, extra) => apiPost('/review/note', { review, ...extra }),
   getTaskSuggestions: (context) => apiPost('/tasks/suggest', { ...context }),
   getBusinessBlueprint: () => apiGet('/business/blueprint'),
-  healthCheck: () => apiGet('/api/health'),
+  healthCheck: () => apiGet('/health'),
 };

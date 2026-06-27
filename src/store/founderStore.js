@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { generateId, randomBetween } from '../utils/helpers';
+import { generateId } from '../utils/helpers';
 
 export const useFounderStore = create(
   persist(
@@ -23,16 +23,16 @@ export const useFounderStore = create(
     recoveryPattern: 'structured'
   },
   dnaScores: {
-    'Decision-making': randomBetween(40, 80),
-    'Execution': randomBetween(35, 75),
-    'Consistency': randomBetween(30, 70),
-    'Learning speed': randomBetween(50, 85),
-    'Leadership': randomBetween(35, 75),
-    'Sales ability': randomBetween(25, 65),
-    'Technical skill': randomBetween(40, 90),
-    'Communication': randomBetween(45, 80),
-    'Focus': randomBetween(35, 75),
-    'Confidence': randomBetween(40, 80)
+    'Decision-making': 50,
+    'Execution': 50,
+    'Consistency': 50,
+    'Learning speed': 50,
+    'Leadership': 50,
+    'Sales ability': 50,
+    'Technical skill': 50,
+    'Communication': 50,
+    'Focus': 50,
+    'Confidence': 50
   },
 
   setOnboardingAnswer: (questionId, answer) => set(s => ({

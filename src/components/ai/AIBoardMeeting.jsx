@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Users, Sparkles, Send, Swords, Trash2 } from 'lucide-react';
+import { Users, Sparkles, Send, Trash2 } from 'lucide-react';
 import { api } from '../../utils/api';
 
 const INITIAL_DISCUSSION = [

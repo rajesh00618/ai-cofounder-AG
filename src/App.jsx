@@ -19,7 +19,7 @@ export default function App() {
   useEffect(() => {
     if (!token) return;
     api.getMe().catch(() => logout());
-  }, []);
+  }, [token, logout]);
 
   return (
     <BrowserRouter>

@@ -1,21 +1,20 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFounderStore } from '../store/founderStore';
-import { Target, Send, Brain, AlertTriangle, CheckCircle2, ArrowRight, Sparkles, TrendingUp, Shield, Loader2, PenSquare } from 'lucide-react';
-import { delay, getScoreColor, randomBetween } from '../utils/helpers';
+import { Target, Send, Brain, AlertTriangle, CheckCircle2, ArrowRight, Sparkles, TrendingUp, Shield, Loader2 } from 'lucide-react';
+import { getScoreColor } from '../utils/helpers';
 import { api } from '../utils/api';
 
 const PHASES = { WELCOME: 0, GOAL_INPUT: 1, CLARIFYING: 2, REALITY: 3, NEGOTIATION: 4, COMPLETE: 5 };
 
-function ThinkingAnimation({ steps, currentStep }) {
+function ThinkingAnimation({ elapsed, generating }) {
+  const label = generating ? 'Generating personalized questions' : 'Thinking';
   return (
     <div style={ts.container}>
-      {steps.map((s, i) => (
-        <div key={i} style={{...ts.step, opacity: i <= currentStep ? 1 : 0.3, color: i === currentStep ? 'var(--color-accent-light)' : i < currentStep ? 'var(--color-success-light)' : 'var(--color-text-muted)'}}>
-          {i < currentStep ? <CheckCircle2 size={14} /> : i === currentStep ? <Loader2 size={14} style={{animation:'spin 1s linear infinite'}} /> : <div style={{width:14,height:14,borderRadius:'50%',border:'1px solid var(--color-text-muted)'}} />}
-          <span style={{fontSize:'0.8125rem'}}>{s}</span>
-        </div>
-      ))}
+      <div style={{...ts.step, opacity:1, color:'var(--color-accent-light)'}}>
+        <Loader2 size={14} style={{animation:'spin 1s linear infinite'}} />
+        <span>{label}... ({elapsed}s)</span>
+      </div>
     </div>
   );
 }
@@ -68,7 +67,6 @@ export default function GoalPage() {
   const [phase, setPhase] = useState(PHASES.WELCOME);
   const [goalText, setGoalText] = useState('');
   const [thinking, setThinking] = useState(false);
-  const [thinkStep, setThinkStep] = useState(0);
   const [clarQuestions, setClarQuestions] = useState([]);
   const [clarAnswers, setClarAnswers] = useState({});
   const [clarStep, setClarStep] = useState(0);
@@ -78,28 +76,43 @@ export default function GoalPage() {
   const [clarCustomMode, setClarCustomMode] = useState(false);
   const [clarCustomInput, setClarCustomInput] = useState('');
   const [pageError, setPageError] = useState('');
+  const [elapsed, setElapsed] = useState(0);
+  const [generatingQuestions, setGeneratingQuestions] = useState(false);
+
+  useEffect(() => {
+    if (!thinking && !generatingQuestions) { setElapsed(0); return; }
+    const start = Date.now();
+    const id = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [thinking, generatingQuestions]);
 
   useEffect(() => { if (!profile) navigate('/onboarding'); }, [profile, navigate]);
 
-  const thinkSteps = ['Thinking...', 'Checking Memory...', 'Analyzing Goal...', 'Running Reality Engine...', 'Done.'];
-
-  const runThinking = useCallback(async (cb) => {
-    setThinking(true);
-    for (let i = 0; i < thinkSteps.length; i++) {
-      setThinkStep(i);
-      await delay(600 + Math.random() * 400);
-    }
-    await delay(300);
-    setThinking(false);
-    cb();
-  }, []);
-
-  const handleGoalSubmit = () => {
+  const handleGoalSubmit = async () => {
     if (!goalText.trim()) return;
     setGoal(goalText.trim());
-    const questions = generateClarQuestions(goalText);
-    setClarQuestions(questions);
-    runThinking(() => setPhase(PHASES.CLARIFYING));
+    setGeneratingQuestions(true);
+    try {
+      const result = await api.chat(
+        'Generate 5-7 clarifying questions about this startup goal. Return only a JSON array of strings. Example: ["Question 1?", "Question 2?", ...]',
+        { goal: goalText }
+      );
+      let parsed;
+      try { parsed = JSON.parse(result.content); } catch { parsed = null; }
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setClarQuestions(parsed.map((q, i) => ({
+          id: i + 1,
+          q: q.replace(/^\d+[\.\)]\s*/, ''),
+          opts: ['Yes', 'No', 'I\'m not sure', 'Tell me more']
+        })));
+      } else {
+        throw new Error('Invalid format');
+      }
+    } catch {
+      setClarQuestions(generateClarQuestions(goalText));
+    }
+    setGeneratingQuestions(false);
+    setPhase(PHASES.CLARIFYING);
   };
 
   const generateClarQuestions = (goal) => {
@@ -127,57 +140,57 @@ export default function GoalPage() {
     return qs;
   };
 
-  const handleClarAnswer = (qid, answer) => {
+  const handleClarAnswer = async (qid, answer) => {
     const updated = { ...clarAnswers, [qid]: answer };
     setClarAnswers(updated);
     if (clarStep < clarQuestions.length - 1) {
       setTimeout(() => setClarStep(clarStep + 1), 250);
     } else {
       setClarificationAnswers(updated);
-      runThinking(async () => {
-        try {
-          const realityResult = await api.evaluateGoal(goalText);
-          const formattedReality = {
-            scores: {
-              'Market Size': realityResult.dimensions.market,
-              'Competition Intensity': realityResult.dimensions.competition,
-              'Tech Feasibility': realityResult.dimensions.tech,
-              'Customer Access': realityResult.dimensions.customer,
-              'Founder Fit': realityResult.dimensions.founder,
-              'Revenue Potential': realityResult.dimensions.revenue,
-              'Timeline Feasibility': realityResult.dimensions.timing,
-              'Execution Complexity': realityResult.dimensions.execution
-            },
-            overallScore: realityResult.score,
-            probability: `${Math.max(5, realityResult.score - 15)}–${Math.min(95, realityResult.score + 10)}%`,
-            risks: realityResult.risks,
-            recommendation: realityResult.verdict
+      setThinking(true);
+      try {
+        const realityResult = await api.evaluateGoal(goalText);
+        const formattedReality = {
+          scores: {
+            'Market Size': realityResult.dimensions.market,
+            'Competition Intensity': realityResult.dimensions.competition,
+            'Tech Feasibility': realityResult.dimensions.tech,
+            'Customer Access': realityResult.dimensions.customer,
+            'Founder Fit': realityResult.dimensions.founder,
+            'Revenue Potential': realityResult.dimensions.revenue,
+            'Timeline Feasibility': realityResult.dimensions.timing,
+            'Execution Complexity': realityResult.dimensions.execution
+          },
+          overallScore: realityResult.score,
+          probability: `${Math.max(5, realityResult.score - 15)}–${Math.min(95, realityResult.score + 10)}%`,
+          risks: realityResult.risks,
+          recommendation: realityResult.verdict
+        };
+        
+        setReality(formattedReality);
+        setRealityScore(formattedReality);
+        
+        if (formattedReality.overallScore < 50) {
+          const neg = await api.negotiateGoal(goalText);
+          const formattedNeg = {
+            current: { label: goalText, probability: formattedReality.probability, risk: 'Very High' },
+            alternatives: neg.alternatives.map(a => ({
+              label: a.title,
+              probability: a.probability === 'high' ? '60-80%' : a.probability === 'medium' ? '40-60%' : '20-40%',
+              risk: a.probability === 'high' ? 'Low' : a.probability === 'medium' ? 'Medium' : 'High'
+            }))
           };
-          
-          setReality(formattedReality);
-          setRealityScore(formattedReality);
-          
-          if (formattedReality.overallScore < 50) {
-            const neg = await api.negotiateGoal(goalText);
-            const formattedNeg = {
-              current: { label: goalText, probability: formattedReality.probability, risk: 'Very High' },
-              alternatives: neg.alternatives.map(a => ({
-                label: a.title,
-                probability: a.probability === 'high' ? '60-80%' : a.probability === 'medium' ? '40-60%' : '20-40%',
-                risk: a.probability === 'high' ? 'Low' : a.probability === 'medium' ? 'Medium' : 'High'
-              }))
-            };
-            setNegotiation(formattedNeg);
-            setPhase(PHASES.NEGOTIATION);
-          } else {
-            setPhase(PHASES.REALITY);
-          }
-        } catch (error) {
-          console.error(error);
-          setPageError('API Error: ' + error.message);
-          setPhase(PHASES.GOAL_INPUT);
+          setNegotiation(formattedNeg);
+          setPhase(PHASES.NEGOTIATION);
+        } else {
+          setPhase(PHASES.REALITY);
         }
-      });
+      } catch (error) {
+        console.error(error);
+        setPageError('API Error: ' + error.message);
+        setPhase(PHASES.GOAL_INPUT);
+      }
+      setThinking(false);
     }
   };
 
@@ -302,9 +315,9 @@ export default function GoalPage() {
         )}
 
         {/* Thinking Animation */}
-        {thinking && (
+        {(thinking || generatingQuestions) && (
           <div style={styles.card} className="page-enter">
-            <ThinkingAnimation steps={thinkSteps} currentStep={thinkStep} />
+            <ThinkingAnimation elapsed={elapsed} generating={generatingQuestions} />
           </div>
         )}
 
@@ -339,7 +352,7 @@ export default function GoalPage() {
               <Sparkles size={16} style={{color:'var(--color-accent-light)'}} />
               <span><strong>Recommendation:</strong> {reality.recommendation}</span>
             </div>
-            <ConfidenceMeter value={Math.min(95, reality.overallScore + randomBetween(5, 15))} reason="Based on founder profile + goal analysis" />
+            <ConfidenceMeter value={Math.min(95, reality.overallScore + Math.floor(reality.overallScore / 15))} reason="Based on founder profile + goal analysis" />
             <button className="btn btn-primary btn-lg" onClick={handleProceed} style={{marginTop:'1.5rem',width:'100%'}}>
               Continue to Business Planning <ArrowRight size={18} />
             </button>

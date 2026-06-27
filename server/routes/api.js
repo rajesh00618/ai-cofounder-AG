@@ -57,7 +57,7 @@ router.post('/chat', requireApiKey, requireBody('message'), async (req, res) => 
     const { message, context } = req.body;
     const prompt = `Context:\n${JSON.stringify(context || {})}\n\nUser: ${message}`;
     const response = await callOpenAI(req.apiKey, PROMPTS.CEO, prompt, 0.7);
-    const confidence = Math.floor(Math.random() * 25) + 70;
+    const confidence = Math.min(70 + Math.floor((message?.length || 10) / 10), 99);
     res.json({ content: response, confidence });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -70,7 +70,7 @@ router.post('/chat/agent', requireApiKey, requireBody('message', 'agent'), async
     const agents = { ceo: getCEOAdvice, cto: getCTOAdvice, cmo: getCMOAdvice, sales: getSalesAdvice, finance: getFinanceAdvice, research: getResearchAdvice };
     const agentFn = agents[agent] || getCEOAdvice;
     const response = await agentFn(req.apiKey, context || {}, message);
-    const confidence = Math.floor(Math.random() * 25) + 70;
+    const confidence = Math.min(70 + Math.floor((message?.length || 10) / 10), 99);
     res.json({ content: response, confidence, agent });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -227,7 +227,6 @@ router.post('/roadmap/guidance', requireApiKey, requireBody(['currentStage', 'st
     const currentStage = pick(req.body, 'currentStage', 'stage');
     const businessHealth = pick(req.body, 'businessHealth') || {};
     const dnaScores = pick(req.body, 'dnaScores') || {};
-    const blueprint = pick(req.body, 'blueprint');
     const guidance = await generateStageGuidance(req.apiKey, currentStage, businessHealth, dnaScores);
     res.json({ guidance: guidance.advice || guidance.guidance || JSON.stringify(guidance) });
   } catch (error) {

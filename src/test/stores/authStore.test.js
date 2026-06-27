@@ -13,7 +13,7 @@ describe('authStore', () => {
     expect(state.token).toBeNull();
   });
 
-  it('setAuth updates user, token, and localStorage', () => {
+  it('setAuth updates user and token', () => {
     const { setAuth } = useAuthStore.getState();
     const testUser = { id: '1', name: 'Test', email: 'test@test.com' };
 
@@ -22,10 +22,9 @@ describe('authStore', () => {
     const state = useAuthStore.getState();
     expect(state.user).toEqual(testUser);
     expect(state.token).toBe('token-123');
-    expect(localStorage.getItem('ai-cofounder-token')).toBe('token-123');
   });
 
-  it('logout clears user, token, and localStorage', () => {
+  it('logout clears user and token', () => {
     const { setAuth, logout } = useAuthStore.getState();
     setAuth({ id: '1', name: 'Test', email: 'test@test.com' }, 'token-123');
 
@@ -34,18 +33,17 @@ describe('authStore', () => {
     const state = useAuthStore.getState();
     expect(state.user).toBeNull();
     expect(state.token).toBeNull();
-    expect(localStorage.getItem('ai-cofounder-token')).toBeNull();
   });
 
-  it('isAuthenticated returns false when no token in localStorage', () => {
-    localStorage.removeItem('ai-cofounder-token');
-    const { isAuthenticated } = useAuthStore.getState();
-    expect(isAuthenticated()).toBe(false);
-  });
+  it('persists token to zustand storage', () => {
+    const { setAuth } = useAuthStore.getState();
+    const testUser = { id: '1', name: 'Test', email: 'test@test.com' };
 
-  it('isAuthenticated returns true when token exists in localStorage', () => {
-    localStorage.setItem('ai-cofounder-token', 'some-token');
-    const { isAuthenticated } = useAuthStore.getState();
-    expect(isAuthenticated()).toBe(true);
+    setAuth(testUser, 'token-123');
+
+    const persisted = localStorage.getItem('ai-cofounder-auth-storage');
+    expect(persisted).not.toBeNull();
+    const parsed = JSON.parse(persisted);
+    expect(parsed.state.token).toBe('token-123');
   });
 });

@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useBusinessStore } from '../../store/businessStore';
-import { FileText, Edit3, Download } from 'lucide-react';
+import { FileText, Edit3, Download, Save } from 'lucide-react';
 
 export default function BusinessBlueprint() {
-  const { blueprint } = useBusinessStore();
+  const { blueprint, updateBlueprint } = useBusinessStore();
+  const [editing, setEditing] = useState(false);
 
   if (!blueprint) {
     return (
@@ -19,16 +20,16 @@ export default function BusinessBlueprint() {
   }
 
   const sections = [
-    { title:'Executive Summary', content:blueprint.executiveSummary },
-    { title:'Problem', content:blueprint.problem },
-    { title:'Solution & USP', content:blueprint.solution },
-    { title:'Target Customer', content:blueprint.targetCustomer },
-    { title:'Market Size', content:blueprint.marketSize },
-    { title:'Competitors', content:blueprint.competitors },
-    { title:'Revenue Model', content:blueprint.revenueModel },
-    { title:'Go-to-Market Plan', content:blueprint.gtmPlan },
-    { title:'Validation Plan', content:blueprint.validationPlan },
-    { title:'MVP Plan', content:blueprint.mvpPlan },
+    { key:'executiveSummary', title:'Executive Summary', content:blueprint.executiveSummary },
+    { key:'problem', title:'Problem', content:blueprint.problem },
+    { key:'solution', title:'Solution & USP', content:blueprint.solution },
+    { key:'targetCustomer', title:'Target Customer', content:blueprint.targetCustomer },
+    { key:'marketSize', title:'Market Size', content:blueprint.marketSize },
+    { key:'competitors', title:'Competitors', content:blueprint.competitors },
+    { key:'revenueModel', title:'Revenue Model', content:blueprint.revenueModel },
+    { key:'gtmPlan', title:'Go-to-Market Plan', content:blueprint.gtmPlan },
+    { key:'validationPlan', title:'Validation Plan', content:blueprint.validationPlan },
+    { key:'mvpPlan', title:'MVP Plan', content:blueprint.mvpPlan },
   ];
 
   return (
@@ -36,7 +37,7 @@ export default function BusinessBlueprint() {
       <div style={styles.header}>
         <h2 style={styles.title}><FileText size={22} style={{color:'var(--color-accent-light)'}} /> Business Workspace</h2>
         <div style={{display:'flex',gap:'0.5rem'}}>
-          <button className="btn btn-secondary btn-sm" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}><Edit3 size={14} /> Edit</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => setEditing(!editing)}>{editing ? <Save size={14} /> : <Edit3 size={14} />} {editing ? 'Done Editing' : 'Edit'}</button>
           <button className="btn btn-secondary btn-sm" onClick={() => window.print()}><Download size={14} /> Export</button>
         </div>
       </div>
@@ -44,7 +45,16 @@ export default function BusinessBlueprint() {
         {sections.map((sec, i) => (
           <div key={i} style={styles.section}>
             <h4 style={styles.sectionTitle}>{sec.title}</h4>
-            <p style={styles.sectionContent}>{sec.content}</p>
+            {editing ? (
+              <div
+                contentEditable
+                suppressContentEditableWarning
+                style={styles.sectionContent}
+                onBlur={e => updateBlueprint(sec.key, e.currentTarget.textContent)}
+              >{sec.content}</div>
+            ) : (
+              <p style={styles.sectionContent}>{sec.content}</p>
+            )}
           </div>
         ))}
         <div style={styles.section}>

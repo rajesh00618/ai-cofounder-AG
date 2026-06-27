@@ -4,7 +4,7 @@ import { useFounderStore } from '../store/founderStore';
 import { useBusinessStore } from '../store/businessStore';
 import { useTaskStore } from '../store/taskStore';
 import { FileText, ArrowRight, Sparkles, CheckCircle2, Loader2, Edit3, Download } from 'lucide-react';
-import { delay, generateId, randomBetween } from '../utils/helpers';
+import { delay, generateId } from '../utils/helpers';
 import { api } from '../utils/api';
 
 const BUSINESS_QUESTIONS = [
@@ -60,8 +60,8 @@ export default function BusinessPlanningPage() {
       bp.createdAt = new Date().toISOString();
       setBp(bp);
       setBlueprint(bp);
-      setBusinessHealth({ idea: randomBetween(75,95), validation: randomBetween(20,45), product: randomBetween(40,65), marketing: randomBetween(15,35), sales: randomBetween(5,20), finance: randomBetween(10,25) });
-      setStartupScore({ execution: randomBetween(60,85), business: randomBetween(40,65), customers: randomBetween(5,25), product: randomBetween(50,75), cash: randomBetween(30,55), aiConfidence: randomBetween(65,85) });
+      setBusinessHealth({ idea: 50, validation: 50, product: 50, marketing: 50, sales: 50, finance: 50 });
+      setStartupScore({ execution: 50, business: 50, customers: 50, product: 50, cash: 50, aiConfidence: 50 });
       const sprintId = createSprint({ goal: 'Initial Validation', deadline: 'This week', week: 1 });
       addTask({ title: 'Interview 5 target customers', priority: 'high', estimatedTime: '2 hrs', aiAssistance: 'AI-assisted', sprintId });
       addTask({ title: 'Build landing page', priority: 'high', estimatedTime: '3 hrs', aiAssistance: 'AI-generated', sprintId });

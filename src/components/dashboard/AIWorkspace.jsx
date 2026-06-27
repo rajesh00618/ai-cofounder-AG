@@ -217,12 +217,7 @@ export default function AIWorkspace() {
           {activePanel === 'research' && (
             <div className="page-enter">
               <h4 style={styles.panelHeader}>Research Findings</h4>
-              {[{title:'Market growing 23% YoY',type:'trend'},{title:'3 competitors identified',type:'competitor'},{title:'YC accepting applications',type:'opportunity'}].map((r,i) => (
-                <div key={i} style={styles.researchItem}>
-                  <span className={`badge ${r.type==='trend'?'badge-success':r.type==='competitor'?'badge-warning':'badge-accent'}`} style={{fontSize:'0.5rem'}}>{r.type}</span>
-                  <span style={{fontSize:'0.8125rem'}}>{r.title}</span>
-                </div>
-              ))}
+              <p style={{fontSize:'0.875rem',color:'var(--color-text-muted)',textAlign:'center',padding:'2rem 0'}}>Research data will appear here after you start using the dashboard</p>
             </div>
           )}
 
