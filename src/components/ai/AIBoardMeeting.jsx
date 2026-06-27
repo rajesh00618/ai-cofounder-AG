@@ -60,7 +60,7 @@ export default function AIBoardMeeting() {
       </div>
 
       {/* Messages */}
-      <div style={styles.chatArea}>
+      <div className="board-chat-panel" style={styles.chatArea}>
         {messages.map((msg, i) => (
           msg.role === 'user' ? (
             <div key={i} style={styles.userRow}>

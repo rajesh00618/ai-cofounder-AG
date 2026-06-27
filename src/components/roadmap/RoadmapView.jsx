@@ -9,13 +9,14 @@ export default function RoadmapView() {
   const currentIdx = STARTUP_STAGES.findIndex(s => s.id === currentStage);
   const [guidance, setGuidance] = useState('');
   const [loading, setLoading] = useState(false);
+  const [rmError, setRmError] = useState('');
 
   useEffect(() => {
     if (currentStage && blueprint) {
       setLoading(true);
       api.getRoadmapGuidance(currentStage, { blueprint, businessHealth: {} })
         .then(res => setGuidance(res.guidance))
-        .catch(() => {})
+        .catch(() => setRmError('Failed to load AI guidance'))
         .finally(() => setLoading(false));
     }
   }, [currentStage, blueprint]);
@@ -26,6 +27,12 @@ export default function RoadmapView() {
     <div style={styles.page} className="page-enter">
       <h2 style={styles.title}><Map size={22} style={{ color: 'var(--color-accent-light)' }} /> Startup Roadmap</h2>
       <p style={styles.subtitle}>Your journey from idea to scale</p>
+
+      {rmError && (
+        <div style={{padding:'0.5rem 1rem',background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.15)',borderRadius:'10px',fontSize:'0.75rem',color:'var(--color-danger)',marginBottom:'1rem'}}>
+          {rmError}
+        </div>
+      )}
 
       {/* AI Guidance */}
       {loading && (

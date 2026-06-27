@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store/appStore';
 import { useFounderStore } from '../../store/founderStore';
-import { Home, MessageSquare, Briefcase, CheckSquare, Map, Brain, Search, FileText, Users, Beaker, CalendarCheck, Settings, ChevronLeft, ChevronRight, Sparkles, Dna, Zap } from 'lucide-react';
+import { useAuthStore } from '../../store/authStore';
+import { Home, MessageSquare, Briefcase, CheckSquare, Map, Brain, Search, FileText, Users, Beaker, CalendarCheck, Settings, ChevronLeft, ChevronRight, Sparkles, Dna, Zap, Menu, LogOut } from 'lucide-react';
 
 const NAV_ITEMS = [
   { id: 'home', label: 'Command Center', icon: Home },
@@ -21,17 +23,38 @@ const NAV_ITEMS = [
 ];
 
 export default function Sidebar({ activeView, onNavigate }) {
+  const navigate = useNavigate();
   const { sidebarCollapsed, toggleSidebarCollapse } = useAppStore();
   const { profile } = useFounderStore();
+  const { logout } = useAuthStore();
+  const [mobileExpanded, setMobileExpanded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  const effectiveCollapsed = isMobile ? !mobileExpanded : sidebarCollapsed;
+
+  const handleToggle = () => {
+    if (isMobile) {
+      setMobileExpanded(!mobileExpanded);
+    } else {
+      toggleSidebarCollapse();
+    }
+  };
 
   return (
-    <aside style={{...styles.sidebar, width: sidebarCollapsed ? '72px' : '260px'}}>
+    <aside style={{...styles.sidebar, width: effectiveCollapsed ? '72px' : '260px'}} className={`dashboard-sidebar${!effectiveCollapsed ? ' expanded' : ''}`}>
       {/* Logo */}
       <div style={styles.logoSection}>
         <div style={styles.logoIcon}><Sparkles size={18} /></div>
-        {!sidebarCollapsed && <span style={styles.logoText}>AI Co-Founder</span>}
-        <button onClick={toggleSidebarCollapse} style={styles.collapseBtn}>
-          {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        {!effectiveCollapsed && <span style={styles.logoText}>AI Co-Founder</span>}
+        <button onClick={handleToggle} style={styles.collapseBtn}>
+          {isMobile ? <Menu size={16} /> : (effectiveCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />)}
         </button>
       </div>
 
@@ -44,12 +67,12 @@ export default function Sidebar({ activeView, onNavigate }) {
             style={{
               ...styles.navItem,
               ...(activeView === item.id ? styles.navItemActive : {}),
-              justifyContent: sidebarCollapsed ? 'center' : 'flex-start'
+              justifyContent: effectiveCollapsed ? 'center' : 'flex-start'
             }}
-            title={sidebarCollapsed ? item.label : undefined}
+            title={effectiveCollapsed ? item.label : undefined}
           >
             <item.icon size={18} />
-            {!sidebarCollapsed && <span>{item.label}</span>}
+            {!effectiveCollapsed && <span>{item.label}</span>}
           </button>
         ))}
       </nav>
@@ -64,6 +87,23 @@ export default function Sidebar({ activeView, onNavigate }) {
           </div>
         </div>
       )}
+
+      {/* Sign Out */}
+      <button
+        onClick={() => { logout(); navigate('/'); }}
+        style={{
+          ...styles.navItem,
+          justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          paddingTop: '0.75rem',
+          marginTop: '0.25rem',
+          color: 'var(--color-danger)'
+        }}
+        title={sidebarCollapsed ? 'Sign Out' : undefined}
+      >
+        <LogOut size={18} />
+        {!sidebarCollapsed && <span>Sign Out</span>}
+      </button>
     </aside>
   );
 }

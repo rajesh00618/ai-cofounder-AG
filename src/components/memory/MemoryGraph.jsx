@@ -10,16 +10,14 @@ const NODE_COLORS = {
 };
 
 const DEFAULT_NODES = [
-  { id: 1, type: 'idea', label: 'Idea Created', date: new Date(Date.now() - 86400000 * 30).toLocaleDateString('en-US',{month:'short',day:'numeric'}) },
-  { id: 2, type: 'task', label: 'Customer Research', date: new Date(Date.now() - 86400000 * 25).toLocaleDateString('en-US',{month:'short',day:'numeric'}) },
-  { id: 3, type: 'task', label: 'Landing Page', date: new Date(Date.now() - 86400000 * 20).toLocaleDateString('en-US',{month:'short',day:'numeric'}) },
-  { id: 4, type: 'customer', label: 'First Feedback', date: new Date(Date.now() - 86400000 * 14).toLocaleDateString('en-US',{month:'short',day:'numeric'}) },
-  { id: 5, type: 'document', label: 'Business Plan', date: new Date(Date.now() - 86400000 * 10).toLocaleDateString('en-US',{month:'short',day:'numeric'}) },
-  { id: 6, type: 'milestone', label: 'MVP Launch', date: new Date(Date.now() - 86400000 * 5).toLocaleDateString('en-US',{month:'short',day:'numeric'}) },
-  { id: 7, type: 'revenue', label: 'First Revenue', date: new Date(Date.now() - 86400000 * 2).toLocaleDateString('en-US',{month:'short',day:'numeric'}) },
+  { id: 1, type: 'idea', label: 'Idea', date: new Date(Date.now() - 86400000 * 60).toLocaleDateString('en-US',{month:'short',day:'numeric'}) },
+  { id: 2, type: 'task', label: 'Validation', date: new Date(Date.now() - 86400000 * 45).toLocaleDateString('en-US',{month:'short',day:'numeric'}) },
+  { id: 3, type: 'milestone', label: 'MVP', date: new Date(Date.now() - 86400000 * 30).toLocaleDateString('en-US',{month:'short',day:'numeric'}) },
+  { id: 4, type: 'goal', label: 'Launch', date: new Date(Date.now() - 86400000 * 15).toLocaleDateString('en-US',{month:'short',day:'numeric'}) },
+  { id: 5, type: 'revenue', label: 'Growth', date: new Date(Date.now() - 86400000 * 2).toLocaleDateString('en-US',{month:'short',day:'numeric'}) },
 ];
 
-const DEFAULT_EDGES = [[1,2],[1,3],[2,4],[2,5],[3,6],[4,7],[5,7],[6,7]];
+const DEFAULT_EDGES = [[1,2],[2,3],[3,4],[4,5]];
 
 const NODE_POSITIONS = [
   { x: 200, y: 80 }, { x: 120, y: 180 }, { x: 300, y: 180 },
@@ -30,6 +28,7 @@ export default function MemoryGraph() {
   const { profile } = useFounderStore();
   const [nodes, setNodes] = useState(DEFAULT_NODES);
   const [loading, setLoading] = useState(true);
+  const [memError, setMemError] = useState('');
 
   useEffect(() => {
     const loadMemory = async () => {
@@ -47,7 +46,7 @@ export default function MemoryGraph() {
           }
         }
       } catch {
-        // Use default nodes
+        setMemError('Could not load memory timeline, showing defaults');
       }
       setLoading(false);
     };
@@ -61,6 +60,12 @@ export default function MemoryGraph() {
     <div style={styles.page} className="page-enter">
       <h2 style={styles.title}><Brain size={22} style={{color:'var(--color-accent-light)'}} /> Memory Graph</h2>
       <p style={styles.subtitle}>Everything your AI remembers, connected</p>
+
+      {memError && (
+        <div style={{padding:'0.5rem 1rem',background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.15)',borderRadius:'10px',fontSize:'0.75rem',color:'var(--color-danger)',marginBottom:'1rem'}}>
+          {memError}
+        </div>
+      )}
 
       {loading ? (
         <div style={{textAlign:'center',padding:'4rem',color:'var(--color-text-muted)'}}>

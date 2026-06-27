@@ -36,8 +36,8 @@ export default function BusinessBlueprint() {
       <div style={styles.header}>
         <h2 style={styles.title}><FileText size={22} style={{color:'var(--color-accent-light)'}} /> Business Workspace</h2>
         <div style={{display:'flex',gap:'0.5rem'}}>
-          <button className="btn btn-secondary btn-sm"><Edit3 size={14} /> Edit</button>
-          <button className="btn btn-secondary btn-sm"><Download size={14} /> Export</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}><Edit3 size={14} /> Edit</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => window.print()}><Download size={14} /> Export</button>
         </div>
       </div>
       <div style={styles.sections}>

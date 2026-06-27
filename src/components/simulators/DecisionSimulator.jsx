@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Beaker, TrendingUp, AlertTriangle, Sparkles, Users, MessageSquare } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Beaker, TrendingUp, AlertTriangle, Sparkles, Users, MessageSquare, Loader2 } from 'lucide-react';
 import { delay, randomBetween, getScoreColor } from '../../utils/helpers';
+import { useBusinessStore } from '../../store/businessStore';
 import { api } from '../../utils/api';
 
 const CUSTOMER_PERSONAS = [
@@ -12,12 +13,15 @@ const CUSTOMER_PERSONAS = [
 ];
 
 export default function DecisionSimulator() {
+  const { businessHealth, blueprint } = useBusinessStore();
   const [question, setQuestion] = useState('');
   const [simulating, setSimulating] = useState(false);
   const [result, setResult] = useState(null);
   const [tab, setTab] = useState('decision');
   const [selectedPersona, setSelectedPersona] = useState('student');
   const [customerResult, setCustomerResult] = useState(null);
+  const [failureData, setFailureData] = useState(null);
+  const [failureLoading, setFailureLoading] = useState(false);
 
   const runSimulation = async () => {
     if (!question.trim()) return;
@@ -60,6 +64,27 @@ export default function DecisionSimulator() {
     setResult(data);
     setSimulating(false);
   };
+
+  useEffect(() => {
+    if (tab === 'failure') {
+      setFailureLoading(true);
+      api.getFailurePrediction({ businessHealth, blueprint })
+        .then(data => setFailureData(data))
+        .catch(() => {
+          setFailureData({
+            failureProbability: randomBetween(45, 72),
+            topRisks: [
+              { risk: 'No customer validation done yet', impact: 'high', mitigation: 'Interview 5 target customers this week' },
+              { risk: 'No distribution channel established', impact: 'high', mitigation: 'Create a go-to-market plan' },
+              { risk: 'Marketing strategy undefined', impact: 'medium', mitigation: 'Define target channels and messaging' },
+              { risk: 'Revenue model unproven', impact: 'medium', mitigation: 'Test pricing with early adopters' }
+            ],
+            recommendation: 'Let\'s fix these — starting with customer validation. I can help you set up 5 customer interviews this week.'
+          });
+        })
+        .finally(() => setFailureLoading(false));
+    }
+  }, [tab]);
 
   const runCustomerSim = async () => {
     if (!question.trim()) return;
@@ -213,23 +238,36 @@ export default function DecisionSimulator() {
 
       {tab === 'failure' && (
         <div style={styles.failureCard} className="page-enter">
-          <div style={styles.failureHeader}>
-            <AlertTriangle size={32} style={{color:'var(--color-warning)'}} />
-            <div>
-              <div style={{fontSize:'2rem',fontWeight:800,color:'var(--color-warning)'}}>{randomBetween(45,72)}%</div>
-              <div style={{fontSize:'0.875rem',color:'var(--color-text-tertiary)'}}>Current failure probability</div>
+          {failureLoading ? (
+            <div style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'1rem 0'}}>
+              <Loader2 size={14} style={{animation:'spin 1s linear infinite'}} />
+              <span style={{fontSize:'0.8125rem',color:'var(--color-text-tertiary)'}}>Analyzing failure risk...</span>
             </div>
-          </div>
-          <h4 style={{fontWeight:600,marginBottom:'0.75rem'}}>Your startup currently has an elevated failure risk because:</h4>
-          {['No customer validation done yet','No distribution channel established','Marketing strategy undefined','Revenue model unproven'].map((r,i) => (
-            <div key={i} style={{display:'flex',alignItems:'center',gap:'0.5rem',marginBottom:'0.5rem',fontSize:'0.875rem',color:'var(--color-text-secondary)'}}>
-              <AlertTriangle size={14} style={{color:'var(--color-danger)'}} /> {r}
+          ) : failureData ? (
+            <>
+              <div style={styles.failureHeader}>
+                <AlertTriangle size={32} style={{color:'var(--color-warning)'}} />
+                <div>
+                  <div style={{fontSize:'2rem',fontWeight:800,color:'var(--color-warning)'}}>{failureData.failureProbability}%</div>
+                  <div style={{fontSize:'0.875rem',color:'var(--color-text-tertiary)'}}>Current failure probability</div>
+                </div>
+              </div>
+              <h4 style={{fontWeight:600,marginBottom:'0.75rem'}}>Your startup currently has an elevated failure risk because:</h4>
+              {(failureData.topRisks || []).map((r, i) => (
+                <div key={i} style={{display:'flex',alignItems:'center',gap:'0.5rem',marginBottom:'0.5rem',fontSize:'0.875rem',color:'var(--color-text-secondary)'}}>
+                  <AlertTriangle size={14} style={{color:'var(--color-danger)'}} /> {r.risk}
+                </div>
+              ))}
+              <div style={{...styles.recommendCard,marginTop:'1rem'}}>
+                <Sparkles size={16} style={{color:'var(--color-success)'}} />
+                <span><strong>{failureData.recommendation}</strong></span>
+              </div>
+            </>
+          ) : (
+            <div style={{padding:'1rem 0',fontSize:'0.8125rem',color:'var(--color-text-tertiary)'}}>
+              Unable to load failure prediction. Provide business context first.
             </div>
-          ))}
-          <div style={{...styles.recommendCard,marginTop:'1rem'}}>
-            <Sparkles size={16} style={{color:'var(--color-success)'}} />
-            <span><strong>Let's fix them</strong> — starting with customer validation. I can help you set up 5 customer interviews this week.</span>
-          </div>
+          )}
         </div>
       )}
     </div>

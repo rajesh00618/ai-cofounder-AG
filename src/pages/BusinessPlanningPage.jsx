@@ -33,6 +33,7 @@ export default function BusinessPlanningPage() {
   const [_generating, setGenerating] = useState(false);
   const [genStep, setGenStep] = useState(0);
   const [blueprint, setBp] = useState(null);
+  const [bpError, setBpError] = useState('');
 
   const handleAnswer = (id, val) => {
     setAnswers(prev => ({ ...prev, [id]: val }));
@@ -69,7 +70,8 @@ export default function BusinessPlanningPage() {
       addTask({ title: 'Draft pricing page', priority: 'medium', estimatedTime: '45 min', aiAssistance: 'AI-generated', sprintId });
       addTask({ title: 'Competitor deep-dive analysis', priority: 'high', estimatedTime: '1.5 hrs', aiAssistance: 'AI-powered', sprintId });
     } catch (e) {
-      alert('AI Generation failed: ' + e.message + '\nFalling back to generated blueprint.');
+      setBpError('AI Generation failed: ' + e.message);
+      console.error(e);
     }
     setGenerating(false);
     setPhase('blueprint');
@@ -79,6 +81,12 @@ export default function BusinessPlanningPage() {
     <div style={styles.page}>
       <div style={styles.bgOrb} />
       <div style={styles.container}>
+
+        {bpError && (
+          <div style={{padding:'0.75rem 1rem',background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:'12px',color:'var(--color-danger)',fontSize:'0.875rem',marginBottom:'1rem',textAlign:'center'}}>
+            {bpError}
+          </div>
+        )}
 
         {phase === 'questions' && (
           <div style={styles.card} key={currentQ} className="page-enter">

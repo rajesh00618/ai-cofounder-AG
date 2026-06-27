@@ -77,6 +77,7 @@ export default function GoalPage() {
   const [selectedAlt, setSelectedAlt] = useState(null);
   const [clarCustomMode, setClarCustomMode] = useState(false);
   const [clarCustomInput, setClarCustomInput] = useState('');
+  const [pageError, setPageError] = useState('');
 
   useEffect(() => { if (!profile) navigate('/onboarding'); }, [profile, navigate]);
 
@@ -173,7 +174,7 @@ export default function GoalPage() {
           }
         } catch (error) {
           console.error(error);
-          alert('API Error: ' + error.message);
+          setPageError('API Error: ' + error.message);
           setPhase(PHASES.GOAL_INPUT);
         }
       });
@@ -218,6 +219,13 @@ export default function GoalPage() {
             <button className="btn btn-primary btn-lg" onClick={() => setPhase(PHASES.GOAL_INPUT)} style={{marginTop:'1rem'}}>
               Let's Go <ArrowRight size={18} />
             </button>
+          </div>
+        )}
+
+        {/* Error banner */}
+        {pageError && (
+          <div style={{padding:'0.75rem 1rem',background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:'12px',color:'var(--color-danger)',fontSize:'0.875rem',marginBottom:'1rem',textAlign:'center'}}>
+            {pageError}
           </div>
         )}
 

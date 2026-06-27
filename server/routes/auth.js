@@ -7,7 +7,7 @@ import { getDb } from '../db/database.js';
 const generateId = () => crypto.randomUUID();
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-dev-secret';
+const JWT_SECRET = process.env.JWT_SECRET || (() => { throw new Error('JWT_SECRET must be set in .env') })();
 
 router.post('/register', async (req, res) => {
   try {

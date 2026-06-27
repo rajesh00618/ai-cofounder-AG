@@ -16,7 +16,7 @@ export default function FounderTwin() {
     setLoading(true);
     api.adaptDNA(dnaScores, founderTwin)
       .then(res => setAdaptations(res.adaptations || []))
-      .catch(() => setAdaptations([]))
+      .catch((err) => { console.error('[FounderTwin] Failed to load adaptations:', err); setAdaptations([]); })
       .finally(() => setLoading(false));
   }, [dnaScores, founderTwin]);
 

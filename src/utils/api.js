@@ -52,7 +52,7 @@ export const api = {
   getExecutionPlan: (task) => apiPost('/execution/plan', { task }),
   executeStep: (stepId, task) => apiPost('/execution/step', { stepId, task }),
   generateBlueprint: (answers) => apiPost('/business/blueprint', { answers }),
-  getFailurePrediction: () => apiGet('/failure/prediction'),
+  getFailurePrediction: (context = {}) => apiPost('/failure/prediction', { ...context }),
   generateDocument: (type, context) => apiPost('/documents/generate', { type, context }),
   getRoadmapGuidance: (stage, context) => apiPost('/roadmap/guidance', { stage, ...context }),
   analyzeDNA: (profile) => apiPost('/founder/dna/analyze', { profile }),
@@ -62,5 +62,5 @@ export const api = {
   submitReviewNote: (review, extra) => apiPost('/review/note', { review, ...extra }),
   getTaskSuggestions: (context) => apiPost('/tasks/suggest', { ...context }),
   getBusinessBlueprint: () => apiGet('/business/blueprint'),
-  healthCheck: () => apiGet('/health'),
+  healthCheck: () => apiGet('/api/health'),
 };

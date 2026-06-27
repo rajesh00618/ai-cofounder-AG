@@ -51,7 +51,7 @@ export default function DashboardPage() {
   return (
     <div style={styles.layout}>
       <Sidebar activeView={activeView} onNavigate={setActiveView} />
-      <main style={{...styles.main, marginLeft: sidebarCollapsed ? '72px' : '260px'}}>
+      <main className="dashboard-main" style={{...styles.main, marginLeft: sidebarCollapsed ? '72px' : '260px'}}>
         <ActiveComponent onNavigate={setActiveView} />
       </main>
     </div>

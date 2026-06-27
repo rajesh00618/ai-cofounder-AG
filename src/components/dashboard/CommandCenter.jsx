@@ -32,6 +32,7 @@ export default function CommandCenter({ onNavigate }) {
   const [mission, setMission] = useState('');
   const [recommendation, setRecommendation] = useState('');
   const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState('');
 
   const todayTasks = tasks.filter(t => t.status !== 'done').slice(0, 4);
   const completedToday = tasks.filter(t => t.status === 'done').length;
@@ -42,14 +43,14 @@ export default function CommandCenter({ onNavigate }) {
     setLoading(true);
     const ctx = { businessHealth, startupScore, profile, blueprint, currentStage, dnaScores, tasks };
     Promise.all([
-      api.getMission(ctx).then(r => setMission(r.mission)).catch(() => {}),
-      api.getHealth(ctx).then(r => setRecommendation(r.recommendation)).catch(() => {})
+      api.getMission(ctx).then(r => setMission(r.mission)).catch(() => setApiError('Failed to load mission data')),
+      api.getHealth(ctx).then(r => setRecommendation(r.recommendation)).catch(() => setApiError('Failed to load health data'))
     ]).finally(() => setLoading(false));
   }, [businessHealth, startupScore, profile, blueprint]);
 
   return (
     <div style={styles.page} className="page-enter">
-      <div style={styles.header}>
+      <div className="dashboard-header" style={styles.header}>
         <div>
           <h1 style={styles.greeting}>{getGreeting()}, {profile?.name} 👋</h1>
           <p style={styles.subtitle}>Here's your startup's pulse today</p>
@@ -62,7 +63,7 @@ export default function CommandCenter({ onNavigate }) {
 
       <div style={styles.section}>
         <h3 style={styles.sectionTitle}><Zap size={16} style={{ color: 'var(--color-warning)' }} /> Live Startup Score</h3>
-        <div style={styles.scoreGrid}>
+        <div className="dashboard-grid-6" style={styles.scoreGrid}>
           <ScoreCard label="Execution" value={startupScore.execution} icon={TrendingUp} color="var(--color-accent-light)" />
           <ScoreCard label="Business" value={startupScore.business} icon={BarChart3} color="var(--color-info-light)" />
           <ScoreCard label="Customers" value={startupScore.customers} icon={Target} color="var(--color-success-light)" />
@@ -72,7 +73,7 @@ export default function CommandCenter({ onNavigate }) {
         </div>
       </div>
 
-      <div style={styles.twoCol}>
+      <div className="dashboard-grid-2" style={styles.twoCol}>
         <div style={styles.panel}>
           <h3 style={styles.panelTitle}><Target size={16} style={{ color: 'var(--color-accent-light)' }} /> Today's Mission</h3>
           <div style={styles.missionCard}>
@@ -164,6 +165,12 @@ export default function CommandCenter({ onNavigate }) {
           </div>
         </div>
       </div>
+
+      {apiError && (
+        <div style={{padding:'0.5rem 1rem',background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.15)',borderRadius:'10px',fontSize:'0.75rem',color:'var(--color-danger)',marginBottom:'1rem'}}>
+          {apiError}
+        </div>
+      )}
 
       {overallHealth < 50 && (
         <div style={styles.alertCard}>

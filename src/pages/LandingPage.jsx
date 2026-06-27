@@ -40,10 +40,10 @@ export default function LandingPage() {
             <span style={styles.logoText}>AI Co-Founder</span>
           </div>
           <div style={{ display:'flex', gap:'0.75rem', alignItems:'center' }}>
-            <button className="btn btn-ghost" onClick={() => navigate('/auth')} style={styles.navCta}>
+            <button className="btn btn-ghost landing-nav-cta" onClick={() => navigate('/auth')} style={styles.navCta}>
               <LogIn size={14} /> Sign In
             </button>
-            <button className="btn btn-primary" onClick={() => navigate('/auth')} style={styles.navCta}>
+            <button className="btn btn-primary landing-nav-cta" onClick={() => navigate('/auth')} style={styles.navCta}>
               Start Building <ArrowRight size={16} />
             </button>
           </div>
@@ -51,7 +51,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section style={{...styles.hero, opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(30px)', transition: 'all 0.8s cubic-bezier(0.34,1.56,0.64,1)'}}>
+      <section className="landing-hero" style={{...styles.hero, opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(30px)', transition: 'all 0.8s cubic-bezier(0.34,1.56,0.64,1)'}}>
         <div style={styles.heroBadge}>
           <Zap size={12} style={{color:'var(--color-warning)'}} />
           <span>The world's first Startup Operating System</span>
@@ -75,7 +75,7 @@ export default function LandingPage() {
 
       {/* Stats */}
       <section style={{...styles.statsSection, opacity: visible ? 1 : 0, transition: 'opacity 1s 0.3s'}}>
-        <div style={styles.statsGrid}>
+        <div className="landing-stats-grid" style={styles.statsGrid}>
           {stats.map((s, i) => (
             <div key={i} style={styles.statCard}>
               <div style={styles.statValue}>{s.value}</div>
@@ -89,7 +89,7 @@ export default function LandingPage() {
       <section style={styles.comparisonSection}>
         <div style={styles.sectionInner}>
           <h2 style={styles.sectionTitle}>A Real Co-Founder, Not Another Chatbot</h2>
-          <div style={styles.compGrid}>
+          <div className="landing-comp-grid" style={styles.compGrid}>
             <div style={{...styles.compCard, ...styles.compCardOld}}>
               <div style={styles.compHeader}>
                 <Bot size={24} style={{color:'var(--color-text-muted)'}} />
@@ -121,7 +121,7 @@ export default function LandingPage() {
         <div style={styles.sectionInner}>
           <h2 style={styles.sectionTitle}>Core Engines That Set Us Apart</h2>
           <p style={styles.sectionSubtitle}>Features a competitor cannot fake with a better prompt</p>
-          <div style={styles.featuresGrid}>
+          <div className="landing-features-grid" style={styles.featuresGrid}>
             {features.map((f, i) => (
               <div key={i} className="glass-card" style={{...styles.featureCard, animationDelay: `${i * 100}ms`}}>
                 <div style={styles.featureIcon}><f.icon size={24} /></div>
@@ -137,14 +137,14 @@ export default function LandingPage() {
       <section style={styles.pipelineSection}>
         <div style={styles.sectionInner}>
           <h2 style={styles.sectionTitle}>Your Journey, End-to-End</h2>
-          <div style={styles.pipeline}>
+          <div className="landing-pipeline" style={styles.pipeline}>
             {['Idea','Validation','MVP','Launch','Revenue','PMF','Scale'].map((stage, i) => (
               <React.Fragment key={stage}>
                 <div style={styles.pipelineStage}>
                   <div style={{...styles.pipelineDot, background: i === 0 ? 'var(--gradient-primary)' : 'var(--color-bg-glass-strong)'}} />
                   <span style={styles.pipelineLabel}>{stage}</span>
                 </div>
-                {i < 6 && <div style={styles.pipelineLine} />}
+                {i < 6 && <div className="landing-pipeline-line" style={styles.pipelineLine} />}
               </React.Fragment>
             ))}
           </div>

@@ -9,6 +9,7 @@ export default function TaskEngine() {
   const [filter, setFilter] = useState('all');
   const [suggestions, setSuggestions] = useState([]);
   const [suggesting, setSuggesting] = useState(false);
+  const [taskError, setTaskError] = useState('');
 
   const filtered = filter === 'all' ? tasks : tasks.filter(t => t.status === filter);
   const done = tasks.filter(t => t.status === 'done').length;
@@ -26,7 +27,9 @@ export default function TaskEngine() {
     try {
       const res = await api.getTaskSuggestions({ sprint: sprint.goal, stage: 'ideation' });
       setSuggestions(res.suggestions || []);
-    } catch {}
+    } catch {
+      setTaskError('Failed to get AI suggestions');
+    }
     setSuggesting(false);
   };
 
@@ -59,6 +62,12 @@ export default function TaskEngine() {
           <span>Goal: <strong>{sprint.goal}</strong></span>
         </div>
       </div>
+
+      {taskError && (
+        <div style={{padding:'0.5rem 1rem',background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.15)',borderRadius:'10px',fontSize:'0.75rem',color:'var(--color-danger)',marginBottom:'0.75rem'}}>
+          {taskError}
+        </div>
+      )}
 
       {/* AI Suggestions */}
       <div style={styles.suggestBar}>

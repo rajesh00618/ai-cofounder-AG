@@ -8,13 +8,9 @@ import BusinessPlanningPage from './pages/BusinessPlanningPage';
 import DashboardPage from './pages/DashboardPage';
 import { useAuthStore } from './store/authStore';
 import { api } from './utils/api';
+import ProtectedRoute from './components/ProtectedRoute';
+import ErrorBoundary from './components/ErrorBoundary';
 import './styles/design-system.css';
-
-function ProtectedRoute({ children }) {
-  const token = useAuthStore(s => s.token);
-  if (!token) return <Navigate to="/auth" replace />;
-  return children;
-}
 
 export default function App() {
   const token = useAuthStore(s => s.token);
@@ -27,6 +23,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <ErrorBoundary>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />
@@ -36,6 +33,7 @@ export default function App() {
         <Route path="/dashboard/*" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }

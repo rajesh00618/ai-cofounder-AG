@@ -339,10 +339,13 @@ router.get('/memory/timeline/:founderId', requireJwt, async (req, res) => {
 });
 
 // --- BUSINESS BLUEPRINT ---
+let _blueprintCache = null;
+
 router.post('/business/blueprint', requireApiKey, requireBody('answers'), async (req, res) => {
   try {
     const { answers, profile } = req.body;
     const result = await generateBlueprint(req.apiKey, answers, profile);
+    _blueprintCache = result;
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -350,7 +353,8 @@ router.post('/business/blueprint', requireApiKey, requireBody('answers'), async 
 });
 
 router.get('/business/blueprint', async (req, res) => {
-  res.json({});
+  if (_blueprintCache) return res.json(_blueprintCache);
+  res.status(404).json({ error: 'No blueprint found' });
 });
 
 // --- EXECUTION ---
@@ -369,6 +373,31 @@ router.post('/execution/step', requireApiKey, requireBody('stepId', 'task'), asy
     const { stepId, task } = req.body;
     const result = await executeStep(req.apiKey, stepId, task);
     res.json({ stepId, output: result.output });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// --- FAILURE PREDICTION ---
+router.post('/failure/prediction', requireApiKey, async (req, res) => {
+  try {
+    const context = req.body || {};
+    const prompt = `You are a startup failure prediction engine. Analyze the provided business context and predict failure probability and key risks.
+
+Respond ONLY in JSON format:
+{
+  "failureProbability": <number 0-100>,
+  "topRisks": [
+    { "risk": "risk description", "impact": "high/medium/low", "mitigation": "how to mitigate" }
+  ],
+  "recommendation": "A 1-2 sentence actionable recommendation"
+}
+
+Business context: ${JSON.stringify(context)}`;
+
+    const response = await callOpenAI(req.apiKey, 'You are a startup failure prediction engine. Analyze the provided business context and predict failure probability.', prompt, 0.7);
+    const parsed = extractJSON(response);
+    res.json(parsed);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
