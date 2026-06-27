@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useBusinessStore } from '../../store/businessStore';
 import { FileText, Download, Sparkles, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import { api } from '../../utils/api';
@@ -20,6 +20,14 @@ export default function DocumentGenerator() {
   const [generated, setGenerated] = useState(new Set());
   const [docContent, setDocContent] = useState({});
   const [error, setError] = useState('');
+  const [notification, setNotification] = useState('');
+
+  useEffect(() => {
+    if (notification) {
+      const t = setTimeout(() => setNotification(''), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [notification]);
 
   const handleGenerate = async (docId) => {
     setError('');
@@ -39,6 +47,7 @@ export default function DocumentGenerator() {
       <h2 style={styles.title}><FileText size={22} style={{ color: 'var(--color-accent-light)' }} /> Document Generator</h2>
       <p style={styles.subtitle}>One-click generation of any startup document</p>
 
+      {notification && <div style={styles.notifBanner}><CheckCircle2 size={14} /> {notification}</div>}
       {error && <div style={styles.errorBanner}><AlertCircle size={14} /> {error}</div>}
 
       {!blueprint && (
@@ -61,7 +70,7 @@ export default function DocumentGenerator() {
               {generated.has(doc.id) ? (
                 <div style={{ display: 'flex', gap: '0.5rem', flexDirection: 'column', width: '100%' }}>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button className="btn btn-success btn-sm"><CheckCircle2 size={14} /> Generated</button>
+                    <button className="btn btn-success btn-sm" onClick={() => { setNotification('Document generated — scroll to view'); setTimeout(() => setNotification(''), 3000); }}><CheckCircle2 size={14} /> Generated</button>
                     <button className="btn btn-secondary btn-sm" onClick={() => {
                       const blob = new Blob([docContent[doc.id]], { type: 'text/markdown' });
                       const url = URL.createObjectURL(blob);
@@ -100,6 +109,7 @@ const styles = {
   title: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.25rem' },
   subtitle: { color: 'var(--color-text-tertiary)', fontSize: '0.875rem', marginBottom: '0.75rem' },
   errorBanner: { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '10px', fontSize: '0.8125rem', color: 'var(--color-danger)', marginBottom: '0.75rem' },
+  notifBanner: { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: '10px', fontSize: '0.8125rem', color: 'var(--color-success)', marginBottom: '0.75rem' },
   warningBanner: { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: '10px', fontSize: '0.8125rem', color: 'var(--color-warning)', marginBottom: '1rem' },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' },
   card: { padding: '1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' },

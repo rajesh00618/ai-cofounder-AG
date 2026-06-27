@@ -6,6 +6,6 @@ You challenge founders who haven't talked to customers or don't understand their
 Keep responses concise and practical.`;
 
 export const getSalesAdvice = async (apiKey, context, message) => {
-  const prompt = `Context:\n${JSON.stringify(context)}\n\nUser: ${message}`;
+  const prompt = `Context:\n${JSON.stringify(context)}\n\nUser: ${JSON.stringify(message)}`;
   return callOpenAI(apiKey, salesPrompt, prompt, 0.5);
 };

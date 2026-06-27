@@ -55,7 +55,7 @@ const requireBody = (...fieldGroups) => (req, res, next) => {
 router.post('/chat', requireApiKey, requireBody('message'), async (req, res) => {
   try {
     const { message, context } = req.body;
-    const prompt = `Context:\n${JSON.stringify(context || {})}\n\nUser: ${message}`;
+    const prompt = `Context:\n${JSON.stringify(context || {})}\n\nUser: ${JSON.stringify(message)}`;
     const response = await callOpenAI(req.apiKey, PROMPTS.CEO, prompt, 0.7);
     const confidence = Math.min(70 + Math.floor((message?.length || 10) / 10), 99);
     res.json({ content: response, confidence });

@@ -152,19 +152,19 @@ export default function GoalPage() {
         const realityResult = await api.evaluateGoal(goalText);
         const formattedReality = {
           scores: {
-            'Market Size': realityResult.dimensions.market,
-            'Competition Intensity': realityResult.dimensions.competition,
-            'Tech Feasibility': realityResult.dimensions.tech,
-            'Customer Access': realityResult.dimensions.customer,
-            'Founder Fit': realityResult.dimensions.founder,
-            'Revenue Potential': realityResult.dimensions.revenue,
-            'Timeline Feasibility': realityResult.dimensions.timing,
-            'Execution Complexity': realityResult.dimensions.execution
+            'Market Size': realityResult?.dimensions?.market || 50,
+            'Competition Intensity': realityResult?.dimensions?.competition || 50,
+            'Tech Feasibility': realityResult?.dimensions?.tech || 50,
+            'Customer Access': realityResult?.dimensions?.customer || 50,
+            'Founder Fit': realityResult?.dimensions?.founder || 50,
+            'Revenue Potential': realityResult?.dimensions?.revenue || 50,
+            'Timeline Feasibility': realityResult?.dimensions?.timing || 50,
+            'Execution Complexity': realityResult?.dimensions?.execution || 50
           },
-          overallScore: realityResult.score,
-          probability: `${Math.max(5, realityResult.score - 15)}–${Math.min(95, realityResult.score + 10)}%`,
-          risks: realityResult.risks,
-          recommendation: realityResult.verdict
+          overallScore: realityResult?.score || 50,
+          probability: `${Math.max(5, (realityResult?.score || 50) - 15)}–${Math.min(95, (realityResult?.score || 50) + 10)}%`,
+          risks: realityResult?.risks || [],
+          recommendation: realityResult?.verdict || ''
         };
         
         setReality(formattedReality);

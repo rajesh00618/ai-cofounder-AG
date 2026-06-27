@@ -5,6 +5,6 @@ You are thorough and skeptical — you verify claims before accepting them.
 You challenge unsupported assumptions with data and evidence.`;
 
 export const getResearchAdvice = async (apiKey, context, message) => {
-  const prompt = `Context:\n${JSON.stringify(context)}\n\nUser: ${message}`;
+  const prompt = `Context:\n${JSON.stringify(context)}\n\nUser: ${JSON.stringify(message)}`;
   return callOpenAI(apiKey, researchPrompt, prompt, 0.3);
 };

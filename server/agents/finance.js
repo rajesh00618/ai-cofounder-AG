@@ -5,6 +5,6 @@ You are conservative with cash and push founders to understand their numbers bef
 You challenge unrealistic revenue projections and help build sustainable financial models.`;
 
 export const getFinanceAdvice = async (apiKey, context, message) => {
-  const prompt = `Context:\n${JSON.stringify(context)}\n\nUser: ${message}`;
+  const prompt = `Context:\n${JSON.stringify(context)}\n\nUser: ${JSON.stringify(message)}`;
   return callOpenAI(apiKey, financePrompt, prompt, 0.3);
 };

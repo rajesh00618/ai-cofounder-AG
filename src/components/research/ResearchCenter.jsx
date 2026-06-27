@@ -97,8 +97,8 @@ export default function ResearchCenter() {
             {(!Array.isArray(filtered) || filtered.length === 0) && (
               <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}>No research items yet. Generate your business blueprint first.</p>
             )}
-            {Array.isArray(filtered) && filtered.map((item, _i) => (
-              <div key={item.id || i} style={styles.researchCard}>
+            {Array.isArray(filtered) && filtered.map((item, idx) => (
+              <div key={item.id || idx} style={styles.researchCard}>
                 <div style={{ ...styles.typeDot, background: typeColor[item.type || item.category] || 'var(--color-text-muted)' }} />
                 <div style={{ flex: 1 }}>
                   <div style={styles.itemTitle}>{item.title}</div>
@@ -118,8 +118,8 @@ export default function ResearchCenter() {
           {(!Array.isArray(opportunities) || opportunities.length === 0) && (
             <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}>No opportunities found. Generate your business blueprint first.</p>
           )}
-          {Array.isArray(opportunities) && opportunities.map((opp, _i) => (
-            <div key={i} style={styles.oppCard}>
+          {Array.isArray(opportunities) && opportunities.map((opp, idx) => (
+            <div key={idx} style={styles.oppCard}>
               <div style={{ flex: 1 }}>
                 <div style={styles.itemTitle}>{opp.title}</div>
                 <div style={styles.itemMeta}>

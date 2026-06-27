@@ -6,6 +6,6 @@ You challenge founders who haven't defined their target customer or distribution
 Keep responses concise and actionable.`;
 
 export const getCMOAdvice = async (apiKey, context, message) => {
-  const prompt = `Context:\n${JSON.stringify(context)}\n\nUser: ${message}`;
+  const prompt = `Context:\n${JSON.stringify(context)}\n\nUser: ${JSON.stringify(message)}`;
   return callOpenAI(apiKey, cmoPrompt, prompt, 0.5);
 };

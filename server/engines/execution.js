@@ -10,7 +10,7 @@ Return JSON: {
   },
   "result": "Task execution completed successfully."
 }`;
-  const userPrompt = `Task: ${task}`;
+  const userPrompt = `Task: ${JSON.stringify(task)}`;
   const response = await callOpenAI(apiKey, prompt, userPrompt, 0.3);
   return extractJSON(response);
 };
@@ -18,7 +18,7 @@ Return JSON: {
 export const executeStep = async (apiKey, stepId, task) => {
   const prompt = `You are an AI execution engine executing step ${stepId} of a task. Generate a realistic, detailed output describing what was accomplished.
 Respond with a single concise paragraph (1-3 sentences). Do NOT use JSON. Just return the output text.`;
-  const userPrompt = `Task: ${task}\nStep Number: ${stepId}`;
+  const userPrompt = `Task: ${JSON.stringify(task)}\nStep Number: ${stepId}`;
   const output = await callOpenAI(apiKey, prompt, userPrompt, 0.4);
   return { output: output.trim() };
 };
