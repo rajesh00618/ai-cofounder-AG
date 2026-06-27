@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useFounderStore } from '../store/founderStore';
 import { useBusinessStore } from '../store/businessStore';
 import { useTaskStore } from '../store/taskStore';
 import { FileText, ArrowRight, Sparkles, CheckCircle2, Loader2, Edit3, Download } from 'lucide-react';

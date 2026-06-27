@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useFounderStore } from '../store/founderStore';
 import { useAppStore } from '../store/appStore';
 import Sidebar from '../components/dashboard/Sidebar';
@@ -40,11 +40,20 @@ export default function DashboardPage() {
   const { profile } = useFounderStore();
   const { sidebarCollapsed } = useAppStore();
   const [activeView, setActiveView] = useState('home');
+  const [hydrated, setHydrated] = useState(false);
 
-  if (!profile) {
+  useEffect(() => {
+    const unsub = useFounderStore.persist.onFinishHydration(() => setHydrated(true));
+    if (useFounderStore.persist.hasHydrated()) setHydrated(true);
+    return () => unsub();
+  }, []);
+
+  if (hydrated && !profile) {
     navigate('/onboarding');
     return null;
   }
+
+  if (!hydrated) return null;
 
   const ActiveComponent = VIEWS[activeView] || CommandCenter;
 

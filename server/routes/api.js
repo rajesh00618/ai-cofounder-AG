@@ -62,7 +62,7 @@ router.post('/chat', requireApiKey, requireBody('message'), async (req, res) => 
     const { message, context } = req.body;
     const prompt = `Context:\n${JSON.stringify(context || {})}\n\nUser: ${JSON.stringify(message)}`;
     const response = await callOpenAI(req.apiKey, PROMPTS.CEO, prompt, 0.7);
-    const confidence = Math.min(70 + Math.floor((message?.length || 10) / 10), 99);
+    const confidence = Math.min(70 + Math.floor((response?.length || 10) / 20), 95);
     res.json({ content: response, confidence });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -446,8 +446,9 @@ router.post('/execution/step', requireApiKey, requireBody('stepId', 'task'), asy
 router.post('/failure/prediction', requireApiKey, async (req, res) => {
   try {
     const context = req.body || {};
-    const prompt = `You are a startup failure prediction engine. Analyze the provided business context and predict failure probability and key risks.
+    const prompt = `Business context: ${JSON.stringify(context)}`;
 
+    const systemPrompt = `You are a startup failure prediction engine. Analyze the provided business context and predict failure probability and key risks.
 Respond ONLY in JSON format:
 {
   "failureProbability": <number 0-100>,
@@ -455,11 +456,9 @@ Respond ONLY in JSON format:
     { "risk": "risk description", "impact": "high/medium/low", "mitigation": "how to mitigate" }
   ],
   "recommendation": "A 1-2 sentence actionable recommendation"
-}
+}`;
 
-Business context: ${JSON.stringify(context)}`;
-
-    const response = await callOpenAI(req.apiKey, 'You are a startup failure prediction engine. Analyze the provided business context and predict failure probability.', prompt, 0.7);
+    const response = await callOpenAI(req.apiKey, systemPrompt, prompt, 0.7);
     const parsed = extractJSON(response);
     // Validate structure
     if (typeof parsed?.failureProbability !== 'number') {

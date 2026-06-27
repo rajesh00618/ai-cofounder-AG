@@ -78,6 +78,13 @@ export default function GoalPage() {
   const [pageError, setPageError] = useState('');
   const [elapsed, setElapsed] = useState(0);
   const [generatingQuestions, setGeneratingQuestions] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    const unsub = useFounderStore.persist.onFinishHydration(() => setHydrated(true));
+    if (useFounderStore.persist.hasHydrated()) setHydrated(true);
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     if (!thinking && !generatingQuestions) { setElapsed(0); return; }
@@ -86,7 +93,7 @@ export default function GoalPage() {
     return () => clearInterval(id);
   }, [thinking, generatingQuestions]);
 
-  useEffect(() => { if (!profile) navigate('/onboarding'); }, [profile, navigate]);
+  useEffect(() => { if (hydrated && !profile) navigate('/onboarding'); }, [hydrated, profile, navigate]);
 
   const handleGoalSubmit = async () => {
     if (!goalText.trim()) return;

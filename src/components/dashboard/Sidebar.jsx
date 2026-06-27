@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store/appStore';
 import { useFounderStore } from '../../store/founderStore';
 import { useAuthStore } from '../../store/authStore';
+import { useBusinessStore } from '../../store/businessStore';
+import { useTaskStore } from '../../store/taskStore';
+import { useChatStore } from '../../store/chatStore';
 import { Home, MessageSquare, Briefcase, CheckSquare, Map, Brain, Search, FileText, Users, Beaker, CalendarCheck, Settings, ChevronLeft, ChevronRight, Sparkles, Dna, Zap, Menu, LogOut } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -90,7 +93,14 @@ export default function Sidebar({ activeView, onNavigate }) {
 
       {/* Sign Out */}
       <button
-        onClick={() => { logout(); navigate('/'); }}
+        onClick={() => {
+        logout();
+        useBusinessStore.setState({ blueprint: null, businessHealth: { idea: 0, validation: 0, product: 0, marketing: 0, sales: 0, finance: 0 }, startupScore: { execution: 0, business: 0, customers: 0, product: 0, cash: 0, aiConfidence: 50 }, currentStage: 'idea', businessAnswers: {}, documents: [] });
+        useTaskStore.setState({ tasks: [], sprints: [], currentSprintId: null });
+        useChatStore.setState({ messages: [], isThinking: false, thinkingStep: '', confidence: null, activeAgent: 'ceo', boardMeetingActive: false, debateActive: false, investorModeActive: false, customerSimActive: false });
+        useFounderStore.setState({ profile: null, onboardingComplete: false, goal: '', clarificationAnswers: {}, realityScore: null, negotiationResult: null, founderTwin: null, dnaScores: { decision: 50, execution: 50, consistency: 50, learning: 50, leadership: 50, sales: 50, technical: 50, communication: 50, focus: 50, confidence: 50 } });
+        navigate('/');
+      }}
         style={{
           ...styles.navItem,
           justifyContent: effectiveCollapsed ? 'center' : 'flex-start',

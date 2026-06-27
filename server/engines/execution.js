@@ -50,7 +50,7 @@ DO NOT execute any code. Return JSON:
     for (const file of (gen.files || [])) {
       const size = Buffer.byteLength(file.content || '', 'utf8');
       outputs.push(`Generated ${file.filename} (${size} bytes) — NOT executed (sandbox disabled for security)`);
-      outputs.push(`Instructions: ${file.instructions || 'N/A'}`);
+      outputs.push(`Instructions: ${gen.instructions || 'N/A'}`);
     }
 
     if (outputs.length === 0) {

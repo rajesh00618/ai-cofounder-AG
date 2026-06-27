@@ -58,8 +58,8 @@ CREATE TABLE IF NOT EXISTS memory_nodes (
 CREATE TABLE IF NOT EXISTS memory_edges (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id),
-  source_node_id TEXT NOT NULL REFERENCES memory_nodes(id),
-  target_node_id TEXT NOT NULL REFERENCES memory_nodes(id),
+  source_node_id TEXT NOT NULL REFERENCES memory_nodes(id) ON DELETE CASCADE,
+  target_node_id TEXT NOT NULL REFERENCES memory_nodes(id) ON DELETE CASCADE,
   relationship TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT NOW()
 );
@@ -69,13 +69,24 @@ CREATE INDEX IF NOT EXISTS idx_memory_nodes_founder ON memory_nodes(founder_id, 
 `;
 
 export const initDb = async () => {
-  console.log('[DB] Checking Supabase connection...');
+  console.log('[DB] Initializing database schema...');
   const supabase = getDb();
   if (!supabase) {
     console.log('[DB] Supabase not configured — skipping schema init.');
-    console.log('[DB] To create tables, run this SQL in your Supabase SQL Editor:');
+    console.log('[DB] To create tables manually, run this SQL in your Supabase SQL Editor:');
     console.log(DDL);
     return;
   }
-  console.log('[DB] Supabase connected. Run the DDL above in your Supabase SQL Editor if tables do not exist.');
+  try {
+    const { error } = await supabase.rpc('exec_sql', { query: DDL });
+    if (error) {
+      console.log('[DB] Could not auto-apply schema (RPC may not exist). Run manually.');
+      console.log(DDL);
+    } else {
+      console.log('[DB] Schema applied successfully.');
+    }
+  } catch {
+    console.log('[DB] Could not auto-apply schema. Run manually:');
+    console.log(DDL);
+  }
 };

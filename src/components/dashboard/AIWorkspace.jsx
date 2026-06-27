@@ -32,7 +32,7 @@ const tb = { wrap:{padding:'0.75rem 1rem',background:'rgba(99,102,241,0.05)',bor
 
 export default function AIWorkspace() {
   const { profile } = useFounderStore();
-  const { messages, addMessage, isThinking, setThinking, setConfidence } = useChatStore();
+  const { messages, addMessage, updateMessage, isThinking, setThinking, setConfidence } = useChatStore();
   const { blueprint } = useBusinessStore();
   const { tasks } = useTaskStore();
   const [input, setInput] = useState('');
@@ -40,8 +40,13 @@ export default function AIWorkspace() {
   const [thinkSteps, setThinkSteps] = useState([]);
   const [thinkCurrent, setThinkCurrent] = useState(0);
   const chatEndRef = useRef(null);
+  const abortRef = useRef(null);
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior:'smooth' }); }, [messages, isThinking]);
+
+  useEffect(() => {
+    return () => { abortRef.current?.(); };
+  }, []);
 
   const generateResponse = async (userMsg) => {
     const steps = ['Thinking...', 'Analyzing Context...', 'Formulating Response...'];
@@ -62,27 +67,14 @@ export default function AIWorkspace() {
     };
 
     const msgId = `stream-${Date.now()}`;
-    let accumulated = '';
+    addMessage({ id: msgId, role: 'assistant', content: '', confidence: 85, agent: 'ceo' });
 
-    api.chatStream(userMsg, context,
+    abortRef.current = api.chatStream(userMsg, context,
       (token, fullText) => {
-        if (!accumulated) {
-          addMessage({ id: msgId, role: 'assistant', content: '', confidence: 85, agent: 'ceo' });
-        }
-        accumulated = fullText;
-        const store = useChatStore.getState();
-        const updated = store.messages.map(m =>
-          m.id === msgId ? { ...m, content: fullText } : m
-        );
-        useChatStore.setState({ messages: updated });
+        updateMessage(msgId, { content: fullText });
       },
       (fullText) => {
-        accumulated = fullText;
-        const store = useChatStore.getState();
-        const updated = store.messages.map(m =>
-          m.id === msgId ? { ...m, content: fullText, confidence: 92 } : m
-        );
-        useChatStore.setState({ messages: updated, confidence: 92 });
+        updateMessage(msgId, { content: fullText, confidence: 92 });
         setConfidence(92);
       },
       (error) => {

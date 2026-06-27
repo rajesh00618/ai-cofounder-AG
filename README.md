@@ -9,15 +9,16 @@ The world's first Startup Operating System. Not just an AI chatbot — an **AI C
 ## What's New
 
 ### v1.6 — Production Hardening
+- **📋 features.md** — Comprehensive feature directory documenting all 20 feature areas, 30+ API endpoints, and 151 tests
 - **🐛 Fixed**: Dashboard sidebar syntax error causing crash on profile render
 - **🧹 Cleaned**: 12 unused imports, dead code, and duplicated logic removed
 - **🔒 Security**: Password reset token no longer logged to console; prompt injection defense-in-depth
 - **💾 Memory leak fix**: Blueprint cache now has TTL (1 hour) to prevent unbounded growth
 - **⚡ Performance**: Fixed missing React hook dependencies in 4 components
-- **🧪 All 106 tests passing**, lint clean (1 pre-existing control-regex warning)
+- **🧪 All 151 tests passing**, lint clean (1 pre-existing control-regex warning)
 
 ### v1.5 — Full Test Coverage
-- **104 tests across 22 files** covering all 14 dashboard views
+- **151 tests across 27 files** covering all 14 dashboard views and all backend engines
 - Unit, integration, and E2E test suites
 
 ### v1.4 — Final Review Fixes
@@ -40,6 +41,8 @@ The world's first Startup Operating System. Not just an AI chatbot — an **AI C
 - **🧠 Memory Scoped to Users** — memory nodes, tasks, and businesses tied to authenticated users
 
 ## Features
+
+> **📖 Full details in [`features.md`](features.md)** — 937 lines covering 20 feature areas, 30+ API endpoints, and 151 tests.
 
 ### Onboarding & Goal Setting
 - **7-Question Founder Onboarding** — understand the founder, not just the startup (2 minutes)

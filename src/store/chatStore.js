@@ -23,6 +23,10 @@ export const useChatStore = create(
     }]
   })),
 
+  updateMessage: (id, updates) => set(s => ({
+    messages: s.messages.map(m => m.id === id ? { ...m, ...updates } : m)
+  })),
+
   setThinking: (val) => set({ isThinking: val }),
   setThinkingStep: (step) => set({ thinkingStep: step }),
   setConfidence: (val) => set({ confidence: val }),

@@ -5,7 +5,7 @@ import { Map, CheckCircle2, Clock, Circle, Sparkles, Loader2 } from 'lucide-reac
 import { api } from '../../utils/api';
 
 export default function RoadmapView() {
-  const { currentStage, blueprint } = useBusinessStore();
+  const { currentStage, blueprint, businessHealth } = useBusinessStore();
   const currentIdx = STARTUP_STAGES.findIndex(s => s.id === currentStage);
   const [guidance, setGuidance] = useState('');
   const [loading, setLoading] = useState(false);
@@ -14,12 +14,12 @@ export default function RoadmapView() {
   useEffect(() => {
     if (currentStage && blueprint) {
       setLoading(true);
-      api.getRoadmapGuidance(currentStage, { blueprint, businessHealth: {} })
+      api.getRoadmapGuidance(currentStage, { blueprint, businessHealth })
         .then(res => setGuidance(res.guidance))
         .catch(() => setRmError('Failed to load AI guidance'))
         .finally(() => setLoading(false));
     }
-  }, [currentStage, blueprint]);
+  }, [currentStage, blueprint, businessHealth]);
 
   const stage = STARTUP_STAGES[currentIdx];
 

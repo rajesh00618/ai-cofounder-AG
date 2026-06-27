@@ -10,6 +10,11 @@ export default class ErrorBoundary extends React.Component {
     return { hasError: true, error };
   }
 
+  handleReset = () => {
+    this.setState({ hasError: false, error: null });
+    window.location.href = '/auth';
+  };
+
   render() {
     if (this.state.hasError) {
       return (
@@ -24,7 +29,7 @@ export default class ErrorBoundary extends React.Component {
           </p>
           <button
             className="btn btn-primary"
-            onClick={() => { this.setState({ hasError: false, error: null }); window.location.href = '/auth'; }}
+            onClick={this.handleReset}
           >
             Return Home
           </button>

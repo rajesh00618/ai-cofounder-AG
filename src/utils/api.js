@@ -1,13 +1,24 @@
-// Use relative URL so it works in both dev (via Vite proxy) and production
 const API_BASE = '/api';
 
-const getHeaders = () => {
-  const apiKey = localStorage.getItem('ai-cofounder-apikey');
-  let token = null;
+const getApiKey = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem('ai-cofounder-app-storage'));
+    if (stored && stored.state && stored.state.apiKey) return stored.state.apiKey;
+  } catch {}
+  return '';
+};
+
+const getToken = () => {
   try {
     const stored = JSON.parse(localStorage.getItem('ai-cofounder-auth-storage'));
-    if (stored && stored.state && stored.state.token) token = stored.state.token;
+    if (stored && stored.state && stored.state.token) return stored.state.token;
   } catch {}
+  return null;
+};
+
+const getHeaders = () => {
+  const apiKey = getApiKey();
+  const token = getToken();
   const headers = { 'Content-Type': 'application/json' };
   if (apiKey) headers['x-api-key'] = apiKey;
   if (token) headers['Authorization'] = `Bearer ${token}`;
