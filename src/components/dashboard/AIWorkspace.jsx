@@ -48,32 +48,51 @@ export default function AIWorkspace() {
     setThinkSteps(steps);
     setThinking(true);
     
-    // Animate steps
     for (let i = 0; i < steps.length; i++) {
       setThinkCurrent(i);
       await delay(300);
     }
     
-    try {
-      const context = {
-        profile,
-        blueprint,
-        tasks: tasks.filter(t => t.status !== 'done')
-      };
-      
-      const { content, confidence } = await api.chat(userMsg, context);
-      
-      setThinking(false);
-      setConfidence(confidence);
-      addMessage({ role: 'assistant', content, confidence, agent: 'ceo' });
-    } catch (error) {
-      setThinking(false);
-      const isNetwork = error.message === 'Failed to fetch' || error.message.includes('NetworkError') || error.message.includes('network');
-      const msg = isNetwork
-        ? '⚠️ Cannot reach the server. Make sure the backend is running (`node server/index.js`).'
-        : `⚠️ Error: ${error.message}`;
-      addMessage({ role: 'assistant', content: msg, agent: 'ceo' });
-    }
+    setThinking(false);
+
+    const context = {
+      profile,
+      blueprint,
+      tasks: tasks.filter(t => t.status !== 'done')
+    };
+
+    const msgId = `stream-${Date.now()}`;
+    let accumulated = '';
+
+    const cancel = api.chatStream(userMsg, context,
+      (token, fullText) => {
+        if (!accumulated) {
+          addMessage({ id: msgId, role: 'assistant', content: '', confidence: 85, agent: 'ceo' });
+        }
+        accumulated = fullText;
+        const store = useChatStore.getState();
+        const updated = store.messages.map(m =>
+          m.id === msgId ? { ...m, content: fullText } : m
+        );
+        useChatStore.setState({ messages: updated });
+      },
+      (fullText) => {
+        accumulated = fullText;
+        const store = useChatStore.getState();
+        const updated = store.messages.map(m =>
+          m.id === msgId ? { ...m, content: fullText, confidence: 92 } : m
+        );
+        useChatStore.setState({ messages: updated, confidence: 92 });
+        setConfidence(92);
+      },
+      (error) => {
+        const isNetwork = error === 'Failed to fetch' || error?.includes('NetworkError') || error?.includes('network');
+        const msg = isNetwork
+          ? '⚠️ Cannot reach the server. Make sure the backend is running (`node server/index.js`).'
+          : `⚠️ Error: ${error}`;
+        addMessage({ role: 'assistant', content: msg, agent: 'ceo' });
+      }
+    );
   };
 
   const handleSend = () => {

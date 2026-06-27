@@ -1,28 +1,88 @@
 import OpenAI from 'openai';
 
+const MODELS = [
+  { model: 'meta/llama-4-maverick-17b-128e-instruct', baseURL: 'https://integrate.api.nvidia.com/v1' },
+  { model: 'mistralai/mistral-large', baseURL: 'https://integrate.api.nvidia.com/v1' },
+  { model: 'microsoft/phi-4', baseURL: 'https://integrate.api.nvidia.com/v1' },
+];
+
+const createClient = (apiKey, config) => new OpenAI({
+  apiKey,
+  baseURL: config.baseURL,
+  timeout: 30000,
+  maxRetries: 1,
+});
+
 export const callOpenAI = async (apiKey, systemPrompt, userPrompt, temperature = 0.7) => {
   if (!apiKey) throw new Error('No API key provided.');
 
-  const model = process.env.AI_MODEL || 'meta/llama-4-maverick-17b-128e-instruct';
-  const baseURL = process.env.AI_BASE_URL || 'https://integrate.api.nvidia.com/v1';
+  const preferredModel = process.env.AI_MODEL;
+  const preferredBaseURL = process.env.AI_BASE_URL;
 
-  const openai = new OpenAI({
-    apiKey,
-    baseURL,
-    timeout: 30000,
-    maxRetries: 2,
-  });
+  const candidates = preferredModel
+    ? [{ model: preferredModel, baseURL: preferredBaseURL || MODELS[0].baseURL }]
+    : MODELS;
 
-  const completion = await openai.chat.completions.create({
-    model,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt }
-    ],
-    temperature,
-  });
+  let lastError;
+  for (const config of candidates) {
+    try {
+      const openai = createClient(apiKey, config);
+      const completion = await openai.chat.completions.create({
+        model: config.model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        temperature,
+      });
+      return completion.choices[0].message.content;
+    } catch (err) {
+      lastError = err;
+      console.warn(`[AI] Model ${config.model} failed: ${err.message}. Trying next...`);
+    }
+  }
+  throw lastError || new Error('All AI models failed');
+};
 
-  return completion.choices[0].message.content;
+export const callOpenAIStream = async (apiKey, systemPrompt, userPrompt, onToken, temperature = 0.7) => {
+  if (!apiKey) throw new Error('No API key provided.');
+
+  const preferredModel = process.env.AI_MODEL;
+  const preferredBaseURL = process.env.AI_BASE_URL;
+
+  const candidates = preferredModel
+    ? [{ model: preferredModel, baseURL: preferredBaseURL || MODELS[0].baseURL }]
+    : MODELS;
+
+  let lastError;
+  for (const config of candidates) {
+    try {
+      const openai = createClient(apiKey, config);
+      const stream = await openai.chat.completions.create({
+        model: config.model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        temperature,
+        stream: true,
+      });
+
+      let full = '';
+      for await (const chunk of stream) {
+        const text = chunk.choices?.[0]?.delta?.content || '';
+        if (text) {
+          full += text;
+          onToken(text, full);
+        }
+      }
+      return full;
+    } catch (err) {
+      lastError = err;
+      console.warn(`[AI] Stream model ${config.model} failed: ${err.message}. Trying next...`);
+    }
+  }
+  throw lastError || new Error('All AI stream models failed');
 };
 
 export const extractJSON = (text) => {
@@ -37,6 +97,11 @@ export const extractJSON = (text) => {
     const jsonEnd = toParse.lastIndexOf('}');
     if (jsonStart !== -1 && jsonEnd > jsonStart) {
       return JSON.parse(toParse.slice(jsonStart, jsonEnd + 1));
+    }
+    const arrStart = toParse.indexOf('[');
+    const arrEnd = toParse.lastIndexOf(']');
+    if (arrStart !== -1 && arrEnd > arrStart) {
+      return JSON.parse(toParse.slice(arrStart, arrEnd + 1));
     }
     throw new Error(`Invalid JSON response from AI: ${trimmed.slice(0, 200)}`);
   }

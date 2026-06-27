@@ -1,11 +1,11 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
-import { callOpenAI, PROMPTS, extractJSON } from '../services/ai.js';
+import { callOpenAI, callOpenAIStream, PROMPTS, extractJSON } from '../services/ai.js';
 import { evaluateGoal, calculateRealityScore } from '../engines/reality.js';
 import { negotiateGoal } from '../engines/negotiation.js';
 import { runDecisionSimulation, runCompanySimulation, simulateCustomerReaction } from '../engines/simulation.js';
 import { getResearch, getOpportunities, getMorningBriefing } from '../engines/research.js';
-import { addMemoryNode, getMemoryNodes, getMemoryTimeline } from '../engines/memory.js';
+import { addMemoryNode, getMemoryNodes, getMemoryTimeline, addMemoryEdge, getMemoryGraph } from '../engines/memory.js';
 import { generateExecutionPlan, executeStep } from '../engines/execution.js';
 import { generateBlueprint } from '../engines/business.js';
 import { generateDocument } from '../engines/documents.js';
@@ -61,6 +61,28 @@ router.post('/chat', requireApiKey, requireBody('message'), async (req, res) => 
     res.json({ content: response, confidence });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/chat/stream', requireApiKey, requireBody('message'), async (req, res) => {
+  try {
+    const { message, context } = req.body;
+    const prompt = `Context:\n${JSON.stringify(context || {})}\n\nUser: ${JSON.stringify(message)}`;
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+
+    const full = await callOpenAIStream(req.apiKey, PROMPTS.CEO, prompt, (token, fullText) => {
+      res.write(`data: ${JSON.stringify({ token, fullText })}\n\n`);
+    }, 0.7);
+
+    res.write(`data: ${JSON.stringify({ done: true, fullText: full })}\n\n`);
+    res.end();
+  } catch (error) {
+    res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+    res.end();
   }
 });
 
@@ -332,6 +354,25 @@ router.get('/memory/timeline/:founderId', requireJwt, async (req, res) => {
   try {
     const timeline = await getMemoryTimeline(req.userId, req.params.founderId);
     res.json(timeline);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/memory/edges', requireJwt, requireBody('sourceNodeId', 'targetNodeId', 'relationship'), async (req, res) => {
+  try {
+    const { sourceNodeId, targetNodeId, relationship } = req.body;
+    const id = await addMemoryEdge(req.userId, sourceNodeId, targetNodeId, relationship);
+    res.json({ id, message: 'Memory edge created' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/memory/graph/:founderId', requireJwt, async (req, res) => {
+  try {
+    const graph = await getMemoryGraph(req.userId, req.params.founderId);
+    res.json(graph);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

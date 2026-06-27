@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS users (
   name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
+  reset_token TEXT,
+  reset_token_expires TIMESTAMP,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -52,6 +54,18 @@ CREATE TABLE IF NOT EXISTS memory_nodes (
   metadata TEXT,
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS memory_edges (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  source_node_id TEXT NOT NULL REFERENCES memory_nodes(id),
+  target_node_id TEXT NOT NULL REFERENCES memory_nodes(id),
+  relationship TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_memory_edges_source ON memory_edges(source_node_id);
+CREATE INDEX IF NOT EXISTS idx_memory_nodes_founder ON memory_nodes(founder_id, user_id);
 `;
 
 export const initDb = async () => {
@@ -63,7 +77,5 @@ export const initDb = async () => {
     console.log(DDL);
     return;
   }
-  // Try running DDL via Supabase REST — this requires a pg connection,
-  // so we log it for the user to run manually.
   console.log('[DB] Supabase connected. Run the DDL above in your Supabase SQL Editor if tables do not exist.');
 };

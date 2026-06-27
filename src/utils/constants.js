@@ -57,7 +57,7 @@ export const AI_AGENTS = [
   { id: 'research', name: 'Research AI', role: 'Deep research', color: '#06b6d4', icon: '🔬' },
   { id: 'designer', name: 'Designer AI', role: 'UX/UI guidance', color: '#f43f5e', icon: '🎨' },
   { id: 'developer', name: 'Developer AI', role: 'Coding/implementation', color: '#22d3ee', icon: '⚙️' },
-  { id: 'planner', name: 'Planner AI', role: 'Task breakdown & scheduling', color: '#a855f7', icon: '📋' }
+  { id: 'planner', name: 'Planner AI', role: 'Task breakdown & scheduling', color: '#a855f7', icon: '📋' },
 ];
 
 export const REALITY_DIMENSIONS = [

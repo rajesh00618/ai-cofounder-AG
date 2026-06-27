@@ -1,4 +1,4 @@
-import { getDb } from '../db/database.js';
+import { getDb, runQuery, getQuery, allQuery } from '../db/database.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export const addMemoryNode = async (userId, founderId, type, label, metadata = {}) => {
@@ -40,4 +40,44 @@ export const getMemoryTimeline = async (userId, founderId) => {
     .order('created_at', { ascending: true });
   if (error) throw error;
   return data || [];
+};
+
+export const addMemoryEdge = async (userId, sourceNodeId, targetNodeId, relationship) => {
+  const supabase = getDb();
+  if (!supabase) return null;
+  const id = uuidv4();
+  const { error } = await supabase.from('memory_edges').insert({
+    id, user_id: userId, source_node_id: sourceNodeId,
+    target_node_id: targetNodeId, relationship,
+  });
+  if (error) throw error;
+  return id;
+};
+
+export const getMemoryGraph = async (userId, founderId) => {
+  const supabase = getDb();
+  if (!supabase) return { nodes: [], edges: [] };
+
+  const { data: nodes, error: nodeError } = await supabase
+    .from('memory_nodes')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('founder_id', founderId)
+    .order('created_at', { ascending: false });
+  if (nodeError) throw nodeError;
+
+  const nodeIds = (nodes || []).map(n => n.id);
+  if (nodeIds.length === 0) return { nodes: [], edges: [] };
+
+  const { data: edges, error: edgeError } = await supabase
+    .from('memory_edges')
+    .select('*')
+    .eq('user_id', userId)
+    .in('source_node_id', nodeIds);
+  if (edgeError) throw edgeError;
+
+  return {
+    nodes: (nodes || []).map(r => ({ ...r, metadata: r.metadata ? JSON.parse(r.metadata) : {} })),
+    edges: edges || [],
+  };
 };

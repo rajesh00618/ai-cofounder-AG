@@ -4,6 +4,10 @@
 # Database
 *.sqlite
 
+# Server runtime
+server/sandbox/
+server/logs/
+
 # Logs
 logs
 *.log

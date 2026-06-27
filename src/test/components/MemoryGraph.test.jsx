@@ -11,7 +11,9 @@ vi.mock('../../store/founderStore', () => ({
 
 vi.mock('../../utils/api', () => ({
   api: {
-    getMemoryTimeline: vi.fn(() => Promise.resolve([])),
+    getMemoryGraph: vi.fn(() => Promise.resolve({ nodes: [], edges: [] })),
+    addMemoryNode: vi.fn(() => Promise.resolve({ id: 'new-id' })),
+    addMemoryEdge: vi.fn(() => Promise.resolve({ id: 'edge-id' })),
   },
 }));
 
@@ -30,17 +32,32 @@ describe('MemoryGraph', () => {
     expect(screen.getByText(/Memory Graph/i)).toBeDefined();
   });
 
-  it('shows SVG graph element', () => {
+  it('shows SVG graph element', async () => {
     const { container } = render(<MemoryRouter><MemoryGraph /></MemoryRouter>);
-    const svg = container.querySelector('svg');
-    expect(svg).toBeDefined();
+    await waitFor(() => {
+      const svg = container.querySelector('svg');
+      expect(svg).toBeDefined();
+    });
   });
 
-  it('shows default nodes', async () => {
+  it('shows Timeline View header', async () => {
     render(<MemoryRouter><MemoryGraph /></MemoryRouter>);
-    await screen.findByText(/Timeline View/i);
-    expect(screen.getAllByText(/Idea/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Validation/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/MVP/i).length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getByText(/Timeline View/i)).toBeDefined();
+    });
+  });
+
+  it('has Add Node button', async () => {
+    render(<MemoryRouter><MemoryGraph /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText(/Add Node/i)).toBeDefined();
+    });
+  });
+
+  it('has Add Edge button', async () => {
+    render(<MemoryRouter><MemoryGraph /></MemoryRouter>);
+    await waitFor(() => {
+      expect(screen.getByText(/Add Edge/i)).toBeDefined();
+    });
   });
 });
