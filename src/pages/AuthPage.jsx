@@ -1,19 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Mail, Lock, User, ArrowRight, Eye, EyeOff, LogIn } from 'lucide-react';
+import { Sparkles, Mail, Lock, User, ArrowRight, Eye, EyeOff, LogIn, LogOut } from 'lucide-react';
 import { api } from '../utils/api';
 import { useAuthStore } from '../store/authStore';
 import { useFounderStore } from '../store/founderStore';
 
 export default function AuthPage() {
   const navigate = useNavigate();
+  const user = useAuthStore(s => s.user);
   const token = useAuthStore(s => s.token);
   const setAuth = useAuthStore(s => s.setAuth);
+  const logout = useAuthStore(s => s.logout);
   const resetOnboarding = useFounderStore(s => s.resetOnboarding);
-
-  React.useEffect(() => {
-    if (token) navigate('/onboarding', { replace: true });
-  }, [token]);
   const [mode, setMode] = useState('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -59,6 +57,20 @@ export default function AuthPage() {
             <span style={styles.logoText}>AI Co-Founder</span>
           </div>
 
+          {token ? (
+            <div style={styles.signedInBox}>
+              <div style={styles.avatar}>{user?.name?.[0] || '?'}</div>
+              <h2 style={styles.signedInTitle}>You're signed in</h2>
+              <p style={styles.signedInEmail}>{user?.email}</p>
+              <button className="btn btn-primary btn-lg" style={styles.signedInBtn} onClick={() => navigate('/onboarding')}>
+                <ArrowRight size={18} /> Continue to Onboarding
+              </button>
+              <button className="btn btn-ghost" style={styles.logoutBtn} onClick={() => { logout(); }}>
+                <LogOut size={14} /> Sign out
+              </button>
+            </div>
+          ) : (
+          <>
           <h1 style={styles.title}>
             {mode === 'login' ? 'Welcome back' : 'Create your account'}
           </h1>
@@ -139,7 +151,10 @@ export default function AuthPage() {
               )}
             </button>
           </form>
+          </>
+          )}
 
+          {!token && (
           <div style={styles.footer}>
             <span style={styles.footerText}>
               {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}
@@ -153,6 +168,7 @@ export default function AuthPage() {
               <ArrowRight size={14} />
             </button>
           </div>
+          )}
         </div>
       </div>
     </div>
@@ -183,4 +199,10 @@ const styles = {
   footer: { display:'flex', alignItems:'center', justifyContent:'center', gap:'0.5rem', marginTop:'1.5rem' },
   footerText: { fontSize:'0.875rem', color:'var(--color-text-tertiary)' },
   switchBtn: { display:'inline-flex', alignItems:'center', gap:'0.25rem', background:'none', border:'none', color:'var(--color-accent-light)', cursor:'pointer', fontSize:'0.875rem', fontWeight:500, padding:'0' },
+  signedInBox: { textAlign:'center', padding:'1rem 0' },
+  avatar: { width:'64px', height:'64px', borderRadius:'50%', background:'var(--gradient-primary)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.5rem', fontWeight:700, color:'white', margin:'0 auto 1rem' },
+  signedInTitle: { fontSize:'1.5rem', fontWeight:700, marginBottom:'0.25rem' },
+  signedInEmail: { fontSize:'0.9375rem', color:'var(--color-text-tertiary)', marginBottom:'1.5rem' },
+  signedInBtn: { width:'100%', justifyContent:'center', gap:'0.5rem' },
+  logoutBtn: { width:'100%', justifyContent:'center', gap:'0.5rem', marginTop:'0.75rem', color:'var(--color-text-muted)' },
 };

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
@@ -7,6 +7,7 @@ import GoalPage from './pages/GoalPage';
 import BusinessPlanningPage from './pages/BusinessPlanningPage';
 import DashboardPage from './pages/DashboardPage';
 import { useAuthStore } from './store/authStore';
+import { api } from './utils/api';
 import './styles/design-system.css';
 
 function ProtectedRoute({ children }) {
@@ -16,6 +17,14 @@ function ProtectedRoute({ children }) {
 }
 
 export default function App() {
+  const token = useAuthStore(s => s.token);
+  const logout = useAuthStore(s => s.logout);
+
+  useEffect(() => {
+    if (!token) return;
+    api.getMe().catch(() => logout());
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>
