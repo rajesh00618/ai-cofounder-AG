@@ -36,12 +36,11 @@ const pick = (body, ...keys) => { for (const k of keys) { if (body[k] !== undefi
 
 /**
  * Middleware to get API key.
- * NEVER falls back to process.env.NVIDIA_API_KEY for user requests.
- * Users must provide their own x-api-key header.
+ * Falls back to env var when no x-api-key header is provided.
  */
 const requireApiKey = (req, res, next) => {
-  const apiKey = req.headers['x-api-key'];
-  if (!apiKey) return res.status(401).json({ error: 'API key is required. Provide your own x-api-key header.' });
+  const apiKey = req.headers['x-api-key'] || process.env.NVIDIA_API_KEY;
+  if (!apiKey) return res.status(401).json({ error: 'API key is required.' });
   req.apiKey = apiKey;
   next();
 };
