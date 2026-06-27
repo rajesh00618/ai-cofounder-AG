@@ -1,24 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFounderStore } from '../store/founderStore';
 import { ONBOARDING_QUESTIONS } from '../utils/constants';
-import { ArrowLeft, Sparkles, User, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Sparkles, User, CheckCircle2, Send } from 'lucide-react';
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
   const { onboardingStep, onboardingAnswers, setOnboardingAnswer, nextOnboardingStep, prevOnboardingStep, completeOnboarding } = useFounderStore();
   const [name, setName] = useState('');
   const [showNameInput, setShowNameInput] = useState(false);
+  const [customMode, setCustomMode] = useState(false);
+  const [customInput, setCustomInput] = useState('');
+  const customRef = useRef(null);
   const totalSteps = ONBOARDING_QUESTIONS.length;
   const progress = ((onboardingStep + 1) / totalSteps) * 100;
 
+  useEffect(() => { if (customMode) customRef.current?.focus(); }, [customMode]);
+
   const handleSelect = (answer) => {
     setOnboardingAnswer(onboardingStep + 1, answer);
+    setCustomMode(false);
+    setCustomInput('');
     if (onboardingStep < totalSteps - 1) {
       setTimeout(() => nextOnboardingStep(), 300);
     } else {
       setShowNameInput(true);
     }
+  };
+
+  const handleCustomSubmit = () => {
+    if (!customInput.trim()) return;
+    handleSelect(customInput.trim());
   };
 
   const handleComplete = () => {
@@ -73,30 +85,60 @@ export default function OnboardingPage() {
         </div>
 
         {/* Question Card */}
-        <div style={styles.card} key={onboardingStep} className="page-enter">
+        <div style={styles.card} key={customMode ? 'custom' : onboardingStep} className="page-enter">
           <div style={styles.questionNumber}>Q{onboardingStep + 1}</div>
           <h2 style={styles.questionTitle}>{currentQ.question}</h2>
-          <div style={styles.optionsGrid}>
-            {currentQ.options.map((opt, i) => (
-              <button
-                key={i}
-                onClick={() => handleSelect(opt)}
-                style={{
-                  ...styles.optionBtn,
-                  ...(selectedAnswer === opt ? styles.optionSelected : {}),
-                  animationDelay: `${i * 60}ms`
-                }}
-                className="page-enter"
-              >
-                <span style={styles.optionText}>{opt}</span>
-                {selectedAnswer === opt && <CheckCircle2 size={18} style={{color:'var(--color-accent-light)'}} />}
+
+          {customMode ? (
+            <div style={styles.customWrap}>
+              <textarea
+                ref={customRef}
+                placeholder="Type your own answer..."
+                value={customInput}
+                onChange={e => setCustomInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleCustomSubmit(); } }}
+                style={styles.customInput}
+                rows={3}
+              />
+              <button className="btn btn-primary" onClick={handleCustomSubmit} disabled={!customInput.trim()} style={styles.customSubmit}>
+                <Send size={16} /> Submit
               </button>
-            ))}
-          </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => { setCustomMode(false); setCustomInput(''); }} style={styles.backToOptions}>
+                Back to options
+              </button>
+            </div>
+          ) : (
+            <>
+              <div style={styles.optionsGrid}>
+                {currentQ.options.map((opt, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleSelect(opt)}
+                    style={{
+                      ...styles.optionBtn,
+                      ...(selectedAnswer === opt ? styles.optionSelected : {}),
+                      animationDelay: `${i * 60}ms`
+                    }}
+                    className="page-enter"
+                  >
+                    <span style={styles.optionText}>{opt}</span>
+                    {selectedAnswer === opt && <CheckCircle2 size={18} style={{color:'var(--color-accent-light)'}} />}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCustomMode(true)}
+                  style={{...styles.optionBtn, ...styles.customOptBtn}}
+                  className="page-enter"
+                >
+                  <span style={styles.optionText}>✏️ Type your own answer</span>
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Navigation */}
-        {onboardingStep > 0 && (
+        {onboardingStep > 0 && !customMode && (
           <button className="btn btn-ghost" onClick={prevOnboardingStep} style={styles.backBtn}>
             <ArrowLeft size={16} /> Back
           </button>
@@ -132,7 +174,12 @@ const styles = {
   optionsGrid: { display:'flex', flexDirection:'column', gap:'0.75rem' },
   optionBtn: { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'1rem 1.5rem', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:'14px', cursor:'pointer', transition:'all 0.2s', fontSize:'0.9375rem', fontWeight:500, color:'var(--color-text-primary)', textAlign:'left' },
   optionSelected: { background:'rgba(99,102,241,0.1)', borderColor:'rgba(99,102,241,0.3)', boxShadow:'0 0 20px rgba(99,102,241,0.1)' },
+  customOptBtn: { borderStyle:'dashed', color:'var(--color-accent-light)', justifyContent:'center', gap:'0.5rem', marginTop:'0.25rem' },
   optionText: {},
+  customWrap: { display:'flex', flexDirection:'column', gap:'0.75rem' },
+  customInput: { width:'100%', padding:'0.875rem 1rem', fontSize:'1rem', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'14px', color:'var(--color-text-primary)', outline:'none', resize:'none', fontFamily:'inherit' },
+  customSubmit: { alignSelf:'center', gap:'0.5rem' },
+  backToOptions: { alignSelf:'center', fontSize:'0.8125rem', color:'var(--color-text-tertiary)' },
   backBtn: { marginTop:'1.5rem' },
   dots: { display:'flex', gap:'0.5rem', justifyContent:'center', marginTop:'2rem' },
   dot: { width:'8px', height:'8px', borderRadius:'50%', transition:'all 0.3s' },

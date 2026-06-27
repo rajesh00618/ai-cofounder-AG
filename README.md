@@ -6,6 +6,14 @@ The world's first Startup Operating System. Not just an AI chatbot — an **AI C
 
 ---
 
+## What's New in v1.1
+
+- **🔐 User Authentication** — JWT-based login/signup with protected routes; each user's data is isolated
+- **☁️ Supabase Migration** — moved from local SQLite to cloud PostgreSQL via Supabase; persistent data across restarts
+- **💬 Multi-Turn Board Meetings** — debate with AI agents in back-and-forth conversation, not one-shot
+- **✏️ Custom Inputs** — every question with options now has a "Type your own answer" fallback
+- **🧠 Memory Scoped to Users** — memory nodes, tasks, and businesses tied to authenticated users
+
 ## Features
 
 ### Onboarding & Goal Setting
@@ -78,7 +86,9 @@ The world's first Startup Operating System. Not just an AI chatbot — an **AI C
 
 ### Backend
 - **Express 5** API server
-- **SQLite** via `sqlite3` for persistent storage
+- **Supabase** (PostgreSQL) for persistent storage — cloud-hosted, auto-scaling
+- **@supabase/supabase-js** with service_role key for backend database access
+- **JWT** authentication with bcrypt password hashing
 - **OpenAI SDK** (compatible with NVIDIA API) for AI completions
 - **6 AI Agent Personas**: CEO, CTO, CMO, Sales, Finance, Research
 
@@ -95,6 +105,7 @@ The world's first Startup Operating System. Not just an AI chatbot — an **AI C
 ### Prerequisites
 - Node.js 18+
 - NVIDIA API key (or any OpenAI-compatible API key)
+- Supabase project (free tier works) — [create one here](https://supabase.com)
 
 ### Installation
 
@@ -111,12 +122,76 @@ echo "NVIDIA_API_KEY=your-key-here" > .env
 echo "AI_MODEL=meta/llama-4-maverick-17b-128e-instruct" >> .env
 echo "AI_BASE_URL=https://integrate.api.nvidia.com/v1" >> .env
 echo "PORT=3001" >> .env
+echo "JWT_SECRET=your-jwt-secret-change-in-production" >> .env
+echo "SUPABASE_URL=https://your-project-ref.supabase.co" >> .env
+echo "SUPABASE_SERVICE_KEY=your-service-role-key" >> .env
+
+# Run the DDL below in your Supabase SQL Editor to create tables
+# (Open Supabase Dashboard → SQL Editor → New Query)
 
 # Start development (server + frontend concurrently)
 npm run dev
 ```
 
 The frontend runs on `http://localhost:5173` and the API on `http://localhost:3001`.
+
+### Supabase Schema Setup
+
+Run this SQL in your Supabase Dashboard → **SQL Editor** → **New Query**:
+
+```sql
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS founders (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  profile_data TEXT NOT NULL,
+  dna_scores TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS businesses (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  founder_id TEXT NOT NULL REFERENCES founders(id),
+  blueprint TEXT,
+  health_scores TEXT,
+  current_stage TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS tasks (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  business_id TEXT NOT NULL REFERENCES businesses(id),
+  sprint_id TEXT,
+  title TEXT NOT NULL,
+  description TEXT,
+  priority TEXT,
+  estimated_time TEXT,
+  difficulty TEXT,
+  ai_assistance TEXT,
+  status TEXT DEFAULT 'todo',
+  created_at TIMESTAMP DEFAULT NOW(),
+  completed_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS memory_nodes (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  founder_id TEXT NOT NULL REFERENCES founders(id),
+  type TEXT NOT NULL,
+  label TEXT NOT NULL,
+  metadata TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```
 
 ### Production Build
 
@@ -134,9 +209,9 @@ ai-cofounder-AG/
 ├── server/                      # Express API backend
 │   ├── index.js                 # Entry point (port 3001)
 │   ├── agents/                  # AI agent personas (7 agents)
-│   ├── db/                      # SQLite database layer
-│   │   ├── database.js          # Connection manager
-│   │   └── schema.js            # Table definitions
+│   ├── db/                      # Supabase database layer
+│   │   ├── database.js          # Supabase client (service_role)
+│   │   └── schema.js            # DDL reference
 │   ├── engines/                 # AI business logic (12 engines)
 │   │   ├── reality.js           # Goal feasibility scoring
 │   │   ├── negotiation.js       # Alternative goal generation
@@ -149,9 +224,10 @@ ai-cofounder-AG/
 │   │   ├── review.js            # Daily reviews
 │   │   ├── execution.js         # Task execution
 │   │   ├── simulation.js        # Decision/customer simulation
-│   │   └── memory.js            # Graph memory store
+│   │   └── memory.js            # Graph memory store (user-scoped)
 │   ├── routes/
-│   │   └── api.js               # 28+ API endpoints
+│   │   ├── api.js               # 30+ API endpoints
+│   │   └── auth.js              # JWT register/login/me
 │   └── services/
 │       └── ai.js                # OpenAI SDK wrapper
 ├── src/                         # React frontend
@@ -171,39 +247,85 @@ ai-cofounder-AG/
 
 ## API Endpoints
 
-All endpoints are `POST /api/*` unless noted as `GET`. Requires `x-api-key` header (falls back to `NVIDIA_API_KEY` env var).
+All endpoints are `POST /api/*` unless noted as `GET`. Auth endpoints use `Authorization: Bearer <token>`; most other endpoints use `x-api-key` header (falls back to `NVIDIA_API_KEY` env var).
 
-| Category | Endpoint | Purpose |
-|---|---|---|
-| Chat | `/chat` | General AI chat |
-| Chat | `/chat/agent` | Agent-specific chat (CEO, CTO, etc.) |
-| Reality | `/engines/reality` | Goal feasibility scoring |
-| Reality | `/engines/reality/score` | Score from onboarding answers |
-| Negotiation | `/engines/negotiate` | Alternative goal generation |
-| Board | `/board` | Multi-agent board meeting |
-| Research | `/research` | Market research items |
-| Research | `/research/opportunities` | Funding/event opportunities |
-| Research | `/research/briefing` | Morning briefing |
-| Documents | `/documents/generate` | Document generation |
-| Roadmap | `/roadmap/generate` | Quarterly roadmap |
-| Roadmap | `/roadmap/guidance` | Stage-specific guidance |
-| DNA | `/founder/dna/analyze` | Founder DNA analysis |
-| DNA | `/founder/dna/adapt` | DNA-based adaptations |
-| Command | `/command/mission` | Daily mission generation |
-| Command | `/command/health` | Health analysis |
-| Review | `/review/note` | Daily review coaching note |
-| Tasks | `/tasks/suggest` | AI task suggestions |
-| Simulation | `/simulate/decision` | Decision scenario simulation |
-| Simulation | `/simulate/company` | Company market simulation |
-| Simulation | `/simulate/customer` | Customer persona simulation |
-| Business | `/business/blueprint` (POST) | Blueprint generation |
-| Business | `/business/blueprint` (GET) | Get stored blueprint |
-| Memory | `/memory/nodes` (POST) | Add memory node |
-| Memory | `/memory/nodes/:id` (GET) | Get memory nodes |
-| Memory | `/memory/timeline/:id` (GET) | Get memory timeline |
-| Execution | `/execution/plan` | Generate execution plan |
-| Execution | `/execution/step` | Execute a step |
-| Health | `/api/health` (GET) | Server health check |
+### Authentication
+
+| Category | Endpoint | Auth | Purpose |
+|---|---|---|---|
+| Auth | `POST /api/auth/register` | None | Create account |
+| Auth | `POST /api/auth/login` | None | Sign in |
+| Auth | `GET /api/auth/me` | JWT | Get current user |
+
+### Core
+
+| Category | Endpoint | Auth | Purpose |
+|---|---|---|---|
+| Chat | `/chat` | API key | General AI chat |
+| Chat | `/chat/agent` | API key | Agent-specific chat (CEO, CTO, etc.) |
+| Reality | `/engines/reality` | API key | Goal feasibility scoring |
+| Reality | `/engines/reality/score` | None | Score from onboarding answers |
+| Negotiation | `/engines/negotiate` | API key | Alternative goal generation |
+| Board | `/board` | API key | Single-turn board meeting |
+| Board | `/board/chat` | API key | Multi-turn board debate |
+
+### Research & Documents
+
+| Category | Endpoint | Auth | Purpose |
+|---|---|---|---|
+| Research | `/research` | API key | Market research items |
+| Research | `/research/opportunities` | API key | Funding/event opportunities |
+| Research | `/research/briefing` | API key | Morning briefing |
+| Documents | `/documents/generate` | API key | Document generation |
+
+### Roadmap & DNA
+
+| Category | Endpoint | Auth | Purpose |
+|---|---|---|---|
+| Roadmap | `/roadmap/generate` | API key | Quarterly roadmap |
+| Roadmap | `/roadmap/guidance` | API key | Stage-specific guidance |
+| DNA | `/founder/dna/analyze` | API key | Founder DNA analysis |
+| DNA | `/founder/dna/adapt` | API key | DNA-based adaptations |
+
+### Command & Review
+
+| Category | Endpoint | Auth | Purpose |
+|---|---|---|---|
+| Command | `/command/mission` | API key | Daily mission generation |
+| Command | `/command/health` | API key | Health analysis |
+| Review | `/review/note` | API key | Daily review coaching note |
+| Tasks | `/tasks/suggest` | API key | AI task suggestions |
+
+### Simulation
+
+| Category | Endpoint | Auth | Purpose |
+|---|---|---|---|
+| Simulation | `/simulate/decision` | API key | Decision scenario simulation |
+| Simulation | `/simulate/company` | API key | Company market simulation |
+| Simulation | `/simulate/customer` | API key | Customer persona simulation |
+
+### Business & Execution
+
+| Category | Endpoint | Auth | Purpose |
+|---|---|---|---|
+| Business | `/business/blueprint` (POST) | API key | Blueprint generation |
+| Business | `/business/blueprint` (GET) | None | Get stored blueprint |
+| Execution | `/execution/plan` | API key | Generate execution plan |
+| Execution | `/execution/step` | API key | Execute a step |
+
+### Memory
+
+| Category | Endpoint | Auth | Purpose |
+|---|---|---|---|
+| Memory | `/memory/nodes` (POST) | JWT | Add memory node |
+| Memory | `/memory/nodes/:id` (GET) | JWT | Get memory nodes |
+| Memory | `/memory/timeline/:id` (GET) | JWT | Get memory timeline |
+
+### Health
+
+| Category | Endpoint | Auth | Purpose |
+|---|---|---|---|
+| Health | `GET /api/health` | None | Server health check |
 
 ---
 
@@ -212,15 +334,17 @@ All endpoints are `POST /api/*` unless noted as `GET`. Requires `x-api-key` head
 ```
 Landing Page
     ↓
+Sign Up / Log In (JWT authentication)
+    ↓
 7 Founder Onboarding Questions
     ↓
 Founder Profile Generated
     ↓
 AI Welcome (personalized)
     ↓
-Goal Conversation (natural language)
+Goal Conversation (natural language, custom input on all questions)
     ↓
-Clarification Engine (adaptive questions)
+Clarification Engine (adaptive questions, custom input on all)
     ↓
 Reality Engine (8-dimension feasibility scoring)
     ↓

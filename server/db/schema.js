@@ -1,67 +1,69 @@
-import { runQuery } from './database.js';
+import { getDb } from './database.js';
+
+const DDL = `
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS founders (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  profile_data TEXT NOT NULL,
+  dna_scores TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS businesses (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  founder_id TEXT NOT NULL REFERENCES founders(id),
+  blueprint TEXT,
+  health_scores TEXT,
+  current_stage TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS tasks (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  business_id TEXT NOT NULL REFERENCES businesses(id),
+  sprint_id TEXT,
+  title TEXT NOT NULL,
+  description TEXT,
+  priority TEXT,
+  estimated_time TEXT,
+  difficulty TEXT,
+  ai_assistance TEXT,
+  status TEXT DEFAULT 'todo',
+  created_at TIMESTAMP DEFAULT NOW(),
+  completed_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS memory_nodes (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  founder_id TEXT NOT NULL REFERENCES founders(id),
+  type TEXT NOT NULL,
+  label TEXT NOT NULL,
+  metadata TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+`;
 
 export const initDb = async () => {
-  console.log('[DB] Initializing schema...');
-  
-  try {
-    // Founders table
-    await runQuery(`
-      CREATE TABLE IF NOT EXISTS founders (
-        id TEXT PRIMARY KEY,
-        profile_data TEXT NOT NULL,
-        dna_scores TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // Businesses table
-    await runQuery(`
-      CREATE TABLE IF NOT EXISTS businesses (
-        id TEXT PRIMARY KEY,
-        founder_id TEXT NOT NULL,
-        blueprint TEXT,
-        health_scores TEXT,
-        current_stage TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (founder_id) REFERENCES founders(id)
-      )
-    `);
-
-    // Tasks table
-    await runQuery(`
-      CREATE TABLE IF NOT EXISTS tasks (
-        id TEXT PRIMARY KEY,
-        business_id TEXT NOT NULL,
-        sprint_id TEXT,
-        title TEXT NOT NULL,
-        description TEXT,
-        priority TEXT,
-        estimated_time TEXT,
-        difficulty TEXT,
-        ai_assistance TEXT,
-        status TEXT DEFAULT 'todo',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        completed_at DATETIME,
-        FOREIGN KEY (business_id) REFERENCES businesses(id)
-      )
-    `);
-
-    // Memory nodes table (for Graph store)
-    await runQuery(`
-      CREATE TABLE IF NOT EXISTS memory_nodes (
-        id TEXT PRIMARY KEY,
-        founder_id TEXT NOT NULL,
-        type TEXT NOT NULL,
-        label TEXT NOT NULL,
-        metadata TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (founder_id) REFERENCES founders(id)
-      )
-    `);
-    
-    console.log('[DB] Schema initialization complete.');
-  } catch (err) {
-    console.error('[DB] Schema initialization failed:', err);
-    throw err;
+  console.log('[DB] Checking Supabase connection...');
+  const supabase = getDb();
+  if (!supabase) {
+    console.log('[DB] Supabase not configured — skipping schema init.');
+    console.log('[DB] To create tables, run this SQL in your Supabase SQL Editor:');
+    console.log(DDL);
+    return;
   }
+  // Try running DDL via Supabase REST — this requires a pg connection,
+  // so we log it for the user to run manually.
+  console.log('[DB] Supabase connected. Run the DDL above in your Supabase SQL Editor if tables do not exist.');
 };

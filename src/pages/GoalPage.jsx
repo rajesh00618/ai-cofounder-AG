@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFounderStore } from '../store/founderStore';
-import { Target, Send, Brain, AlertTriangle, CheckCircle2, ArrowRight, Sparkles, TrendingUp, Shield, Loader2 } from 'lucide-react';
+import { Target, Send, Brain, AlertTriangle, CheckCircle2, ArrowRight, Sparkles, TrendingUp, Shield, Loader2, PenSquare } from 'lucide-react';
 import { delay, getScoreColor, randomBetween } from '../utils/helpers';
 import { api } from '../utils/api';
 
@@ -75,6 +75,8 @@ export default function GoalPage() {
   const [reality, setReality] = useState(null);
   const [negotiation, setNegotiation] = useState(null);
   const [selectedAlt, setSelectedAlt] = useState(null);
+  const [clarCustomMode, setClarCustomMode] = useState(false);
+  const [clarCustomInput, setClarCustomInput] = useState('');
 
   useEffect(() => { if (!profile) navigate('/onboarding'); }, [profile, navigate]);
 
@@ -244,7 +246,7 @@ export default function GoalPage() {
 
         {/* Phase: Clarifying */}
         {phase === PHASES.CLARIFYING && !thinking && (
-          <div style={styles.card} key={clarStep} className="page-enter">
+          <div style={styles.card} key={clarCustomMode ? 'clar-custom' : clarStep} className="page-enter">
             <div style={styles.clarHeader}>
               <Brain size={20} style={{color:'var(--color-accent-light)'}} />
               <span style={styles.clarLabel}>Clarification Engine — Question {clarStep + 1}/{clarQuestions.length}</span>
@@ -253,14 +255,41 @@ export default function GoalPage() {
               <div className="progress-bar-fill" style={{width:`${((clarStep+1)/clarQuestions.length)*100}%`}} />
             </div>
             <h3 style={styles.clarQuestion}>{clarQuestions[clarStep]?.q}</h3>
-            <div style={styles.clarOptions}>
-              {clarQuestions[clarStep]?.opts.map((opt, i) => (
-                <button key={i} onClick={() => handleClarAnswer(clarQuestions[clarStep].id, opt)}
-                  style={{...styles.clarBtn, animationDelay:`${i*60}ms`}} className="page-enter">
-                  {opt}
+
+            {clarCustomMode ? (
+              <div style={styles.clarCustomWrap}>
+                <textarea
+                  placeholder="Type your own answer..."
+                  value={clarCustomInput}
+                  onChange={e => setClarCustomInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleClarAnswer(clarQuestions[clarStep].id, clarCustomInput.trim()); setClarCustomMode(false); setClarCustomInput(''); } }}
+                  style={styles.clarCustomInput}
+                  rows={3}
+                  autoFocus
+                />
+                <div style={{display:'flex', gap:'0.5rem', justifyContent:'center'}}>
+                  <button className="btn btn-primary" onClick={() => { handleClarAnswer(clarQuestions[clarStep].id, clarCustomInput.trim()); setClarCustomMode(false); setClarCustomInput(''); }} disabled={!clarCustomInput.trim()}>
+                    <Send size={14} /> Submit
+                  </button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => { setClarCustomMode(false); setClarCustomInput(''); }} style={{fontSize:'0.8125rem', color:'var(--color-text-tertiary)'}}>
+                    Back to options
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={styles.clarOptions}>
+                {clarQuestions[clarStep]?.opts.map((opt, i) => (
+                  <button key={i} onClick={() => handleClarAnswer(clarQuestions[clarStep].id, opt)}
+                    style={{...styles.clarBtn, animationDelay:`${i*60}ms`}} className="page-enter">
+                    {opt}
+                  </button>
+                ))}
+                <button onClick={() => setClarCustomMode(true)}
+                  style={{...styles.clarBtn, ...styles.clarCustomOpt}} className="page-enter">
+                  ✏️ Type your own answer
                 </button>
-              ))}
-            </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -387,4 +416,7 @@ const styles = {
   altGoal: { fontSize:'0.9375rem', marginBottom:'0.375rem' },
   altProb: { fontSize:'0.8125rem', color:'var(--color-warning-light)', fontWeight:500 },
   negNote: { marginTop:'1rem', textAlign:'center', fontSize:'0.8125rem', color:'var(--color-text-muted)', fontStyle:'italic' },
+  clarCustomWrap: { display:'flex', flexDirection:'column', gap:'0.75rem' },
+  clarCustomInput: { width:'100%', padding:'0.875rem 1rem', fontSize:'1rem', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'14px', color:'var(--color-text-primary)', outline:'none', resize:'none', fontFamily:'inherit' },
+  clarCustomOpt: { borderStyle:'dashed', color:'var(--color-accent-light)', justifyContent:'center', gap:'0.5rem', marginTop:'0.25rem' },
 };

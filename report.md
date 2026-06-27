@@ -1,6 +1,6 @@
 # AI Co-Founder — Complete Project Report
 
-> **Version:** 1.0.0 | **Build:** 398 KB JS, 7 KB CSS | **Status:** Production-Ready
+> **Version:** 1.1.0 | **Build:** 398 KB JS, 7 KB CSS | **Status:** Production-Ready
 
 ---
 
@@ -29,24 +29,25 @@
 └──────────────────────┼──────────────────────────────┘
                        ▼
 ┌─────────────────────────────────────────────────────┐
-│              Backend (Express 5 + SQLite)             │
+│              Backend (Express 5 + Supabase)           │
 │  ┌──────────┐ ┌──────────┐ ┌──────────────────────┐ │
 │  │  Routes  │ │  Engines │ │  Services             │ │
-│  │  (28+)   │ │  (12)    │ │  ┌────────────────┐  │ │
-│  └──────────┘ └──────────┘ │  │  AI (OpenAI SDK)│  │ │
-│              │              │  │  DB (sqlite3)   │  │ │
-│              │              │  └────────────────┘  │ │
-│  ┌──────────┐ │              └──────────────────────┘ │
-│  │  Agents  │ │                                       │
-│  │  (7)     │ │                                       │
-│  └──────────┘ │                                       │
-└───────────────┼───────────────────────────────────────┘
-                │ NVIDIA API (Llama 4 Maverick)
-                ▼
-┌──────────────────────────────┐
-│     NVIDIA AI Endpoint       │
-│  meta/llama-4-maverick-17b   │
-└──────────────────────────────┘
+│  │  (30+)   │ │  (12)    │ │  ┌────────────────┐  │ │
+│  ├──────────┤ ├──────────┤ │  │  AI (OpenAI SDK)│  │ │
+│  │  auth.js │ │  memory  │ │  │  Supabase JS    │  │ │
+│  │  api.js  │ │  +11 more│ │  │  (service_role) │  │ │
+│  └──────────┘ └──────────┘ │  └────────────────┘  │ │
+│  ┌──────────┐ │  ┌────────────┐ │  ┌──────────────┐ │ │
+│  │  Agents  │ └──│ JWT Auth   │ │  │  PostgreSQL   │ │
+│  │  (7)     │    │ Middleware  │ │  │  (Supabase)   │ │
+│  └──────────┘    └────────────┘ │  └──────────────┘ │
+└──────────────────────────────────┼────────────────────┘
+                                   │ NVIDIA API
+                                   ▼
+                   ┌──────────────────────────────┐
+                   │     NVIDIA AI Endpoint       │
+                   │  meta/llama-4-maverick-17b   │
+                   └──────────────────────────────┘
 ```
 
 ### Key Design Decisions
@@ -57,32 +58,43 @@
 | **Engine-per-file architecture** | Isolates prompts and business logic; each engine is independently testable and modifiable |
 | **Zustand with persist middleware** | 5 stores with localStorage persistence — survives page refreshes without server dependency for UI state |
 | **NVIDIA API over OpenAI** | User-provided NVIDIA key; OpenAI-compatible SDK makes the swap trivial (single baseURL change) |
-| **SQLite (no PostgreSQL)** | Zero-config database; perfect for single-tenant founder tools; no Docker or cloud DB required |
+| **Supabase PostgreSQL** | Cloud-hosted, auto-scaling database with Row Level Security; replaces local SQLite for multi-tenant persistence |
+| **JWT Authentication** | bcrypt password hashing + JSON Web Tokens; `requireJwt` middleware protects user-scoped routes |
 | **requireKey middleware + env fallback** | API key can be set in `.env` or sent per-request; Settings panel shows live server status via `/api/health` |
 
 ---
 
 ## 3. Project Data Model
 
-### Database Tables (SQLite)
+### Database Tables (Supabase PostgreSQL)
 
 ```
+users
+├── id (TEXT PRIMARY KEY)
+├── name (TEXT)
+├── email (TEXT UNIQUE)
+├── password_hash (TEXT)
+└── created_at (TIMESTAMP)
+
 founders
 ├── id (TEXT PRIMARY KEY)
+├── user_id (TEXT — FK → users)
 ├── profile_data (TEXT — JSON blob)
 ├── dna_scores (TEXT — JSON blob)
-└── created_at (DATETIME)
+└── created_at (TIMESTAMP)
 
 businesses
 ├── id (TEXT PRIMARY KEY)
+├── user_id (TEXT — FK → users)
 ├── founder_id (TEXT — FK → founders)
 ├── blueprint (TEXT — JSON blob, 15 sections)
 ├── health_scores (TEXT — JSON blob, 6 categories)
 ├── current_stage (TEXT)
-└── created_at (DATETIME)
+└── created_at (TIMESTAMP)
 
 tasks
 ├── id (TEXT PRIMARY KEY)
+├── user_id (TEXT — FK → users)
 ├── business_id (TEXT — FK → businesses)
 ├── sprint_id (TEXT)
 ├── title (TEXT)
@@ -90,15 +102,18 @@ tasks
 ├── priority (TEXT — high/medium/low)
 ├── status (TEXT — pending/in_progress/completed)
 ├── estimated_time (TEXT)
-└── created_at (DATETIME)
+├── ai_assistance (TEXT)
+├── createdAt, completedAt (TIMESTAMP)
+└── created_at (TIMESTAMP)
 
 memory_nodes
 ├── id (TEXT PRIMARY KEY)
+├── user_id (TEXT — FK → users)
 ├── founder_id (TEXT — FK → founders)
 ├── type (TEXT)
 ├── label (TEXT)
 ├── metadata (TEXT — JSON blob)
-└── created_at (DATETIME)
+└── created_at (TIMESTAMP)
 ```
 
 ### Zustand Store Schema
@@ -461,7 +476,7 @@ Build time: ~525ms. Zero warnings, zero errors.
 ### Dependencies
 
 | Dependency | Version | Purpose |
-|---|---|---|
+|---|---|---|---|
 | react | ^19.2.7 | UI framework |
 | react-dom | ^19.2.7 | DOM rendering |
 | react-router-dom | ^7.18.0 | Client-side routing |
@@ -469,7 +484,10 @@ Build time: ~525ms. Zero warnings, zero errors.
 | recharts | ^3.9.0 | Charts & visualization |
 | lucide-react | ^1.21.0 | Icons |
 | express | ^5.2.1 | API server |
-| sqlite3 | ^6.0.1 | Database |
+| @supabase/supabase-js | ^2.49.4 | Cloud database client |
+| pg | ^8.14.1 | PostgreSQL driver |
+| bcryptjs | ^3.0.2 | Password hashing |
+| jsonwebtoken | ^10.0.3 | JWT auth |
 | openai | ^6.45.0 | AI SDK |
 | cors | ^2.8.6 | CORS middleware |
 | dotenv | ^17.4.2 | Environment variables |
@@ -495,9 +513,15 @@ Build time: ~525ms. Zero warnings, zero errors.
 - `pick()` helper prevents undefined/null from reaching engines
 
 ### Database
-- SQLite file is gitignored
-- No user authentication (single-tenant MVP)
-- Schema auto-initialized on server start
+- Supabase PostgreSQL — cloud-hosted with automated backups
+- Service role key used server-side (never exposed to client)
+- Schema created via Supabase SQL Editor
+
+### Authentication
+- **JWT-based auth** with 7-day token expiry
+- **bcrypt** password hashing (10 salt rounds)
+- `requireJwt` middleware protects user-scoped routes (memory, etc.)
+- Founder/business/task/memory data scoped to `user_id` foreign key
 
 ### CORS
 - Server accepts all origins (development mode)
@@ -526,17 +550,20 @@ Build time: ~525ms. Zero warnings, zero errors.
 ### Environment Variables
 
 | Variable | Required | Default | Description |
-|---|---|---|---|
+|---|---|---|---|---|
 | `NVIDIA_API_KEY` | Yes | — | NVIDIA AI API key |
 | `AI_MODEL` | No | `meta/llama-4-maverick-17b-128e-instruct` | AI model identifier |
 | `AI_BASE_URL` | No | `https://integrate.api.nvidia.com/v1` | API base URL |
 | `PORT` | No | `3001` | Server port |
+| `JWT_SECRET` | Yes | — | Secret key for signing JWT tokens |
+| `SUPABASE_URL` | Yes | — | Supabase project URL |
+| `SUPABASE_SERVICE_KEY` | Yes | — | Supabase service_role key |
 
 ### Gitignore
 
 ```gitignore
 .env              # Secrets
-*.sqlite          # Database files
+*.sqlite          # Database files (legacy)
 node_modules/     # Dependencies
 dist/             # Build output
 *.log             # Log files
@@ -550,21 +577,19 @@ dist/             # Build output
 ## 13. Limitations & Future Work
 
 ### Current Limitations
-- **Single tenant** — no user authentication or multi-founder support
 - **No rate limiting** — API endpoint has no request throttling
-- **SQLite single-file** — not suitable for horizontal scaling
 - **No caching** — every request hits the AI API (latency-sensitive)
 - **Frontend API key in localStorage** — vulnerable to XSS
 - **No WebSocket** — real-time features use polling/delays
 - **No background job system** — "AI Never Sleeps" is simulated on-demand
+- **Supabase RLS not configured** — relying on service_role key + server-side auth
 
 ### Planned Enhancements
-- [ ] Multi-tenant authentication (JWT + sessions)
 - [ ] WebSocket for real-time AI responses
 - [ ] Background job queue for continuous research
 - [ ] Redis caching for AI responses
 - [ ] Rate limiting and API key rotation
-- [ ] PostgreSQL migration for production scaling
+- [ ] Supabase Row Level Security policies
 - [ ] Mobile push notifications via WhatsApp/Telegram
 - [ ] Calendar integration for deadlines
 - [ ] Email campaign automation
@@ -617,7 +642,8 @@ dist/             # Build output
 │   │   ├── roadmap.js            # Roadmap planner
 │   │   └── simulation.js         # Decision simulator
 │   ├── routes/
-│   │   └── api.js                # API route definitions
+│   │       ├── api.js                # API route definitions
+│       └── auth.js               # JWT register/login/me
 │   └── services/
 │       └── ai.js                 # OpenAI SDK wrapper
 │
@@ -655,6 +681,7 @@ dist/             # Build output
     │   └── tasks/
     │       └── TaskEngine.jsx
     ├── pages/
+    │   ├── AuthPage.jsx
     │   ├── BusinessPlanningPage.jsx
     │   ├── DashboardPage.jsx
     │   ├── GoalPage.jsx
@@ -662,6 +689,7 @@ dist/             # Build output
     │   └── OnboardingPage.jsx
     ├── store/
     │   ├── appStore.js
+    │   ├── authStore.js
     │   ├── businessStore.js
     │   ├── chatStore.js
     │   ├── founderStore.js
@@ -681,6 +709,7 @@ dist/             # Build output
 | Version | Date | Changes |
 |---|---|---|
 | 1.0.0 | 2026-06-27 | Initial production release. All 14 dashboard views fully AI-powered. 12 AI engines. 28 API endpoints. Zero mock data in all primary features. 398 KB production build. |
+| 1.1.0 | 2026-06-27 | JWT authentication (login/signup), Supabase PostgreSQL migration, multi-turn board meetings, custom input fallback on all questions, user-scoped memory and data. |
 
 ---
 

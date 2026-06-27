@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Rocket, Brain, Target, Zap, TrendingUp, Shield, ArrowRight, Sparkles, BarChart3, Users, Bot } from 'lucide-react';
+import { Rocket, Brain, Target, Zap, TrendingUp, Shield, ArrowRight, Sparkles, BarChart3, Users, Bot, LogIn } from 'lucide-react';
 
 const features = [
   { icon: Brain, title: 'Reality Engine', desc: 'Scores your goals for feasibility before you waste time building the wrong thing' },
@@ -39,9 +39,14 @@ export default function LandingPage() {
             <div style={styles.logoIcon}><Sparkles size={20} /></div>
             <span style={styles.logoText}>AI Co-Founder</span>
           </div>
-          <button className="btn btn-primary" onClick={() => navigate('/onboarding')} style={styles.navCta}>
-            Start Building <ArrowRight size={16} />
-          </button>
+          <div style={{ display:'flex', gap:'0.75rem', alignItems:'center' }}>
+            <button className="btn btn-ghost" onClick={() => navigate('/auth')} style={styles.navCta}>
+              <LogIn size={14} /> Sign In
+            </button>
+            <button className="btn btn-primary" onClick={() => navigate('/onboarding')} style={styles.navCta}>
+              Start Building <ArrowRight size={16} />
+            </button>
+          </div>
         </div>
       </nav>
 

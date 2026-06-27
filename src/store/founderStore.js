@@ -61,6 +61,18 @@ export const useFounderStore = create(
     set({ profile, onboardingComplete: true });
   },
 
+  resetOnboarding: () => set({
+    profile: null,
+    onboardingComplete: false,
+    onboardingStep: 0,
+    onboardingAnswers: {},
+    goal: null,
+    goalClarified: false,
+    clarificationAnswers: {},
+    realityScore: null,
+    negotiationResult: null,
+  }),
+
   setGoal: (goal) => set({ goal }),
   setClarificationAnswers: (answers) => set({ clarificationAnswers: answers, goalClarified: true }),
   setRealityScore: (score) => set({ realityScore: score }),

@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { initDb } from './db/schema.js';
 import apiRoutes from './routes/api.js';
+import authRoutes from './routes/auth.js';
 
 dotenv.config();
 
@@ -14,6 +15,7 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api', apiRoutes);
 
 app.get('/api/health', (req, res) => {
@@ -27,6 +29,8 @@ initDb().then(() => {
     console.log(`[Server] API listening on port ${PORT}`);
   });
 }).catch(err => {
-  console.error('[Server] Failed to initialize database:', err);
-  process.exit(1);
+  console.error('[Server] Database unavailable — starting without persistence:', err.message);
+  app.listen(PORT, () => {
+    console.log(`[Server] API listening on port ${PORT} (no database)`);
+  });
 });

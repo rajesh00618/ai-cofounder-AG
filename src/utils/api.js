@@ -2,10 +2,11 @@ const API_BASE = 'http://localhost:3001/api';
 
 const getHeaders = () => {
   const apiKey = localStorage.getItem('ai-cofounder-apikey');
-  return {
-    'Content-Type': 'application/json',
-    'x-api-key': apiKey || ''
-  };
+  const token = localStorage.getItem('ai-cofounder-token');
+  const headers = { 'Content-Type': 'application/json' };
+  if (apiKey) headers['x-api-key'] = apiKey;
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return headers;
 };
 
 const apiPost = async (path, body) => {
@@ -20,18 +21,25 @@ const apiPost = async (path, body) => {
 
 const apiGet = async (path) => {
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' }
+    headers: getHeaders()
   });
   if (!res.ok) throw new Error((await res.json()).error || 'API Error');
   return res.json();
 };
 
 export const api = {
+  // Auth
+  register: (name, email, password) => apiPost('/auth/register', { name, email, password }),
+  login: (email, password) => apiPost('/auth/login', { email, password }),
+  getMe: () => apiGet('/auth/me'),
+
+  // Existing
   chat: (message, context) => apiPost('/chat', { message, context }),
   chatWithAgent: (message, context, agent) => apiPost('/chat/agent', { message, context, agent }),
   evaluateGoal: (goal) => apiPost('/engines/reality', { goal }),
   negotiateGoal: (goal) => apiPost('/engines/negotiate', { goal }),
   boardMeeting: (question) => apiPost('/board', { question }),
+  boardChat: (messages) => apiPost('/board/chat', { messages }),
   simulateDecision: (question) => apiPost('/simulate/decision', { question }),
   simulateCompany: (question) => apiPost('/simulate/company', { question }),
   simulateCustomer: (product, persona) => apiPost('/simulate/customer', { product, persona }),

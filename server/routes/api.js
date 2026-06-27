@@ -1,4 +1,5 @@
 import express from 'express';
+import jwt from 'jsonwebtoken';
 import { callOpenAI, PROMPTS, extractJSON } from '../services/ai.js';
 import { evaluateGoal, calculateRealityScore } from '../engines/reality.js';
 import { negotiateGoal } from '../engines/negotiation.js';
@@ -13,8 +14,23 @@ import { analyzeDNA, generateAdaptations } from '../engines/dna.js';
 import { generateMission, generateHealthAnalysis } from '../engines/mission.js';
 import { generateReviewNote, suggestTasks } from '../engines/review.js';
 import { getCEOAdvice, getCTOAdvice, getCMOAdvice, getSalesAdvice, getFinanceAdvice, getResearchAdvice } from '../agents/index.js';
+import { JWT_SECRET } from './auth.js';
 
 const router = express.Router();
+
+const requireJwt = (req, res, next) => {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  try {
+    const decoded = jwt.verify(auth.split(' ')[1], JWT_SECRET);
+    req.userId = decoded.userId;
+    next();
+  } catch {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+};
 
 const pick = (body, ...keys) => { for (const k of keys) { if (body[k] !== undefined && body[k] !== null && body[k] !== '') return body[k]; } return undefined; };
 
@@ -128,6 +144,21 @@ router.post('/board', requireApiKey, requireBody('question'), async (req, res) =
   try {
     const { question } = req.body;
     const response = await callOpenAI(req.apiKey, PROMPTS.BOARD_MEETING, `Debate this topic: ${question}`, 0.8);
+    const parsed = extractJSON(response);
+    res.json(parsed);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/board/chat', requireApiKey, requireBody('messages'), async (req, res) => {
+  try {
+    const { messages } = req.body;
+    const formatted = messages.map(m =>
+      `${m.role === 'user' ? 'Founder' : m.name || 'Board'}: ${m.content}`
+    ).join('\n\n');
+    const prompt = `Here is the board discussion so far:\n\n${formatted}\n\nBoard members, continue the debate responding to the latest points raised.`;
+    const response = await callOpenAI(req.apiKey, PROMPTS.BOARD_MEETING, prompt, 0.8);
     const parsed = extractJSON(response);
     res.json(parsed);
   } catch (error) {
@@ -279,28 +310,28 @@ router.post('/tasks/suggest', requireApiKey, async (req, res) => {
 });
 
 // --- MEMORY ---
-router.post('/memory/nodes', requireBody('founderId', 'type', 'label'), async (req, res) => {
+router.post('/memory/nodes', requireJwt, requireBody('founderId', 'type', 'label'), async (req, res) => {
   try {
     const { founderId, type, label, metadata } = req.body;
-    const id = await addMemoryNode(founderId, type, label, metadata);
+    const id = await addMemoryNode(req.userId, founderId, type, label, metadata);
     res.json({ id, message: 'Memory node created' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-router.get('/memory/nodes/:founderId', async (req, res) => {
+router.get('/memory/nodes/:founderId', requireJwt, async (req, res) => {
   try {
-    const nodes = await getMemoryNodes(req.params.founderId);
+    const nodes = await getMemoryNodes(req.userId, req.params.founderId);
     res.json(nodes);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-router.get('/memory/timeline/:founderId', async (req, res) => {
+router.get('/memory/timeline/:founderId', requireJwt, async (req, res) => {
   try {
-    const timeline = await getMemoryTimeline(req.params.founderId);
+    const timeline = await getMemoryTimeline(req.userId, req.params.founderId);
     res.json(timeline);
   } catch (error) {
     res.status(500).json({ error: error.message });
