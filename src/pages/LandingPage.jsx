@@ -43,7 +43,7 @@ export default function LandingPage() {
             <button className="btn btn-ghost" onClick={() => navigate('/auth')} style={styles.navCta}>
               <LogIn size={14} /> Sign In
             </button>
-            <button className="btn btn-primary" onClick={() => navigate('/onboarding')} style={styles.navCta}>
+            <button className="btn btn-primary" onClick={() => navigate('/auth')} style={styles.navCta}>
               Start Building <ArrowRight size={16} />
             </button>
           </div>
@@ -64,7 +64,7 @@ export default function LandingPage() {
           Not a chatbot. Not an assistant. A persistent, opinionated AI co-founder that researches, challenges, executes, tracks, and grows with you — from raw idea to scale.
         </p>
         <div style={styles.heroCtas}>
-          <button className="btn btn-primary btn-lg" onClick={() => navigate('/onboarding')} style={styles.heroBtn}>
+          <button className="btn btn-primary btn-lg" onClick={() => navigate('/auth')} style={styles.heroBtn}>
             <Rocket size={20} /> Start Your Journey
           </button>
           <button className="btn btn-secondary btn-lg" onClick={() => document.getElementById('features').scrollIntoView({behavior:'smooth'})}>
@@ -156,7 +156,7 @@ export default function LandingPage() {
         <div style={styles.ctaCard}>
           <h2 style={styles.ctaTitle}>Ready to build with an AI that actually works?</h2>
           <p style={styles.ctaSubtitle}>2 minutes to set up. Your AI co-founder remembers everything from here.</p>
-          <button className="btn btn-primary btn-lg" onClick={() => navigate('/onboarding')} style={styles.ctaBtn}>
+          <button className="btn btn-primary btn-lg" onClick={() => navigate('/auth')} style={styles.ctaBtn}>
             <Rocket size={20} /> Begin Onboarding
           </button>
         </div>

@@ -7,8 +7,13 @@ import { useFounderStore } from '../store/founderStore';
 
 export default function AuthPage() {
   const navigate = useNavigate();
+  const token = useAuthStore(s => s.token);
   const setAuth = useAuthStore(s => s.setAuth);
   const resetOnboarding = useFounderStore(s => s.resetOnboarding);
+
+  React.useEffect(() => {
+    if (token) navigate('/onboarding', { replace: true });
+  }, [token]);
   const [mode, setMode] = useState('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
