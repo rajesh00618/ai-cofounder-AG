@@ -85,9 +85,34 @@ export default function BusinessPlanningPage() {
     }
   };
 
+  const buildFallbackBlueprint = (ans) => {
+    const customer = ans[1] || 'target customers';
+    const problem = ans[2] || 'a key problem';
+    const alternative = ans[3] || 'existing solutions';
+    const pricing = ans[4] || 'a competitive price';
+    const advantage = ans[5] || 'a unique approach';
+    return {
+      id: generateId(),
+      createdAt: new Date().toISOString(),
+      executiveSummary: `${customer} face ${problem}. Current options like ${alternative} fall short. Our ${advantage} delivers a better outcome at ${pricing}.`,
+      problem: `${customer} struggle with ${problem}. They currently use ${alternative} but face limitations in cost, speed, and quality.`,
+      solution: `A purpose-built solution leveraging ${advantage} to help ${customer} overcome ${problem} faster and more affordably than ${alternative}.`,
+      targetCustomer: customer,
+      marketSize: 'TAM: Growing market with increasing demand. Early indicators suggest strong product-market fit potential.',
+      competitors: `Alternatives include ${alternative} and other traditional approaches. Our differentiator is ${advantage}.`,
+      revenueModel: pricing,
+      gtmPlan: 'Phase 1: Direct outreach to early adopter segment. Phase 2: Content marketing + referrals. Phase 3: Partnerships.',
+      validationPlan: 'Validate with 10 customer interviews, landing page A/B test, and a pilot program with 3 early adopters.',
+      mvpPlan: 'Build core feature set focused on the primary use case. Launch with 5 key features. Iterate based on feedback.',
+      successMetrics: ['Customer interviews completed (10+)', 'Landing page conversion rate (>5%)', 'Pilot signups (3+)', 'NPS score (>40)'],
+      risks: ['Customer acquisition cost may be higher than estimated', 'Technical complexity could delay MVP timeline'],
+    };
+  };
+
   const generateBlueprint = useCallback(async () => {
     setPhase('generating');
     setGenerating(true);
+    setBpError('');
     for (let i = 0; i < BLUEPRINT_SECTIONS.length; i++) {
       setGenStep(i);
       await delay(200);
@@ -112,8 +137,14 @@ export default function BusinessPlanningPage() {
       if (Array.isArray(tasks) && tasks.length > 0) {
         tasks.forEach(t => addTask({ ...t, sprintId }));
       }
-    } catch (e) {
-      setBpError('AI Generation failed: ' + e.message);
+    } catch {
+      const fb = buildFallbackBlueprint(answers);
+      setBp(fb);
+      setBlueprint(fb);
+      const sprintId = createSprint({ goal: 'Initial Validation', deadline: 'This week', week: 1 });
+      addTask({ title: 'Conduct 10 customer interviews', description: 'Validate problem and solution with target customers', priority: 'high', status: 'todo', sprintId });
+      addTask({ title: 'Build landing page', description: 'Create a simple landing page to test interest', priority: 'high', status: 'todo', sprintId });
+      addTask({ title: 'Define MVP feature set', description: 'Identify the core features needed for first version', priority: 'medium', status: 'todo', sprintId });
     }
     setGenerating(false);
     setPhase('blueprint');

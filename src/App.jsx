@@ -20,7 +20,7 @@ export default function App() {
   useEffect(() => {
     if (!token) return;
     api.getMe().catch((err) => {
-      if (err.message.includes('Session expired')) logout();
+      if (err.message.includes('Authentication required') || err.message.includes('Invalid token') || err.message.includes('Session expired')) logout();
     });
   }, [token, logout]);
 

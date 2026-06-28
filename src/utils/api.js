@@ -39,10 +39,12 @@ const apiPost = async (path, body) => {
     });
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({ error: 'Request failed' }));
-      const friendly = res.status === 401 ? 'Session expired. Please sign in again.'
+      const serverMsg = errBody.error || '';
+      const friendly = res.status === 401 && serverMsg.includes('API key') ? 'AI service is not configured. Add an API key in Settings.'
+        : res.status === 401 ? (serverMsg || 'Session expired. Please sign in again.')
         : res.status === 429 ? 'Too many requests. Please wait a moment.'
         : res.status >= 500 ? 'Our AI service is temporarily unavailable. Please try again.'
-        : errBody.error || 'Something went wrong';
+        : serverMsg || 'Something went wrong';
       throw new Error(friendly);
     }
     return res.json();
@@ -61,10 +63,12 @@ const apiGet = async (path) => {
     });
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({ error: 'Request failed' }));
-      const friendly = res.status === 401 ? 'Session expired. Please sign in again.'
+      const serverMsg = errBody.error || '';
+      const friendly = res.status === 401 && serverMsg.includes('API key') ? 'AI service is not configured. Add an API key in Settings.'
+        : res.status === 401 ? (serverMsg || 'Session expired. Please sign in again.')
         : res.status === 429 ? 'Too many requests. Please wait a moment.'
         : res.status >= 500 ? 'Our AI service is temporarily unavailable.'
-        : errBody.error || 'Something went wrong';
+        : serverMsg || 'Something went wrong';
       throw new Error(friendly);
     }
     return res.json();
