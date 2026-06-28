@@ -1,7 +1,7 @@
 # AI Co-Founder — Complete Feature Directory
 
-> **Version:** 1.7.0 | **Stack:** React 19 + Express 5 + Supabase + OpenAI/NVIDIA
-> **Tests:** 206 (31 files) | **Lint:** 0 errors, 0 warnings | **Build:** 236 KB (code-split)
+> **Version:** 1.8.0 | **Stack:** React 19 + Express 5 + Supabase + OpenAI/NVIDIA
+> **Tests:** 264 (44 files) | **Lint:** 0 errors, 0 warnings | **Build:** 236 KB (code-split)
 > **Positioning:** Most AI tools answer questions. This AI builds companies.
 
 ---
@@ -236,7 +236,7 @@ A structured 16-field business model canvas that can be filled via AI generation
 - Generation context includes founder experience level and business answers
 
 ### Editing
-- **Inline editable** — each field is directly editable with toggle
+- **Controlled textarea editing** — each field is editable via toggle (stable, no contentEditable quirks)
 - **Export** — Download blueprint as .txt file
 - **Auto-save** — changes persist to Zustand store
 - **Collapsible sections** — organized by category
@@ -380,11 +380,11 @@ Generates professional business documents using AI, based on the current busines
 | `financial-model` | Financial projections | Planning |
 
 ### Generation Process
-1. User selects document type
+1. User selects document type from 8-type grid
 2. AI receives full business context (blueprint, health scores, stage)
 3. `generateDocument(apiKey, docType, businessContext)` returns structured markdown
 4. Document is saved to `businessStore.documents` array
-5. Can be edited, downloaded, or regenerated
+5. Can be viewed in a dedicated modal, downloaded as `.md`, or regenerated
 
 ### Document Storage
 Each document has:
@@ -954,8 +954,21 @@ const MODELS = [
 | `engines/memory.test.js` | Memory graph engine | 8 |
 | `engines/business.test.js` | Business blueprint | 6 |
 | `engines/simulation.test.js` | Simulation engines | 9 |
+| `engines/__tests__/documents.test.js` | Document engine | 7 |
+| `engines/__tests__/execution.test.js` | Execution engine | 7 |
+| `engines/__tests__/investor.test.js` | Investor mode engine | 10 |
+| `engines/__tests__/mission.test.js` | Mission engine | 7 |
+| `engines/__tests__/negotiation.test.js` | Negotiation engine | 7 |
+| `engines/__tests__/research.test.js` | Research engine | 7 |
+| `engines/__tests__/review.test.js` | Review engine | 7 |
+| `engines/__tests__/roadmap.test.js` | Roadmap engine | 7 |
+| `engines/__tests__/weekly.test.js` | Weekly review engine | 7 |
 | `routes/auth.test.js` | Auth endpoints | 8 |
 | `routes/api.test.js` | API integration tests | 13 |
 | `services/ai.test.js` | extractJSON, PROMPTS | 14 |
+| `services/__tests__/errors.test.js` | Error sanitizer | 3 |
+| `services/__tests__/logger.test.js` | Buffered logger | 4 |
+| `services/__tests__/reminders.test.js` | Reminder scheduler | 2 |
+| `services/__tests__/search.test.js` | Web search fallback | 1 |
 | `utils/helpers.test.js` | Utility functions | 19 |
-| **Total** | **31 files** | **206 tests** |
+| **Total** | **44 files** | **264 tests** |

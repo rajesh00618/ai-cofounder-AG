@@ -20,7 +20,7 @@ export default function ResearchCenter() {
       const ctx = { blueprint, profile, stage: currentStage, businessHealth };
       try {
         const [research, opps, brief] = await Promise.allSettled([
-          api.getResearch(ctx, filter),
+          api.getResearch(ctx),
           api.getOpportunities(ctx),
           api.getMorningBriefing(ctx),
         ]);
@@ -35,7 +35,7 @@ export default function ResearchCenter() {
       setLoading(false);
     };
     loadData();
-  }, [filter, profile, blueprint, businessHealth, currentStage]);
+  }, [profile, blueprint, businessHealth, currentStage]);
 
   const typeColor = { competitor: 'var(--color-warning)', market: 'var(--color-info)', opportunity: 'var(--color-success)', trend: 'var(--color-accent)' };
   const filtered = filter === 'all' ? researchData : (researchData.filter ? researchData.filter(r => r.type === filter || r.category === filter) : []);

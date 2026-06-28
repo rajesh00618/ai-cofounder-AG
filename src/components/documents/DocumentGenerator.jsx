@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useBusinessStore } from '../../store/businessStore';
-import { FileText, Download, Sparkles, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
+import { FileText, Download, Sparkles, CheckCircle2, Loader2, AlertCircle, X, Eye } from 'lucide-react';
 import { api } from '../../utils/api';
 
 const DOC_TYPES = [
@@ -21,6 +21,7 @@ export default function DocumentGenerator() {
   const [docContent, setDocContent] = useState({});
   const [error, setError] = useState('');
   const [notification, setNotification] = useState('');
+  const [previewDoc, setPreviewDoc] = useState(null);
 
   useEffect(() => {
     if (notification) {
@@ -79,12 +80,9 @@ export default function DocumentGenerator() {
                     }}><Download size={14} /></button>
                   </div>
                   {docContent[doc.id] && (
-                    <details style={{ fontSize: '0.75rem' }}>
-                      <summary style={{ cursor: 'pointer', color: 'var(--color-text-tertiary)' }}>Preview</summary>
-                      <pre style={{ marginTop: '0.5rem', padding: '0.75rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', fontSize: '0.6875rem', maxHeight: '200px', overflow: 'auto', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-                        {docContent[doc.id]}
-                      </pre>
-                    </details>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setPreviewDoc(docContent[doc.id])} style={{fontSize:'0.75rem'}}>
+                      <Eye size={12} /> View
+                    </button>
                   )}
                 </div>
               ) : generating === doc.id ? (
@@ -100,6 +98,20 @@ export default function DocumentGenerator() {
           </div>
         ))}
       </div>
+
+      {previewDoc && (
+        <div style={styles.overlay} onClick={() => setPreviewDoc(null)}>
+          <div style={styles.modal} onClick={e => e.stopPropagation()}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem'}}>
+              <h3 style={{fontSize:'1.125rem',fontWeight:600}}>Document Preview</h3>
+              <button className="btn btn-ghost btn-sm" onClick={() => setPreviewDoc(null)}><X size={16} /></button>
+            </div>
+            <pre style={{padding:'1rem',background:'rgba(0,0,0,0.3)',borderRadius:'10px',fontSize:'0.8125rem',maxHeight:'65vh',overflow:'auto',whiteSpace:'pre-wrap',lineHeight:1.6,color:'var(--color-text-secondary)'}}>
+              {previewDoc}
+            </pre>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -117,4 +129,6 @@ const styles = {
   cardLabel: { fontWeight: 600, fontSize: '0.9375rem', marginBottom: '0.125rem' },
   cardDesc: { fontSize: '0.75rem', color: 'var(--color-text-muted)' },
   cardActions: {},
+  overlay: { position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', backdropFilter:'blur(4px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:100 },
+  modal: { background:'var(--color-bg-secondary)', borderRadius:'16px', padding:'1.5rem', width:'90%', maxWidth:'700px', maxHeight:'80vh', border:'1px solid rgba(255,255,255,0.08)', overflow:'hidden', display:'flex', flexDirection:'column' },
 };

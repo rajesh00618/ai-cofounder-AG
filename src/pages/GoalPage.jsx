@@ -77,6 +77,7 @@ export default function GoalPage() {
   const [clarCustomInput, setClarCustomInput] = useState('');
   const [pageError, setPageError] = useState('');
   const [elapsed, setElapsed] = useState(0);
+  const [lastGoalInput, setLastGoalInput] = useState('');
   const [generatingQuestions, setGeneratingQuestions] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
@@ -97,7 +98,9 @@ export default function GoalPage() {
 
   const handleGoalSubmit = async () => {
     if (!goalText.trim()) return;
+    setLastGoalInput(goalText.trim());
     setGoal(goalText.trim());
+    setPageError('');
     setGeneratingQuestions(true);
     try {
       const result = await api.chat(
@@ -107,13 +110,13 @@ export default function GoalPage() {
       let parsed;
       try { parsed = JSON.parse(result.content); } catch { parsed = null; }
       if (!Array.isArray(parsed) || parsed.length === 0) {
-        setPageError("I couldn't generate good clarifying questions. Please rephrase your goal or try again.");
+        setPageError("I couldn't generate good clarifying questions. Try again or rephrase your goal.");
         setGeneratingQuestions(false);
         return;
       }
       for (const item of parsed) {
         if (!item.q || !Array.isArray(item.opts) || item.opts.length < 2) {
-          setPageError("I couldn't generate good clarifying questions. Please rephrase your goal or try again.");
+          setPageError("I couldn't generate good clarifying questions. Try again or rephrase your goal.");
           setGeneratingQuestions(false);
           return;
         }
@@ -121,11 +124,12 @@ export default function GoalPage() {
       setClarQuestions(parsed.map((item, i) =>
         ({ id: i + 1, q: item.q.replace(/^\d+[.)]\s*/, ''), opts: item.opts })
       ));
+      setGeneratingQuestions(false);
+      setPhase(PHASES.CLARIFYING);
     } catch {
       setPageError("I couldn't generate clarifying questions right now. Please try again.");
+      setGeneratingQuestions(false);
     }
-    setGeneratingQuestions(false);
-    setPhase(PHASES.CLARIFYING);
   };
 
   const handleClarAnswer = async (qid, answer) => {
@@ -136,6 +140,7 @@ export default function GoalPage() {
     } else {
       setClarificationAnswers(updated);
       setThinking(true);
+      setPageError('');
       try {
         const realityResult = await api.evaluateGoal(goalText);
         if (!realityResult?.dimensions || realityResult.score === undefined) {
@@ -178,8 +183,8 @@ export default function GoalPage() {
         }
       } catch (error) {
         console.error(error);
-        setPageError('API Error: ' + error.message);
-        setPhase(PHASES.GOAL_INPUT);
+        setPageError('API Error: ' + error.message + ' — your answers are saved. Try again from the goal. ');
+        setPhase(PHASES.CLARIFYING);
       }
       setThinking(false);
     }
@@ -301,6 +306,11 @@ export default function GoalPage() {
                   ✏️ Type your own answer
                 </button>
               </div>
+            )}
+            {clarStep === 0 && (
+              <button className="btn btn-ghost" onClick={() => { setPhase(PHASES.GOAL_INPUT); setGoalText(lastGoalInput || goalText); setPageError(''); }} style={{marginTop:'1rem'}}>
+                <ArrowLeft size={14} /> Back to goal
+              </button>
             )}
           </div>
         )}

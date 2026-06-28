@@ -29,13 +29,16 @@ export default function ExecutionMode() {
 
     try {
       const executionPlan = await api.getExecutionPlan(task);
+      if (!executionPlan?.plan?.steps || !Array.isArray(executionPlan.plan.steps)) {
+        throw new Error('AI returned an incomplete execution plan. Try a more specific task.');
+      }
       setPlan(executionPlan);
 
       for (let i = 0; i < executionPlan.plan.steps.length; i++) {
         setCurrentStep(i);
         await delay(800 + Math.random() * 600);
-        const { output } = await api.executeStep(i + 1, task);
-        setStepOutputs(prev => [...prev, { step: i + 1, output }]);
+        const result = await api.executeStep(i + 1, task);
+        setStepOutputs(prev => [...prev, { step: i + 1, output: result?.output || 'Step completed (no detailed output)' }]);
       }
 
       setCompleted(true);

@@ -46,12 +46,11 @@ export default function BusinessBlueprint() {
           <div key={i} style={styles.section}>
             <h4 style={styles.sectionTitle}>{sec.title}</h4>
             {editing ? (
-              <div
-                contentEditable
-                suppressContentEditableWarning
-                style={styles.sectionContent}
-                onBlur={e => updateBlueprint(sec.key, e.currentTarget.textContent)}
-              >{sec.content}</div>
+              <textarea
+                style={{...styles.sectionContent, ...styles.editTextarea}}
+                value={sec.content || ''}
+                onChange={e => updateBlueprint(sec.key, e.target.value)}
+              />
             ) : (
               <p style={styles.sectionContent}>{sec.content}</p>
             )}
@@ -83,4 +82,5 @@ const styles = {
   section: { padding:'1.25rem', background:'rgba(255,255,255,0.02)', borderRadius:'14px', border:'1px solid rgba(255,255,255,0.06)' },
   sectionTitle: { fontSize:'0.8125rem', fontWeight:600, color:'var(--color-accent-light)', marginBottom:'0.5rem', textTransform:'uppercase', letterSpacing:'0.05em' },
   sectionContent: { fontSize:'0.9375rem', color:'var(--color-text-secondary)', lineHeight:1.7 },
+  editTextarea: { width:'100%', minHeight:'80px', padding:'0.75rem', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'10px', color:'var(--color-text-primary)', fontFamily:'inherit', fontSize:'0.9375rem', resize:'vertical' },
 };

@@ -137,9 +137,14 @@ export default function DailyReview() {
           <input type="text" style={styles.input} value={tomorrow} onChange={e => { setTomorrow(e.target.value); persist(); }} placeholder="What's the #1 priority for tomorrow?" />
         </div>
 
-        <button className="btn btn-primary btn-lg" onClick={handleSubmit} disabled={loading} style={{ width: '100%', marginTop: '0.5rem' }}>
-          {loading ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Submitting...</> : <><Send size={16} /> Submit Review</>}
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+          <button className="btn btn-primary btn-lg" onClick={handleSubmit} disabled={loading} style={{ flex: 1 }}>
+            {loading ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Submitting...</> : <><Send size={16} /> Submit Review</>}
+          </button>
+          <button className="btn btn-ghost btn-lg" onClick={() => setSubmitted(true)} style={{ flex: '0 0 auto', color: 'var(--color-text-muted)' }}>
+            Skip
+          </button>
+        </div>
       </div>
     </div>
   );

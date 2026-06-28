@@ -138,8 +138,8 @@ export default function OnboardingPage() {
         </div>
 
         {/* Navigation */}
-        {onboardingStep > 0 && !customMode && (
-          <button className="btn btn-ghost" onClick={prevOnboardingStep} style={styles.backBtn}>
+        {onboardingStep > 0 && (
+          <button className="btn btn-ghost" onClick={() => { if (customMode) { setCustomMode(false); setCustomInput(''); } else { prevOnboardingStep(); } }} style={styles.backBtn}>
             <ArrowLeft size={16} /> Back
           </button>
         )}

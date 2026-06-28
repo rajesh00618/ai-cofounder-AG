@@ -41,6 +41,13 @@ export default function DashboardPage() {
   const { sidebarCollapsed } = useAppStore();
   const [activeView, setActiveView] = useState('home');
   const [hydrated, setHydrated] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   useEffect(() => {
     const unsub = useFounderStore.persist.onFinishHydration(() => setHydrated(true));
@@ -60,7 +67,7 @@ export default function DashboardPage() {
   return (
     <div style={styles.layout}>
       <Suspense fallback={null}><Sidebar activeView={activeView} onNavigate={setActiveView} /></Suspense>
-      <main className="dashboard-main" style={{...styles.main, marginLeft: sidebarCollapsed ? '72px' : '260px'}}>
+      <main className="dashboard-main" style={{...styles.main, marginLeft: isMobile ? '56px' : (sidebarCollapsed ? '72px' : '260px')}}>
         <Suspense fallback={<div style={{display:'flex',alignItems:'center',justifyContent:'center',padding:'4rem',color:'var(--color-text-tertiary)'}}>Loading...</div>}>
           <ActiveComponent onNavigate={setActiveView} />
         </Suspense>

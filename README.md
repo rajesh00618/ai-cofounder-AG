@@ -8,6 +8,12 @@ The world's first Startup Operating System. Not just an AI chatbot — an **AI C
 
 ## What's New
 
+### v1.8 — 5 Customer Persona Audit & UX Hardening
+- **👤 5 customer sub-agents** (First-time Solo Founder, Serial Entrepreneur, Non-Technical Founder, Technical Founder, Side Hustler) walked through every screen
+- **🐛 16 UX fixes**: GoalPage preserves answers on API error + adds "Back to goal" navigation; clarifying answers no longer lost on retry; ExecutionMode null-checks API response to prevent crash; mobile sidebar margin fixed; Onboarding back button visible in custom mode; AIWorkspace shows real-time thinking during API call + user-friendly error messages; BusinessBlueprint switched from `contentEditable` to controlled `<textarea>`; DocumentGenerator gets proper modal viewer; DailyReview adds Skip button; ResearchCenter filters client-side to avoid re-fetching all endpoints; MemoryGraph SVG dimensions responsive to container
+- **📱 Mobile responsive**: Dashboard sidebar margin corrected to 56px (matching CSS); all grid layouts maintain responsive behavior
+- **🧪 264 tests passing** (44 files), 0 lint errors, build 236KB gzip
+
 ### v1.7 — Comprehensive Security & Quality Audit
 - **🛡️ 12 AI sub-agents** audited every layer — architecture, backend, frontend, prompts, cloud, QA, product, UX, graph, domain, beta testing, and internal quality
 - **🔒 7 security fixes**: prompt injection now strips patterns (not just logs), all 30+ routes use centralized `sendError()`, missing auth on `/engines/reality/score`, password reset tokens hashed + timing-safe comparison, `trust proxy` for rate limiting behind nginx
@@ -52,7 +58,7 @@ The world's first Startup Operating System. Not just an AI chatbot — an **AI C
 
 ## Features
 
-> **📖 Full details in [`features.md`](features.md)** — 937 lines covering 20 feature areas, 30+ API endpoints, and 206 tests.
+> **📖 Full details in [`features.md`](features.md)** — 970+ lines covering 20 feature areas, 30+ API endpoints, and 264 tests.
 
 ### Onboarding & Goal Setting
 - **7-Question Founder Onboarding** — understand the founder, not just the startup (2 minutes)
@@ -447,12 +453,12 @@ Continuous AI Loop (memory, research, review, replan)
 |----------|-------|-------|
 | **Store Tests** | 6 | 51 |
 | **Component Tests** | 16 | 52 |
-| **Engine Tests** | 5 | 30 |
+| **Engine Tests** | 12 | 98 |
 | **Route Tests** | 2 | 21 |
-| **Service Tests** | 1 | 14 |
+| **Service Tests** | 5 | 24 |
 | **Utility Tests** | 1 | 19 |
-| **E2E Tests** | 3 | 9 |
-| **Total** | **31 files** | **206 tests** |
+| **E2E Tests** | 2 | 2 |
+| **Total** | **44 files** | **264 tests** |
 
 ---
 

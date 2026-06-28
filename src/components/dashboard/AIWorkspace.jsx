@@ -51,14 +51,13 @@ export default function AIWorkspace() {
   const generateResponse = async (userMsg) => {
     const steps = ['Thinking...', 'Analyzing Context...', 'Formulating Response...'];
     setThinkSteps(steps);
+    setThinkCurrent(0);
     setThinking(true);
-    
+
     for (let i = 0; i < steps.length; i++) {
       setThinkCurrent(i);
-      await delay(300);
+      if (i === 0) await delay(200);
     }
-    
-    setThinking(false);
 
     const context = {
       profile,
@@ -76,11 +75,13 @@ export default function AIWorkspace() {
       (fullText) => {
         updateMessage(msgId, { content: fullText, confidence: 92 });
         setConfidence(92);
+        setThinking(false);
       },
       (error) => {
+        setThinking(false);
         const isNetwork = error === 'Failed to fetch' || error?.includes('NetworkError') || error?.includes('network');
         const msg = isNetwork
-          ? '⚠️ Cannot reach the server. Make sure the backend is running (`node server/index.js`).'
+          ? '⚠️ Cannot reach the server. Please check that your server is running and try again.'
           : `⚠️ Error: ${error}`;
         addMessage({ role: 'assistant', content: msg, agent: 'ceo' });
       }

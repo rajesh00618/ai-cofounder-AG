@@ -79,6 +79,18 @@ export default function MemoryGraph() {
   const [showEdgeModal, setShowEdgeModal] = useState(false);
   const [newEdge, setNewEdge] = useState({ sourceId: '', targetId: '', relationship: 'relates_to' });
   const svgRef = useRef(null);
+  const [svgWidth, setSvgWidth] = useState(700);
+
+  useEffect(() => {
+    const resize = () => {
+      if (svgRef.current?.parentElement) {
+        setSvgWidth(Math.min(svgRef.current.parentElement.clientWidth - 48, 700));
+      }
+    };
+    resize();
+    window.addEventListener('resize', resize);
+    return () => window.removeEventListener('resize', resize);
+  }, []);
 
   const loadGraph = useCallback(async () => {
     try {
@@ -124,7 +136,7 @@ export default function MemoryGraph() {
     .map(e => [nodes.findIndex(n => n.id === e.source_node_id), nodes.findIndex(n => n.id === e.target_node_id)])
     .filter(([a, b]) => a !== -1 && b !== -1);
 
-  const SVG_W = 700, SVG_H = 500;
+  const SVG_W = svgWidth, SVG_H = Math.max(350, Math.min(500, svgWidth * 0.7));
   const positions = nodes.length > 0 ? forceLayout(nodes, edgePairs, SVG_W, SVG_H) : [];
   const usedPairs = edgePairs
     .map((pair, i) => ({ pair, edge: edges[i] }))
