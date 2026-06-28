@@ -8,6 +8,15 @@ The world's first Startup Operating System. Not just an AI chatbot — an **AI C
 
 ## What's New
 
+### v2.1 — Zero Fake Data Audit
+- **🚫 AnalyticsDashboard removed** — was computing fake revenue/MRR from math formulas with no real data source
+- **🧠 Reality scoring rewritten** — `calculateRealityScore` now calls AI instead of hardcoded magic numbers
+- **🧬 DNA scores start null** — populated by real AI analysis after onboarding, not hardcoded 50s
+- **👤 Founder Twin starts null** — populated by AI behavioral modeling, not static labels
+- **⏱️ Mission time from AI** — Command Center shows AI-estimated time, not hardcoded "~2 hrs"
+- **🗑️ Fake confidence removed** — string-length-based confidence metric (85/75/65) deleted from chat responses
+- **Principle**: Every number shown to users is either real AI or clearly indicates it's loading
+
 ### v2.0 — Final MNC-Grade Polish & Complete Audit
 - **🔍 15+ AI sub-agents** ran full end-to-end audits: architecture, security, frontend, backend, prompts, cloud, QA, product, UX, design system, config, test coverage
 - **🛡️ 10 security fixes**: investor/chat output sanitization, auth login query narrowed, email validation on register, nginx security headers (COOP/CORP/XSS/Referrer/Permissions), stronger SSL ciphers, server_tokens off
@@ -19,7 +28,7 @@ The world's first Startup Operating System. Not just an AI chatbot — an **AI C
 - **🔬 Background research enabled by default**
 - **⚡ Performance**: React.memo on leaf components, CommandCenter API call debouncing
 - **🧹 Zero console.log/error/warn** in production code (backend + frontend)
-- **🧪 283 tests passing** (48 files), 0 lint errors, build 236KB gzip
+- **🧪 274 tests passing** (47 files), 0 lint errors, build 236KB gzip
 
 ### v1.9 — MNC-Grade Quality & Production Hardening
 - **🛡️ 8 AI sub-agents** audited architecture, security, frontend, backend, prompts, cloud, QA, product, and MLOps
@@ -485,13 +494,13 @@ Continuous AI Loop (memory, research, review, replan)
 | Category | Files | Tests |
 |----------|-------|-------|
 | **Store Tests** | 6 | 51 |
-| **Component Tests** | 19 | 69 |
-| **Engine Tests** | 12 | 98 |
+| **Component Tests** | 18 | 66 |
+| **Engine Tests** | 12 | 92 |
 | **Route Tests** | 2 | 21 |
 | **Service Tests** | 5 | 24 |
 | **Utility Tests** | 1 | 19 |
 | **E2E Tests** | 3 | 10 |
-| **Total** | **48 files** | **283 tests** |
+| **Total** | **47 files** | **274 tests** |
 
 ---
 
