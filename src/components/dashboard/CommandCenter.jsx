@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useFounderStore } from '../../store/founderStore';
 import { useBusinessStore } from '../../store/businessStore';
 import { useTaskStore } from '../../store/taskStore';
+import { useShallow } from 'zustand/react/shallow';
 import { getGreeting, getScoreColor, getScoreLabel, calculateOverallScore } from '../../utils/helpers';
 import { STARTUP_STAGES } from '../../utils/constants';
 import { Sparkles, Target, AlertTriangle, TrendingUp, CheckSquare, Brain, Zap, ArrowRight, BarChart3, Activity, Loader2 } from 'lucide-react';
@@ -26,9 +27,15 @@ function ScoreCard({ label, value, icon: Icon, color }) {
 }
 
 export default function CommandCenter({ onNavigate }) {
-  const { profile, dnaScores } = useFounderStore();
-  const { businessHealth, startupScore, currentStage, blueprint } = useBusinessStore();
-  const { tasks } = useTaskStore();
+  const { profile, dnaScores } = useFounderStore(
+    useShallow(s => ({ profile: s.profile, dnaScores: s.dnaScores }))
+  );
+  const { businessHealth, startupScore, currentStage, blueprint } = useBusinessStore(
+    useShallow(s => ({ businessHealth: s.businessHealth, startupScore: s.startupScore, currentStage: s.currentStage, blueprint: s.blueprint }))
+  );
+  const { tasks } = useTaskStore(
+    useShallow(s => ({ tasks: s.tasks }))
+  );
   const [mission, setMission] = useState('');
   const [recommendation, setRecommendation] = useState('');
   const [loading, setLoading] = useState(false);

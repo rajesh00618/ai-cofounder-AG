@@ -1,12 +1,12 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import LandingPage from './pages/LandingPage';
-import AuthPage from './pages/AuthPage';
-import OnboardingPage from './pages/OnboardingPage';
-import GoalPage from './pages/GoalPage';
-import BusinessPlanningPage from './pages/BusinessPlanningPage';
-import DashboardPage from './pages/DashboardPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
+const LandingPage = React.lazy(() => import('./pages/LandingPage'));
+const AuthPage = React.lazy(() => import('./pages/AuthPage'));
+const OnboardingPage = React.lazy(() => import('./pages/OnboardingPage'));
+const GoalPage = React.lazy(() => import('./pages/GoalPage'));
+const BusinessPlanningPage = React.lazy(() => import('./pages/BusinessPlanningPage'));
+const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
+const ResetPasswordPage = React.lazy(() => import('./pages/ResetPasswordPage'));
 import { useAuthStore } from './store/authStore';
 import { api } from './utils/api';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -19,12 +19,15 @@ export default function App() {
 
   useEffect(() => {
     if (!token) return;
-    api.getMe().catch(() => logout());
+    api.getMe().catch((err) => {
+      if (err.message.includes('Session expired')) logout();
+    });
   }, [token, logout]);
 
   return (
     <BrowserRouter>
       <ErrorBoundary>
+      <Suspense fallback={<div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',background:'var(--color-bg-primary)',color:'var(--color-text-tertiary)',fontSize:'0.9375rem'}}>Loading...</div>}>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />
@@ -35,6 +38,7 @@ export default function App() {
         <Route path="/dashboard/*" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
       </ErrorBoundary>
     </BrowserRouter>
   );

@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { logger } from './logger.js';
 
 const MODELS = [
   { model: 'meta/llama-4-maverick-17b-128e-instruct', baseURL: 'https://integrate.api.nvidia.com/v1' },
@@ -40,16 +41,17 @@ const sanitizeUserInput = (input) => {
   }
 
   // Remove null bytes and control characters (except newlines and tabs)
-  input = input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  input = input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ''); // eslint-disable-line no-control-regex
 
   // Limit length
   input = input.slice(0, MAX_USER_INPUT_LENGTH);
 
-  // Warn about injection patterns (log but don't strip — let the system prompt boundary handle it)
+  // Strip injection patterns from input
   for (const pattern of PROMPT_INJECTION_PATTERNS) {
-    if (pattern.test(input)) {
-      console.warn(`[AI] Potential prompt injection detected in user input (matched: ${pattern})`);
-      break;
+    const cleaned = input.replace(pattern, '[REDACTED]');
+    if (cleaned !== input) {
+      logger.warn(`Potential prompt injection detected and stripped (matched: ${pattern})`);
+      input = cleaned;
     }
   }
 
@@ -83,7 +85,7 @@ export const callOpenAI = async (apiKey, systemPrompt, userPrompt, temperature =
   const preferredBaseURL = process.env.AI_BASE_URL;
 
   const candidates = preferredModel
-    ? [{ model: preferredModel, baseURL: preferredBaseURL || MODELS[0].baseURL }]
+    ? [{ model: preferredModel, baseURL: preferredBaseURL || MODELS[0].baseURL }, ...MODELS]
     : MODELS;
 
   let lastError;
@@ -111,7 +113,7 @@ export const callOpenAIStream = async (apiKey, systemPrompt, userPrompt, onToken
   const preferredBaseURL = process.env.AI_BASE_URL;
 
   const candidates = preferredModel
-    ? [{ model: preferredModel, baseURL: preferredBaseURL || MODELS[0].baseURL }]
+    ? [{ model: preferredModel, baseURL: preferredBaseURL || MODELS[0].baseURL }, ...MODELS]
     : MODELS;
 
   let lastError;

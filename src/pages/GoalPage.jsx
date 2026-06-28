@@ -107,17 +107,22 @@ export default function GoalPage() {
       let parsed;
       try { parsed = JSON.parse(result.content); } catch { parsed = null; }
       if (!Array.isArray(parsed) || parsed.length === 0) {
-        throw new Error('AI returned invalid questions format');
+        setPageError("I couldn't generate good clarifying questions. Please rephrase your goal or try again.");
+        setGeneratingQuestions(false);
+        return;
       }
-      setClarQuestions(parsed.map((item, i) => {
+      for (const item of parsed) {
         if (!item.q || !Array.isArray(item.opts) || item.opts.length < 2) {
-          throw new Error('AI returned question without valid options');
+          setPageError("I couldn't generate good clarifying questions. Please rephrase your goal or try again.");
+          setGeneratingQuestions(false);
+          return;
         }
-        return { id: i + 1, q: item.q.replace(/^\d+[.)]\s*/, ''), opts: item.opts };
-      }));
-    } catch (e) {
-      setPageError('Failed to generate clarifying questions: ' + e.message);
-      throw e;
+      }
+      setClarQuestions(parsed.map((item, i) =>
+        ({ id: i + 1, q: item.q.replace(/^\d+[.)]\s*/, ''), opts: item.opts })
+      ));
+    } catch {
+      setPageError("I couldn't generate clarifying questions right now. Please try again.");
     }
     setGeneratingQuestions(false);
     setPhase(PHASES.CLARIFYING);
@@ -354,7 +359,7 @@ export default function GoalPage() {
             </div>
             <p style={styles.negText}>Your current goal has a low success probability. I'm not going to sugarcoat it — here are better alternatives:</p>
             <div style={styles.altGrid}>
-              <div style={{...styles.altCard, ...(selectedAlt === 'current' ? styles.altSelected : {}), borderColor:'rgba(239,68,68,0.3)'}} onClick={() => handleSelectAlternative('current')}>
+              <div style={{...styles.altCard, ...(selectedAlt === 'current' ? styles.altSelected : {}), borderColor:'rgba(239,68,68,0.3)'}} onClick={() => handleSelectAlternative('current')} role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSelectAlternative('current'); } }}>
                 <div style={styles.altHeader}>
                   <span style={styles.altLabel}>Current Goal</span>
                   <span className="badge badge-danger">HIGH RISK</span>
@@ -363,7 +368,7 @@ export default function GoalPage() {
                 <div style={styles.altProb}>Success: {negotiation.current.probability}</div>
               </div>
               {negotiation.alternatives.map((alt, i) => (
-                <div key={i} style={{...styles.altCard, ...(selectedAlt === `alt${i}` ? styles.altSelected : {})}} onClick={() => handleSelectAlternative(`alt${i}`)}>
+                <div key={i} style={{...styles.altCard, ...(selectedAlt === `alt${i}` ? styles.altSelected : {})}} onClick={() => handleSelectAlternative(`alt${i}`)} role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSelectAlternative(`alt${i}`); } }}>
                   <div style={styles.altHeader}>
                     <span style={styles.altLabel}>Alternative {String.fromCharCode(65 + i)}</span>
                     <span className={`badge ${alt.risk === 'Low' ? 'badge-success' : 'badge-warning'}`}>{alt.risk} RISK</span>

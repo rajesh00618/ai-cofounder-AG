@@ -1,5 +1,16 @@
 import { logger } from './logger.js';
 
+// In-memory registry for WhatsApp phone numbers (safe, never mutates process.env)
+const _whatsappRegistry = new Map();
+
+export const registerWhatsAppPhone = (email, phone) => {
+  _whatsappRegistry.set(email.toLowerCase(), phone);
+};
+
+export const getPhoneForEmail = (email) => {
+  return _whatsappRegistry.get(email.toLowerCase()) || null;
+};
+
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
 const TWILIO_WHATSAPP_NUMBER = process.env.TWILIO_WHATSAPP_NUMBER;
@@ -80,7 +91,7 @@ export const startReminderScheduler = () => {
               .eq('user_id', user.id)
               .eq('status', 'todo')
               .limit(5);
-            const phone = process.env[`WHATSAPP_${user.email.replace(/[@.]/g, '_').toUpperCase()}`];
+            const phone = getPhoneForEmail(user.email);
             if (phone) await sendMorningReminder(phone, user.name, tasks);
           }
         }
@@ -101,7 +112,7 @@ export const startReminderScheduler = () => {
               .from('tasks').select('title, status')
               .eq('user_id', user.id)
               .limit(10);
-            const phone = process.env[`WHATSAPP_${user.email.replace(/[@.]/g, '_').toUpperCase()}`];
+            const phone = getPhoneForEmail(user.email);
             if (phone) await sendEveningReminder(phone, user.name, tasks);
           }
         }

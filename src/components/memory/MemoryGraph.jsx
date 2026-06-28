@@ -126,7 +126,9 @@ export default function MemoryGraph() {
 
   const SVG_W = 700, SVG_H = 500;
   const positions = nodes.length > 0 ? forceLayout(nodes, edgePairs, SVG_W, SVG_H) : [];
-  const usedEdges = edgePairs.filter(([a, b]) => positions[a] && positions[b]);
+  const usedPairs = edgePairs
+    .map((pair, i) => ({ pair, edge: edges[i] }))
+    .filter(({ pair: [a, b] }) => positions[a] && positions[b]);
 
   return (
     <div style={styles.page} className="page-enter">
@@ -159,9 +161,8 @@ export default function MemoryGraph() {
         <>
           <div style={styles.graphCard}>
             <svg ref={svgRef} width="100%" height={SVG_H} viewBox={`0 0 ${SVG_W} ${SVG_H}`} style={{ display: 'block' }}>
-              {usedEdges.map(([fromIdx, toIdx], i) => {
+              {usedPairs.map(({ pair: [fromIdx, toIdx], edge }) => {
                 const a = positions[fromIdx], b = positions[toIdx];
-                const edge = edges[i];
                 const midX = (a.x + b.x) / 2, midY = (a.y + b.y) / 2;
                 return (
                   <g key={`edge-${i}`}>

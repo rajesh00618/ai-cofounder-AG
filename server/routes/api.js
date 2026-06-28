@@ -1,5 +1,5 @@
 import express from 'express';
-import jwt from 'jsonwebtoken';
+
 import { callOpenAI, callOpenAIStream, PROMPTS, extractJSON } from '../services/ai.js';
 import { evaluateGoal, calculateRealityScore } from '../engines/reality.js';
 import { negotiateGoal } from '../engines/negotiation.js';
@@ -14,36 +14,28 @@ import { analyzeDNA, generateAdaptations } from '../engines/dna.js';
 import { generateMission, generateHealthAnalysis } from '../engines/mission.js';
 import { generateReviewNote, suggestTasks } from '../engines/review.js';
 import { getCEOAdvice, getCTOAdvice, getCMOAdvice, getSalesAdvice, getFinanceAdvice, getResearchAdvice } from '../agents/index.js';
-import { JWT_SECRET as getJwtSecret } from './auth.js';
+import { requireJwt } from './auth.js';
+import { sendError } from '../services/errors.js';
 
 const router = express.Router();
 
-const requireJwt = (req, res, next) => {
-  const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Authentication required' });
+/**
+ * Middleware to get API key.
+ * Falls back to env var ONLY when ALLOW_SERVER_KEY_FALLBACK is explicitly enabled.
+ * This prevents unauthenticated users from consuming the server's AI quota.
+ */
+const requireApiKey = (req, res, next) => {
+  const apiKey = req.headers['x-api-key'];
+  const allowFallback = process.env.ALLOW_SERVER_KEY_FALLBACK === 'true';
+  if (!apiKey && !allowFallback) {
+    return res.status(401).json({ error: 'API key is required (x-api-key header). Set ALLOW_SERVER_KEY_FALLBACK=true to use the server key.' });
   }
-  try {
-    const decoded = jwt.verify(auth.split(' ')[1], getJwtSecret());
-    req.userId = decoded.userId;
-    next();
-  } catch {
-    res.status(401).json({ error: 'Invalid token' });
-  }
+  req.apiKey = apiKey || process.env.NVIDIA_API_KEY;
+  if (!req.apiKey) return res.status(401).json({ error: 'API key is required.' });
+  next();
 };
 
 const pick = (body, ...keys) => { for (const k of keys) { if (body[k] !== undefined && body[k] !== null && body[k] !== '') return body[k]; } return undefined; };
-
-/**
- * Middleware to get API key.
- * Falls back to env var when no x-api-key header is provided.
- */
-const requireApiKey = (req, res, next) => {
-  const apiKey = req.headers['x-api-key'] || process.env.NVIDIA_API_KEY;
-  if (!apiKey) return res.status(401).json({ error: 'API key is required.' });
-  req.apiKey = apiKey;
-  next();
-};
 
 const requireBody = (...fieldGroups) => (req, res, next) => {
   for (const group of fieldGroups) {
@@ -64,7 +56,7 @@ router.post('/chat', requireApiKey, requireBody('message'), async (req, res) => 
     const confidence = Math.min(70 + Math.floor((response?.length || 10) / 20), 95);
     res.json({ content: response, confidence });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -99,7 +91,7 @@ router.post('/chat/agent', requireApiKey, requireBody('message', 'agent'), async
     const confidence = Math.min(70 + Math.floor((message?.length || 10) / 10), 99);
     res.json({ content: response, confidence, agent });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -109,11 +101,11 @@ router.post('/engines/reality', requireApiKey, requireBody('goal'), async (req, 
     const response = await evaluateGoal(req.apiKey, goal);
     res.json(response);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
-router.post('/engines/reality/score', async (req, res) => {
+router.post('/engines/reality/score', requireApiKey, async (req, res) => {
   try {
     const { answers } = req.body;
     if (!answers || typeof answers !== 'object') {
@@ -122,7 +114,7 @@ router.post('/engines/reality/score', async (req, res) => {
     const score = calculateRealityScore(answers);
     res.json({ score });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -132,7 +124,7 @@ router.post('/engines/negotiate', requireApiKey, requireBody('goal'), async (req
     const response = await negotiateGoal(req.apiKey, goal);
     res.json(response);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -142,7 +134,7 @@ router.post('/simulate/decision', requireApiKey, requireBody('question'), async 
     const result = await runDecisionSimulation(req.apiKey, question);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -152,7 +144,7 @@ router.post('/simulate/company', requireApiKey, requireBody('question'), async (
     const result = await runCompanySimulation(req.apiKey, question);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -162,7 +154,7 @@ router.post('/simulate/customer', requireApiKey, requireBody('product'), async (
     const result = await simulateCustomerReaction(req.apiKey, product, persona || 'customer');
     res.json(result);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -177,7 +169,7 @@ router.post('/board', requireApiKey, requireBody('question'), async (req, res) =
     }
     res.json(parsed);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -195,7 +187,7 @@ router.post('/board/chat', requireApiKey, requireBody('messages'), async (req, r
     }
     res.json(parsed);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -207,7 +199,7 @@ router.post('/research', requireApiKey, async (req, res) => {
     const items = await getResearch(req.apiKey, context || {});
     res.json(Array.isArray(items) ? items.filter(i => filter === 'all' || i.category === filter || i.type === filter) : items);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -217,7 +209,7 @@ router.post('/research/opportunities', requireApiKey, async (req, res) => {
     const opportunities = await getOpportunities(req.apiKey, context || {});
     res.json(opportunities);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -228,7 +220,7 @@ router.post('/research/briefing', requireApiKey, async (req, res) => {
     const briefing = await getMorningBriefing(req.apiKey, profile, context || { currentStage: pick(req.body, 'stage', 'currentStage') });
     res.json(briefing);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -240,7 +232,7 @@ router.post('/documents/generate', requireApiKey, requireBody(['docType', 'type'
     const doc = await generateDocument(req.apiKey, docType, context);
     res.json(doc);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -251,7 +243,7 @@ router.post('/roadmap/generate', requireApiKey, requireBody('blueprint'), async 
     const roadmap = await generateRoadmap(req.apiKey, blueprint);
     res.json(roadmap);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -263,7 +255,7 @@ router.post('/roadmap/guidance', requireApiKey, requireBody(['currentStage', 'st
     const guidance = await generateStageGuidance(req.apiKey, currentStage, businessHealth, dnaScores);
     res.json({ guidance: guidance.advice || guidance.guidance || JSON.stringify(guidance) });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -274,7 +266,7 @@ router.post('/founder/dna/analyze', requireApiKey, requireBody('profile'), async
     const result = await analyzeDNA(req.apiKey, profile);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -286,7 +278,7 @@ router.post('/founder/dna/adapt', requireApiKey, requireBody(['dnaScores', 'prof
     const result = await generateAdaptations(req.apiKey, dnaScores, founderTwin, recentActivity);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -299,7 +291,7 @@ router.post('/command/mission', requireApiKey, async (req, res) => {
     const mission = await generateMission(req.apiKey, context, tasks, dnaScores);
     res.json({ mission: mission.mission || mission.recommendation || JSON.stringify(mission) });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -310,7 +302,7 @@ router.post('/command/health', requireApiKey, async (req, res) => {
     const analysis = await generateHealthAnalysis(req.apiKey, typeof blueprint === 'object' ? blueprint : {}, businessHealth);
     res.json({ recommendation: analysis.recommendation || analysis.alert || JSON.stringify(analysis) });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -324,7 +316,7 @@ router.post('/review/note', requireApiKey, requireBody(['review', 'responses']),
     const note = await generateReviewNote(req.apiKey, review, profile, tasks, dnaScores);
     res.json({ note: note.note || JSON.stringify(note) });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -337,7 +329,7 @@ router.post('/tasks/suggest', requireApiKey, async (req, res) => {
     const result = await suggestTasks(req.apiKey, blueprint, stage, dnaScores);
     res.json({ suggestions: (result.tasks || []).map(t => t.title) });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -348,7 +340,7 @@ router.post('/memory/nodes', requireJwt, requireBody('founderId', 'type', 'label
     const id = await addMemoryNode(req.userId, founderId, type, label, metadata);
     res.json({ id, message: 'Memory node created' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -357,7 +349,7 @@ router.get('/memory/nodes/:founderId', requireJwt, async (req, res) => {
     const nodes = await getMemoryNodes(req.userId, req.params.founderId);
     res.json(nodes);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -366,7 +358,7 @@ router.get('/memory/timeline/:founderId', requireJwt, async (req, res) => {
     const timeline = await getMemoryTimeline(req.userId, req.params.founderId);
     res.json(timeline);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -376,7 +368,7 @@ router.post('/memory/edges', requireJwt, requireBody('sourceNodeId', 'targetNode
     const id = await addMemoryEdge(req.userId, sourceNodeId, targetNodeId, relationship);
     res.json({ id, message: 'Memory edge created' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -385,7 +377,7 @@ router.get('/memory/graph/:founderId', requireJwt, async (req, res) => {
     const graph = await getMemoryGraph(req.userId, req.params.founderId);
     res.json(graph);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -410,7 +402,7 @@ router.post('/business/blueprint', requireJwt, requireApiKey, requireBody('answe
     _blueprintCache.set(req.userId, { data: result, ts: Date.now() });
     res.json(result);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -426,7 +418,7 @@ router.post('/business/blueprint/tasks', requireApiKey, requireBody('answers'), 
     const tasks = await generateBlueprintTasks(req.apiKey, answers, blueprint);
     res.json({ tasks });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -436,7 +428,7 @@ router.post('/business/blueprint/scores', requireApiKey, requireBody('answers'),
     const scores = await generateScores(req.apiKey, answers, blueprint, profile);
     res.json(scores);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -447,7 +439,7 @@ router.post('/execution/plan', requireApiKey, requireBody('task'), async (req, r
     const plan = await generateExecutionPlan(req.apiKey, task);
     res.json(plan);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -457,7 +449,7 @@ router.post('/execution/step', requireApiKey, requireBody('stepId', 'task'), asy
     const result = await executeStep(req.apiKey, stepId, task);
     res.json({ stepId, output: result.output });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -485,7 +477,7 @@ Respond ONLY in JSON format:
     }
     res.json(parsed);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 

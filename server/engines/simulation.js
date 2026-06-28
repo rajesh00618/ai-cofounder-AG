@@ -12,7 +12,7 @@ Return JSON: {
   "recommendation": "label of best option",
   "failureRisk": 25-65
 }
-Make success numbers realistic and consistent with risk level. Sort scenarios by success descending. The recommendation should be the top scenario's label.`;
+Make success numbers realistic and consistent with risk level. Analyze each scenario impartially and recommend based on risk/reward analysis.`;
   const userPrompt = `Question: ${question}`;
   const response = await callOpenAI(apiKey, prompt, userPrompt, 0.7);
   return extractJSON(response);

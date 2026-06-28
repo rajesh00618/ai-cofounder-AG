@@ -56,13 +56,13 @@ export default function Sidebar({ activeView, onNavigate }) {
       <div style={styles.logoSection}>
         <div style={styles.logoIcon}><Sparkles size={18} /></div>
         {!effectiveCollapsed && <span style={styles.logoText}>AI Co-Founder</span>}
-        <button onClick={handleToggle} style={styles.collapseBtn}>
+        <button onClick={handleToggle} style={styles.collapseBtn} aria-label={effectiveCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
           {isMobile ? <Menu size={16} /> : (effectiveCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />)}
         </button>
       </div>
 
       {/* Nav Items */}
-      <nav style={styles.nav}>
+      <nav style={styles.nav} role="navigation" aria-label="Main navigation">
         {NAV_ITEMS.map(item => (
           <button
             key={item.id}
@@ -73,6 +73,7 @@ export default function Sidebar({ activeView, onNavigate }) {
               justifyContent: effectiveCollapsed ? 'center' : 'flex-start'
             }}
             title={effectiveCollapsed ? item.label : undefined}
+            aria-current={activeView === item.id ? 'page' : undefined}
           >
             <item.icon size={18} />
             {!effectiveCollapsed && <span>{item.label}</span>}

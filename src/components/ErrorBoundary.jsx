@@ -12,7 +12,7 @@ export default class ErrorBoundary extends React.Component {
 
   handleReset = () => {
     this.setState({ hasError: false, error: null });
-    window.location.href = '/auth';
+    window.location.href = '/';
   };
 
   render() {
@@ -20,10 +20,10 @@ export default class ErrorBoundary extends React.Component {
       return (
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          minHeight: '50vh', padding: '2rem', textAlign: 'center', color: '#94a3b8'
+          minHeight: '50vh', padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted)'
         }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
-          <h2 style={{ color: '#e2e8f0', marginBottom: '0.5rem' }}>Something went wrong</h2>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }} role="img" aria-label="warning">⚠️</div>
+          <h2 style={{ color: 'var(--color-text-primary)', marginBottom: '0.5rem' }}>Something went wrong</h2>
           <p style={{ marginBottom: '1.5rem', maxWidth: '400px' }}>
             {this.state.error?.message || 'An unexpected error occurred'}
           </p>

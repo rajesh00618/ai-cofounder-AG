@@ -69,15 +69,27 @@ export const getMemoryGraph = async (userId, founderId) => {
   const nodeIds = (nodes || []).map(n => n.id);
   if (nodeIds.length === 0) return { nodes: [], edges: [] };
 
-  const { data: edges, error: edgeError } = await supabase
+  const { data: sourceEdges, error: sourceError } = await supabase
     .from('memory_edges')
     .select('*')
     .eq('user_id', userId)
     .in('source_node_id', nodeIds);
-  if (edgeError) throw edgeError;
+  if (sourceError) throw sourceError;
+
+  const { data: targetEdges, error: targetError } = await supabase
+    .from('memory_edges')
+    .select('*')
+    .eq('user_id', userId)
+    .in('target_node_id', nodeIds);
+  if (targetError) throw targetError;
+
+  const edgeMap = new Map();
+  for (const e of [...(sourceEdges || []), ...(targetEdges || [])]) {
+    edgeMap.set(e.id, e);
+  }
 
   return {
     nodes: (nodes || []).map(r => ({ ...r, metadata: r.metadata ? JSON.parse(r.metadata) : {} })),
-    edges: edges || [],
+    edges: [...edgeMap.values()],
   };
 };

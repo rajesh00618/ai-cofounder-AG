@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Settings, Key, Save, CheckCircle2, Server, AlertTriangle, Loader2, Smartphone, Lock, Mail, Send } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import { useAuthStore } from '../../store/authStore';
-import { api } from '../../utils/api';
+import { api, API_BASE } from '../../utils/api';
 
 export default function SettingsPanel() {
   const { apiKey, setApiKey } = useAppStore();
@@ -24,7 +24,7 @@ export default function SettingsPanel() {
   const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/health')
+    fetch(`${API_BASE}/health`)
       .then(r => r.json())
       .then(data => setServerStatus(data.apiKeyConfigured ? 'configured' : 'no-key'))
       .catch(() => setServerStatus('offline'));

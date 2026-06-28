@@ -33,7 +33,45 @@ export default function BusinessPlanningPage() {
   const [_generating, setGenerating] = useState(false);
   const [genStep, setGenStep] = useState(0);
   const [blueprint, setBp] = useState(null);
+  const [editing, setEditing] = useState(false);
   const [bpError, setBpError] = useState('');
+
+  const handleExport = () => {
+    if (!blueprint) return;
+    const lines = [
+      '=== Business Blueprint ===',
+      '',
+      `Executive Summary: ${blueprint.executiveSummary || ''}`,
+      '',
+      `Problem: ${blueprint.problem || ''}`,
+      '',
+      `Solution & USP: ${blueprint.solution || ''}`,
+      '',
+      `Target Customer: ${blueprint.targetCustomer || ''}`,
+      '',
+      `Market Size: ${blueprint.marketSize || ''}`,
+      '',
+      `Competitors: ${blueprint.competitors || ''}`,
+      '',
+      `Revenue Model: ${blueprint.revenueModel || ''}`,
+      '',
+      `Go-to-Market: ${blueprint.gtmPlan || ''}`,
+      '',
+      `Validation Plan: ${blueprint.validationPlan || ''}`,
+      '',
+      `MVP Plan: ${blueprint.mvpPlan || ''}`,
+      '',
+      'Success Metrics:',
+      ...(blueprint.successMetrics || []).map(m => `  ✓ ${m}`),
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `blueprint-${blueprint.id || 'export'}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleAnswer = (id, val) => {
     setAnswers(prev => ({ ...prev, [id]: val }));
@@ -147,8 +185,8 @@ export default function BusinessPlanningPage() {
                 <p style={{fontSize:'0.8125rem',color:'var(--color-text-tertiary)'}}>Auto-generated • Fully editable</p>
               </div>
               <div style={{display:'flex',gap:'0.5rem'}}>
-                <button className="btn btn-secondary btn-sm"><Edit3 size={14} /> Edit</button>
-                <button className="btn btn-secondary btn-sm"><Download size={14} /> Export</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setEditing(!editing)} disabled={!blueprint}>{editing ? 'Done' : <><Edit3 size={14} /> Edit</>}</button>
+                <button className="btn btn-secondary btn-sm" onClick={handleExport} disabled={!blueprint}><Download size={14} /> Export</button>
               </div>
             </div>
             <div style={styles.bpSections}>
@@ -166,14 +204,33 @@ export default function BusinessPlanningPage() {
               ].map((sec, i) => (
                 <div key={i} style={styles.bpSection}>
                   <h4 style={styles.bpSectionTitle}>{sec.title}</h4>
-                  <p style={styles.bpSectionContent}>{sec.content}</p>
+                  {editing ? (
+                    <textarea
+                      style={{...styles.bpSectionContent, ...styles.editTextarea}}
+                      value={sec.content || ''}
+                      onChange={e => {
+                        const fieldMap = { 'Executive Summary': 'executiveSummary', 'Problem': 'problem', 'Solution & USP': 'solution', 'Target Customer': 'targetCustomer', 'Market Size': 'marketSize', 'Competitors': 'competitors', 'Revenue Model': 'revenueModel', 'Go-to-Market': 'gtmPlan', 'Validation Plan': 'validationPlan', 'MVP Plan': 'mvpPlan' };
+                        setBp(prev => ({ ...prev, [fieldMap[sec.title]]: e.target.value }));
+                      }}
+                    />
+                  ) : (
+                    <p style={styles.bpSectionContent}>{sec.content}</p>
+                  )}
                 </div>
               ))}
               <div style={styles.bpSection}>
                 <h4 style={styles.bpSectionTitle}>Success Metrics</h4>
-                {blueprint.successMetrics.map((m, i) => (
-                  <div key={i} style={styles.metric}>✓ {m}</div>
-                ))}
+                {editing ? (
+                  <textarea
+                    style={{...styles.bpSectionContent, ...styles.editTextarea}}
+                    value={(blueprint.successMetrics || []).join('\n')}
+                    onChange={e => setBp(prev => ({ ...prev, successMetrics: e.target.value.split('\n').filter(Boolean) }))}
+                  />
+                ) : (
+                  blueprint.successMetrics.map((m, i) => (
+                    <div key={i} style={styles.metric}>✓ {m}</div>
+                  ))
+                )}
               </div>
             </div>
             <button className="btn btn-primary btn-lg" onClick={() => navigate('/dashboard')} style={{width:'100%',marginTop:'1.5rem'}}>
@@ -204,5 +261,6 @@ const styles = {
   bpSection: { padding:'1rem 1.25rem', background:'rgba(255,255,255,0.02)', borderRadius:'12px', border:'1px solid rgba(255,255,255,0.06)' },
   bpSectionTitle: { fontSize:'0.875rem', fontWeight:600, color:'var(--color-accent-light)', marginBottom:'0.5rem', textTransform:'uppercase', letterSpacing:'0.05em' },
   bpSectionContent: { fontSize:'0.9375rem', color:'var(--color-text-secondary)', lineHeight:1.6 },
+  editTextarea: { width:'100%', minHeight:'80px', padding:'0.75rem', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'10px', color:'var(--color-text-primary)', fontFamily:'inherit', fontSize:'0.9375rem', resize:'vertical' },
   metric: { fontSize:'0.875rem', color:'var(--color-success-light)', marginBottom:'0.375rem' },
 };

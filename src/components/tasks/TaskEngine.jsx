@@ -115,7 +115,7 @@ export default function TaskEngine() {
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ ...styles.priorityDot, background: priorityColor(task.priority) }} />
+              <span style={{ ...styles.priorityDot, background: priorityColor(task.priority) }} aria-label={`Priority: ${task.priority}`} />
               <select value={task.status} onChange={e => updateTask(task.id, { status: e.target.value })} style={styles.statusSelect}>
                 <option value="todo">To Do</option>
                 <option value="in-progress">In Progress</option>

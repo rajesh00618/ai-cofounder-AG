@@ -10,13 +10,20 @@ const mockResetOnboarding = vi.fn();
 const mockUseAuthStore = vi.fn();
 const mockUseFounderStore = vi.fn();
 
+const mockAuthStoreModule = vi.hoisted(() => {
+  const mocks = { onFinishHydration: (cb) => { cb(); return () => {}; }, hasHydrated: () => true };
+  const fn = (sel) => mockUseAuthStore(sel);
+  fn.persist = mocks;
+  return fn;
+});
+
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
 vi.mock('../../store/authStore', () => ({
-  useAuthStore: (selector) => mockUseAuthStore(selector),
+  useAuthStore: mockAuthStoreModule,
 }));
 
 vi.mock('../../store/founderStore', () => ({

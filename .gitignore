@@ -22,6 +22,12 @@ dist
 dist-ssr
 *.local
 
+# opencode
+.opencode/
+
+# Audit artifacts
+graph-audit-report.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

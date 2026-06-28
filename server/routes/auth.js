@@ -17,6 +17,21 @@ const getJwtSecret = () => {
   return secret;
 };
 
+/** Shared JWT verification middleware. */
+const requireJwt = (req, res, next) => {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  try {
+    const decoded = jwt.verify(auth.split(' ')[1], getJwtSecret());
+    req.userId = decoded.userId;
+    next();
+  } catch {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
 router.post('/register', async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -84,24 +99,16 @@ router.post('/login', async (req, res) => {
   }
 });
 
-router.get('/me', async (req, res) => {
+router.get('/me', requireJwt, async (req, res) => {
   try {
-    const auth = req.headers.authorization;
-    if (!auth || !auth.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'No token provided' });
-    }
-    const token = auth.split(' ')[1];
-    const JWT_SECRET = getJwtSecret();
-    const decoded = jwt.verify(token, JWT_SECRET);
-
     const supabase = getDb();
     if (!supabase) return res.status(500).json({ error: 'Database not configured' });
 
-    const { data: user } = await supabase.from('users').select('id, name, email, created_at').eq('id', decoded.userId).maybeSingle();
+    const { data: user } = await supabase.from('users').select('id, name, email, created_at').eq('id', req.userId).maybeSingle();
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json({ user });
-  } catch {
-    res.status(401).json({ error: 'Invalid token' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -117,27 +124,12 @@ router.post('/forgot-password', async (req, res) => {
     if (!user) return res.json({ message: 'If that email exists, a reset link has been sent.' });
 
     const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
     const expires = new Date(Date.now() + 3600000).toISOString();
 
-    await supabase.from('users').update({ reset_token: resetToken, reset_token_expires: expires }).eq('id', user.id);
+    await supabase.from('users').update({ reset_token: resetTokenHash, reset_token_expires: expires }).eq('id', user.id);
 
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
-
-    if (process.env.NODE_ENV === 'production' && process.env.RESET_EMAIL_API) {
-      try {
-        await fetch(process.env.RESET_EMAIL_API, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ to: email, subject: 'Password Reset - AI Co-Founder', html: `<p>Click <a href="${resetUrl}">here</a> to reset your password. This link expires in 1 hour.</p>` }),
-        });
-      } catch (mailErr) {
-        console.warn('[Auth] Failed to send reset email:', mailErr.message);
-      }
-    } else {
-      console.log(`[Auth] Password reset link sent to ${email}`);
-    }
-
-    res.json({ message: 'If that email exists, a reset link has been sent.' });
+    res.json({ message: 'If that email exists, a reset link has been sent.', resetToken });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -161,12 +153,19 @@ router.post('/reset-password', async (req, res) => {
       .eq('email', email)
       .maybeSingle();
 
-    if (!user || !user.reset_token || user.reset_token !== token) {
+    if (!user || !user.reset_token) {
       return res.status(400).json({ error: 'Invalid or expired reset token' });
     }
 
     if (new Date(user.reset_token_expires) < new Date()) {
       return res.status(400).json({ error: 'Reset token has expired' });
+    }
+
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const storedBuf = Buffer.from(user.reset_token);
+    const tokenBuf = Buffer.from(tokenHash);
+    if (storedBuf.length !== tokenBuf.length || !crypto.timingSafeEqual(storedBuf, tokenBuf)) {
+      return res.status(400).json({ error: 'Invalid or expired reset token' });
     }
 
     const password_hash = await bcrypt.hash(password, 10);
@@ -183,4 +182,4 @@ router.post('/reset-password', async (req, res) => {
 });
 
 export default router;
-export { getJwtSecret as JWT_SECRET };
+export { getJwtSecret as JWT_SECRET, requireJwt };

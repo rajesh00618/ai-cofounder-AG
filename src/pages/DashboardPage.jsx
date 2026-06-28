@@ -1,21 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useFounderStore } from '../store/founderStore';
 import { useAppStore } from '../store/appStore';
-import Sidebar from '../components/dashboard/Sidebar';
-import CommandCenter from '../components/dashboard/CommandCenter';
-import AIWorkspace from '../components/dashboard/AIWorkspace';
-import TaskEngine from '../components/tasks/TaskEngine';
-import RoadmapView from '../components/roadmap/RoadmapView';
-import MemoryGraph from '../components/memory/MemoryGraph';
-import FounderTwin from '../components/founder/FounderTwin';
-import ResearchCenter from '../components/research/ResearchCenter';
-import BusinessBlueprint from '../components/business/BusinessBlueprint';
-import DocumentGenerator from '../components/documents/DocumentGenerator';
-import AIBoardMeeting from '../components/ai/AIBoardMeeting';
-import ExecutionMode from '../components/ai/ExecutionMode';
-import DecisionSimulator from '../components/simulators/DecisionSimulator';
-import DailyReview from '../components/review/DailyReview';
-import SettingsPanel from '../components/dashboard/SettingsPanel';
+const Sidebar = React.lazy(() => import('../components/dashboard/Sidebar'));
+const CommandCenter = React.lazy(() => import('../components/dashboard/CommandCenter'));
+const AIWorkspace = React.lazy(() => import('../components/dashboard/AIWorkspace'));
+const TaskEngine = React.lazy(() => import('../components/tasks/TaskEngine'));
+const RoadmapView = React.lazy(() => import('../components/roadmap/RoadmapView'));
+const MemoryGraph = React.lazy(() => import('../components/memory/MemoryGraph'));
+const FounderTwin = React.lazy(() => import('../components/founder/FounderTwin'));
+const ResearchCenter = React.lazy(() => import('../components/research/ResearchCenter'));
+const BusinessBlueprint = React.lazy(() => import('../components/business/BusinessBlueprint'));
+const DocumentGenerator = React.lazy(() => import('../components/documents/DocumentGenerator'));
+const AIBoardMeeting = React.lazy(() => import('../components/ai/AIBoardMeeting'));
+const ExecutionMode = React.lazy(() => import('../components/ai/ExecutionMode'));
+const DecisionSimulator = React.lazy(() => import('../components/simulators/DecisionSimulator'));
+const DailyReview = React.lazy(() => import('../components/review/DailyReview'));
+const SettingsPanel = React.lazy(() => import('../components/dashboard/SettingsPanel'));
 import { useNavigate } from 'react-router-dom';
 
 const VIEWS = {
@@ -59,9 +59,11 @@ export default function DashboardPage() {
 
   return (
     <div style={styles.layout}>
-      <Sidebar activeView={activeView} onNavigate={setActiveView} />
+      <Suspense fallback={null}><Sidebar activeView={activeView} onNavigate={setActiveView} /></Suspense>
       <main className="dashboard-main" style={{...styles.main, marginLeft: sidebarCollapsed ? '72px' : '260px'}}>
-        <ActiveComponent onNavigate={setActiveView} />
+        <Suspense fallback={<div style={{display:'flex',alignItems:'center',justifyContent:'center',padding:'4rem',color:'var(--color-text-tertiary)'}}>Loading...</div>}>
+          <ActiveComponent onNavigate={setActiveView} />
+        </Suspense>
       </main>
     </div>
   );

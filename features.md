@@ -1,6 +1,7 @@
 # AI Co-Founder — Complete Feature Directory
 
-> **Version:** 1.6.0 | **Stack:** React 19 + Express 5 + Supabase + OpenAI/NVIDIA
+> **Version:** 1.7.0 | **Stack:** React 19 + Express 5 + Supabase + OpenAI/NVIDIA
+> **Tests:** 206 (31 files) | **Lint:** 0 errors, 0 warnings | **Build:** 236 KB (code-split)
 > **Positioning:** Most AI tools answer questions. This AI builds companies.
 
 ---
@@ -185,7 +186,7 @@ The primary conversational interface with the AI Co-Founder. Features real-time 
 
 ### Streaming Flow
 1. User sends message → `api.chatStream()`
-2. Backend creates `callOpenAIStream()` with model routing
+2. Backend creates `callOpenAIStream()` with model routing + fallback
 3. Tokens are returned via `res.write()` as NDJSON
 4. Frontend accumulates tokens in real-time using `updateMessage(msgId, { content })`
 5. On completion, confidence score is calculated and stored
@@ -235,7 +236,8 @@ A structured 16-field business model canvas that can be filled via AI generation
 - Generation context includes founder experience level and business answers
 
 ### Editing
-- **ContentEditable** — each field is directly editable
+- **Inline editable** — each field is directly editable with toggle
+- **Export** — Download blueprint as .txt file
 - **Auto-save** — changes persist to Zustand store
 - **Collapsible sections** — organized by category
 
@@ -302,7 +304,7 @@ Full-featured task management with AI-assisted creation, sprint planning, and pr
 - **Delete task** — With confirmation
 - **Filter by status** — `getTasksByStatus(status)`
 - **Filter by sprint** — `getTasksBySprint(sprintId)`
-- **Sort by priority** — Color-coded priority badges
+- **Sort by priority** — Color-coded priority badges (with aria-labels)
 - **Estimated time display** — Visual badges
 
 ### Sprint Management
@@ -401,7 +403,7 @@ Each document has:
 |----------|--------|
 | **File(s)** | `src/components/simulators/DecisionSimulator.jsx`, `server/engines/simulation.js` |
 | **Phase** | Dashboard view |
-| **Status** | Implemented, tested (DecisionSimulator.test.jsx) |
+| **Status** | Implemented, tested (DecisionSimulator.test.jsx, simulation.test.js) |
 
 ### Description
 Three simulation engines that let founders test decisions against virtual customers, run full company simulations, and predict outcomes before committing real resources.
@@ -410,7 +412,7 @@ Three simulation engines that let founders test decisions against virtual custom
 
 #### 1. Decision Simulator
 - Founder describes a decision
-- AI evaluates as "advisors" from 3 perspectives: Optimist, Pessimist, Realist
+- AI evaluates as 3 scenarios with impartial risk/reward analysis (no bias toward Option A)
 - Returns probability-weighted outcome analysis
 - Generates "market reaction" summary
 
@@ -419,7 +421,6 @@ Three simulation engines that let founders test decisions against virtual custom
 - Each dimension scored 0–100
 - Generates aggregate "startup health score"
 - Provides "top insight" — the single most important finding
-- Dimensions: Market, Team, Product, Execution, Business, Customers, Cash
 
 #### 3. Customer Reaction Simulator
 - Tests specific features or messages against virtual personas
@@ -427,9 +428,9 @@ Three simulation engines that let founders test decisions against virtual custom
 - Provides "adjustment recommendation"
 
 ### API Endpoints
-- `POST /api/simulate-decision` — Decision simulation
-- `POST /api/simulate-company` — Company health simulation
-- `POST /api/simulate-customer` — Customer reaction test
+- `POST /api/simulate/decision` — Decision simulation
+- `POST /api/simulate/company` — Company health simulation
+- `POST /api/simulate/customer` — Customer reaction test
 
 ---
 
@@ -512,9 +513,8 @@ Graph-based knowledge persistence system that stores startup artifacts as nodes 
 
 ### Visualization
 - **Force-directed layout** — Custom physics simulation with repulsion and attraction forces
-- **Interactive canvas** — Pan and zoom via mouse/touch drag
-- **Node selection** — Click to highlight connected edges
-- **Node details** — Selected node shows metadata panel
+- **Bidirectional edge rendering** — Edges rendered from both source and target directions
+- **Node details** — Shows metadata panel
 - **Timeline** — Chronological node listing for history tracking
 - **Add node/edge** — Inline creation forms
 
@@ -525,8 +525,8 @@ memory_edges (id, user_id, source_node_id CASCADE, target_node_id CASCADE, relat
 ```
 
 ### API Endpoints
-- `GET /api/memory/timeline` — chronological node list
-- `GET /api/memory/graph` — full graph with nodes + edges
+- `GET /api/memory/timeline/:founderId` — chronological node list
+- `GET /api/memory/graph/:founderId` — full graph with nodes + edges (bidirectional)
 - `POST /api/memory/nodes` — create node
 - `POST /api/memory/edges` — create edge
 
@@ -625,7 +625,7 @@ The startup's mission control — a single-pane overview showing real-time healt
 6. **AI Confidence Meter** — Overall AI confidence in current direction
 
 ### Sidebar Navigation
-14 navigation items with icons and active state:
+14 navigation items with icons and active state (ARIA-accessible):
 | View | Icon | Component |
 |------|------|-----------|
 | Command Center | Home | CommandCenter |
@@ -644,8 +644,8 @@ The startup's mission control — a single-pane overview showing real-time healt
 | Settings | Settings | SettingsPanel |
 
 ### Layout
-- **Responsive sidebar** — Collapsible / mobile drawer
-- **Main content area** — Dynamic view rendering
+- **Responsive sidebar** — Collapsible / mobile drawer with ARIA labels
+- **Main content area** — Dynamic view rendering (code-split via React.lazy)
 - **Header** — View title with context
 - **Protected routing** — Redirects to onboarding if no profile
 
@@ -664,11 +664,13 @@ User settings panel for API key configuration, account management, and applicati
 
 ### Features
 - **NVIDIA API Key** — Input field for AI model access (masked display)
-- **API Status Check** — "Test Connection" button hits `/api/health`
+- **API Status Check** — "Test Connection" button hits `/api/health` (via `API_BASE`)
 - **Account Info** — Display user email and name
 - **Theme** — Dark theme only (design system enforced)
 - **Data Management** — Clear chat history button
 - **Session Info** — Token status and expiry
+- **Password Reset** — In-panel password change with confirmation
+- **WhatsApp Reminder Registration** — Phone number for Twilio reminders
 
 ### Key Storage
 - API key stored in Zustand persist middleware (`ai-cofounder-app-storage`)
@@ -689,13 +691,14 @@ User settings panel for API key configuration, account management, and applicati
 1. **Registration** — Name, email, password with Supabase users table
 2. **Login** — Email/password with JWT token (7-day expiry)
 3. **Password Reset** — Token-based reset flow:
-   - Forgot password endpoint generates token
-   - Reset password page validates token + email
+   - Forgot password endpoint generates token (SHA-256 hashed in DB)
+   - Token sent in POST body (not URL param) — not exposed in logs/history
+   - Timing-safe comparison via `crypto.timingSafeEqual`
    - bcryptjs password hashing
-4. **Session Persistence** — Token stored in Zustand persist
+4. **Session Persistence** — Token stored in Zustand persist with hydration guard
 5. **Protected Routes** — `ProtectedRoute.jsx` redirects unauthenticated users
-6. **JWT Middleware** — `requireJwt` on all `/api/*` routes
-7. **Rate Limiting** — 100 req/15min general, 10 req/15min auth
+6. **JWT Middleware** — `requireJwt` on all user-scoped routes
+7. **Rate Limiting** — 100 req/15min general, 10 req/15min auth (with error messages)
 
 ### Security Headers (Helmet)
 - Content Security Policy
@@ -704,10 +707,19 @@ User settings panel for API key configuration, account management, and applicati
 - Referrer-Policy
 - Strict-Transport-Security
 
+### Error Handling
+- All 30+ routes use centralized `sendError()` — no stack traces or internal details leaked
+- User-friendly API error messages (401→"Session expired", 500→"Service unavailable")
+- Global error handler catches middleware-level errors
+
 ### API Key Authentication
 - JWT for user auth + NVIDIA API key for AI calls
 - `x-api-key` header sent from frontend
-- Verified on each AI-related request
+- All AI endpoints require API key (including `/engines/reality/score`)
+
+### Trust Proxy
+- `app.set('trust proxy', 1)` enables accurate client IP behind nginx
+- Required for rate limiting to work correctly in production
 
 ---
 
@@ -770,11 +782,12 @@ User settings panel for API key configuration, account management, and applicati
 - Temperature varies per agent: CEO (0.7), CTO (0.5), CMO (0.6), Sales (0.7), Finance (0.3), Research (0.6)
 
 ### Prompt Injection Protection
-- 12 injection pattern regexes
+- **12 injection pattern regexes** — matched text is REDACTED from input (not just logged)
 - Strips null bytes and control characters
 - Max input length: 10,000 characters
 - Recursive JSON.stringify for non-string inputs
-- Logs warning on detected injection attempts (does not block — future enhancement)
+- System boundary suffix appended to all system prompts
+- Logger warning on detected injection attempts
 
 ### Model Configuration
 ```javascript
@@ -786,11 +799,11 @@ const MODELS = [
 ```
 
 ### Model Routing Strategy
-1. Start with Llama-4 Maverick
+1. Start with `AI_MODEL` (if set) or Llama-4 Maverick
 2. On 401/403 (quota) → rotate to next model in list
 3. On 429 (rate limit) → rotate to next model
 4. On other errors → skip to next after 500ms delay
-5. If quota is 0 (all models exhausted) → throw quota error
+5. If all models exhausted → throw quota error
 6. Max 1 retry per request
 
 ---
@@ -803,7 +816,7 @@ const MODELS = [
 | **Phase** | Core security |
 | **Status** | Implemented, tested |
 
-### Injection Patterns Blocked
+### Injection Patterns Blocked & Redacted
 | Pattern | Example |
 |---------|---------|
 | Ignore instructions | `ignore all previous instructions` |
@@ -819,9 +832,10 @@ const MODELS = [
 1. Type coercion (non-strings → JSON.stringify)
 2. Null byte and control character removal
 3. Truncation to 10,000 chars
-4. Pattern matching against 12 injection regexes
-5. Warning logging on match
-6. Pass-through to AI model
+4. **Pattern matching against 12 injection regexes — matched text REDACTED with `[REDACTED]`**
+5. Warning logged via structured logger
+6. System boundary suffix appended to system prompt
+7. Pass-through to AI model
 
 ---
 
@@ -836,7 +850,7 @@ const MODELS = [
 | `/goals` | GoalPage | Yes (profile) |
 | `/dashboard` | DashboardPage | Yes (profile + hydrated) |
 
-### Dashboard Views (internal routing via state)
+### Dashboard Views (internal routing via state, code-split with React.lazy)
 | View Key | Component | Sidebar Icon |
 |----------|-----------|--------------|
 | `home` | CommandCenter | Home |
@@ -864,49 +878,55 @@ const MODELS = [
 | POST | `/register` | Create account |
 | POST | `/login` | Sign in |
 | GET | `/me` | Get current user |
-| POST | `/forgot-password` | Request reset |
-| POST | `/reset-password` | Execute reset |
+| POST | `/forgot-password` | Request reset (token in body only) |
+| POST | `/reset-password` | Execute reset (timing-safe) |
 
 ### API Routes (`/api`)
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Server status |
-| POST | `/chat` | AI chat (streaming) |
-| POST | `/chat/stream` | SSE streaming chat |
-| POST | `/goals/evaluate` | Reality engine evaluation |
-| POST | `/goals/negotiate` | Goal negotiation |
-| POST | `/blueprint/generate` | Business blueprint AI gen |
-| POST | `/roadmap/generate` | Full roadmap |
-| POST | `/roadmap/guidance` | Stage-specific guidance |
-| POST | `/documents/generate` | Document generation |
-| POST | `/research/market` | Market research |
-| POST | `/research/opportunities` | Funding opportunities |
-| POST | `/research/briefing` | Morning briefing |
-| GET | `/memory/timeline` | Memory timeline |
-| GET | `/memory/graph` | Memory graph |
-| POST | `/memory/nodes` | Add memory node |
-| POST | `/memory/edges` | Add memory edge |
-| POST | `/dna/analyze` | DNA analysis |
-| POST | `/dna/adaptations` | Growth recommendations |
-| POST | `/mission/generate` | Mission statement |
-| POST | `/mission/health` | Health analysis |
-| POST | `/review/generate` | Daily review note |
-| POST | `/review/suggest-tasks` | Task suggestions |
-| POST | `/execution/plan` | Execution plan |
-| POST | `/execution/step` | Execute step |
-| POST | `/simulate-decision` | Decision simulation |
-| POST | `/simulate-company` | Company simulation |
-| POST | `/simulate-customer` | Customer reaction |
-| POST | `/board/advice` | Single agent advice |
-| POST | `/board/meeting` | Full board meeting |
-| POST | `/reminders/register` | WhatsApp registration |
+| Method | Path | Description | Auth |
+|--------|------|-------------|------|
+| GET | `/health` | Server status | None |
+| POST | `/chat` | AI chat | API key |
+| POST | `/chat/stream` | SSE streaming chat | API key |
+| POST | `/chat/agent` | Agent-specific chat | API key |
+| POST | `/engines/reality` | Reality engine | API key |
+| POST | `/engines/reality/score` | Score from answers | API key |
+| POST | `/engines/negotiate` | Goal negotiation | API key |
+| POST | `/board` | Single-turn board meeting | API key |
+| POST | `/board/chat` | Multi-turn board debate | API key |
+| POST | `/research` | Market research | API key |
+| POST | `/research/opportunities` | Funding opportunities | API key |
+| POST | `/research/briefing` | Morning briefing | API key |
+| POST | `/documents/generate` | Document generation | API key |
+| POST | `/roadmap/generate` | Full roadmap | API key |
+| POST | `/roadmap/guidance` | Stage-specific guidance | API key |
+| POST | `/founder/dna/analyze` | DNA analysis | API key |
+| POST | `/founder/dna/adapt` | Growth recommendations | API key |
+| POST | `/command/mission` | Mission statement | API key |
+| POST | `/command/health` | Health analysis | API key |
+| POST | `/review/note` | Daily review | API key |
+| POST | `/tasks/suggest` | Task suggestions | API key |
+| POST | `/simulate/decision` | Decision simulation | API key |
+| POST | `/simulate/company` | Company simulation | API key |
+| POST | `/simulate/customer` | Customer reaction | API key |
+| POST | `/business/blueprint` | Blueprint generation | API key |
+| GET | `/business/blueprint` | Get stored blueprint | JWT |
+| POST | `/business/blueprint/tasks` | Blueprint tasks | API key |
+| POST | `/business/blueprint/scores` | Blueprint scores | API key |
+| POST | `/memory/nodes` | Add memory node | JWT |
+| GET | `/memory/nodes/:founderId` | Get memory nodes | JWT |
+| GET | `/memory/timeline/:founderId` | Memory timeline | JWT |
+| POST | `/memory/edges` | Add memory edge | JWT |
+| GET | `/memory/graph/:founderId` | Memory graph | JWT |
+| POST | `/execution/plan` | Execution plan | API key |
+| POST | `/execution/step` | Execute step | API key |
+| POST | `/reminders/register` | WhatsApp registration | None |
 
 ---
 
 ## Test Coverage Map
 
 | Test File | What It Covers | Tests |
-|-----------|---------------|-------|
+|---|---|---|
 | `stores/authStore.test.js` | Auth state management | 4 |
 | `stores/founderStore.test.js` | Onboarding, profile, goal, DNA | 8 |
 | `stores/businessStore.test.js` | Blueprint, health, scores, docs | 10 |
@@ -932,6 +952,10 @@ const MODELS = [
 | `engines/reality.test.js` | Reality scoring | 3 |
 | `engines/dna.test.js` | DNA analysis | 4 |
 | `engines/memory.test.js` | Memory graph engine | 8 |
+| `engines/business.test.js` | Business blueprint | 6 |
+| `engines/simulation.test.js` | Simulation engines | 9 |
 | `routes/auth.test.js` | Auth endpoints | 8 |
+| `routes/api.test.js` | API integration tests | 13 |
 | `services/ai.test.js` | extractJSON, PROMPTS | 14 |
-| **Total** | **27 files** | **151 tests** |
+| `utils/helpers.test.js` | Utility functions | 19 |
+| **Total** | **31 files** | **206 tests** |

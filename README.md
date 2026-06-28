@@ -8,6 +8,16 @@ The world's first Startup Operating System. Not just an AI chatbot — an **AI C
 
 ## What's New
 
+### v1.7 — Comprehensive Security & Quality Audit
+- **🛡️ 12 AI sub-agents** audited every layer — architecture, backend, frontend, prompts, cloud, QA, product, UX, graph, domain, beta testing, and internal quality
+- **🔒 7 security fixes**: prompt injection now strips patterns (not just logs), all 30+ routes use centralized `sendError()`, missing auth on `/engines/reality/score`, password reset tokens hashed + timing-safe comparison, `trust proxy` for rate limiting behind nginx
+- **🐛 5 backend bug fixes**: simulation bias removed, memory graph now queries bidirectional edges, auth limiter error message, `console.log` → logger, broken `.dockerignore` fixed
+- **⚡ 8 frontend fixes**: CommandCenter infinite re-render loop, page crash on AI error, `React.lazy` code splitting (236KB main bundle, down from 425KB), AuthPage hydration flash, hardcoded localhost in SettingsPanel, dead Edit/Export buttons, humanized API errors
+- **♿ 4 accessibility fixes**: ARIA labels on all icon buttons, keyboard navigation on interactive divs, `aria-current` on nav items, screen-reader-friendly priority indicators
+- **🧪 34 new tests** (206 total, 31 files): API route integration tests, business engine, simulation engine, utility helpers
+- **🏗️ Infrastructure**: nginx SSL config, Docker HEALTHCHECK + `--chown`, `apk upgrade`
+- **📋 Lint**: 0 errors, 0 warnings
+
 ### v1.6 — Production Hardening
 - **📋 features.md** — Comprehensive feature directory documenting all 20 feature areas, 30+ API endpoints, and 151 tests
 - **🐛 Fixed**: Dashboard sidebar syntax error causing crash on profile render
@@ -42,7 +52,7 @@ The world's first Startup Operating System. Not just an AI chatbot — an **AI C
 
 ## Features
 
-> **📖 Full details in [`features.md`](features.md)** — 937 lines covering 20 feature areas, 30+ API endpoints, and 151 tests.
+> **📖 Full details in [`features.md`](features.md)** — 937 lines covering 20 feature areas, 30+ API endpoints, and 206 tests.
 
 ### Onboarding & Goal Setting
 - **7-Question Founder Onboarding** — understand the founder, not just the startup (2 minutes)
@@ -105,26 +115,36 @@ The world's first Startup Operating System. Not just an AI chatbot — an **AI C
 
 ### Frontend
 - **React 19** with functional components and hooks
-- **Vite 8** for build tooling
-- **Zustand 5** for state management (5 stores with localStorage persistence)
+- **Vite 8** for build tooling (code splitting with React.lazy)
+- **Zustand 5** for state management (6 stores with localStorage persistence)
 - **React Router v7** for routing
 - **Recharts** for data visualization
 - **Lucide React** for icons
 - **Custom Design System** — dark theme with 50+ CSS custom properties
 
 ### Backend
-- **Express 5** API server
+- **Express 5** API server with centralized error handling
 - **Supabase** (PostgreSQL) for persistent storage — cloud-hosted, auto-scaling
 - **@supabase/supabase-js** with service_role key for backend database access
-- **JWT** authentication with bcrypt password hashing
+- **JWT** authentication with bcrypt password hashing + timing-safe reset tokens
 - **OpenAI SDK** (compatible with NVIDIA API) for AI completions
 - **6 AI Agent Personas**: CEO, CTO, CMO, Sales, Finance, Research
+- **Buffered async logger** — non-blocking file-based structured logging
 
 ### AI
 - **Model**: `meta/llama-4-maverick-17b-128e-instruct`
 - **Provider**: NVIDIA API (`https://integrate.api.nvidia.com/v1`)
+- **Fallback models**: Mistral Large, Microsoft Phi-4 (automatic rotation on quota/rate-limit errors)
 - **SDK**: OpenAI-compatible with custom base URL, 30s timeout, 2 retries
 - **All AI responses are real** — no mock data, no fallback placeholders
+
+### Security
+- Helmet security headers with CSP
+- CORS restricted to configured frontend URL
+- Rate limiting: 100 req/15min general, 10 req/15min auth
+- Prompt injection protection: 12 regex patterns + redaction
+- `sendError` sanitizer — no stack traces or internal details leaked to clients
+- `trust proxy` enabled for accurate IP behind nginx
 
 ---
 
@@ -173,6 +193,8 @@ CREATE TABLE IF NOT EXISTS users (
   name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
+  reset_token TEXT,
+  reset_token_expires TIMESTAMP,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -219,6 +241,15 @@ CREATE TABLE IF NOT EXISTS memory_nodes (
   metadata TEXT,
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS memory_edges (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  source_node_id TEXT NOT NULL REFERENCES memory_nodes(id) ON DELETE CASCADE,
+  target_node_id TEXT NOT NULL REFERENCES memory_nodes(id) ON DELETE CASCADE,
+  relationship TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
 ```
 
 ### Production Build
@@ -227,6 +258,14 @@ CREATE TABLE IF NOT EXISTS memory_nodes (
 npm run build
 npm run server  # Serves API only
 ```
+
+### Docker Deployment
+
+```bash
+docker compose up --build
+```
+
+Nginx reverse proxy with SSL support is configured in `nginx.conf`. Set `SSL_CERT_PATH` and `SSL_KEY_PATH` env vars for HTTPS.
 
 ---
 
@@ -256,13 +295,15 @@ ai-cofounder-AG/
 │   ├── routes/
 │   │   ├── api.js               # 30+ API endpoints
 │   │   └── auth.js              # JWT register/login/me
-│   └── services/
-│       ├── ai.js                # OpenAI SDK wrapper
-│       ├── search.js            # Web search (DuckDuckGo, Startpage)
-│       ├── logger.js            # File-based logging
-│       └── reminders.js         # WhatsApp reminder scheduler
+│   ├── services/
+│   │   ├── ai.js                # OpenAI SDK wrapper + prompt injection defense
+│   │   ├── search.js            # Web search (DuckDuckGo, Startpage)
+│   │   ├── logger.js            # File-based async logging
+│   │   ├── errors.js            # Centralized error sanitizer
+│   │   └── reminders.js         # WhatsApp reminder scheduler
+│   └── __tests__/               # Backend tests (engine + route + service)
 ├── src/                         # React frontend
-│   ├── App.jsx                  # Root + routing
+│   ├── App.jsx                  # Root + routing (code-split with React.lazy)
 │   ├── main.jsx                 # Entry point
 │   ├── pages/                   # 7 page components
 │   ├── components/              # 15 dashboard view components
@@ -270,10 +311,11 @@ ai-cofounder-AG/
 │   ├── styles/                  # Design system CSS
 │   └── utils/                   # API client, helpers, constants
 ├── e2e/                         # Playwright E2E tests
+├── .opencode/agents/            # AI sub-agent definitions
 ├── index.html                   # HTML entry
 ├── vite.config.js               # Vite build config
-├── nginx.conf                   # Nginx reverse proxy config
-├── Dockerfile                   # Docker build
+├── nginx.conf                   # Nginx reverse proxy (SSL ready)
+├── Dockerfile                   # Docker build (multi-stage, non-root)
 ├── docker-compose.yml           # Docker compose
 └── .env                         # Environment variables
 ```
@@ -282,7 +324,7 @@ ai-cofounder-AG/
 
 ## API Endpoints
 
-All endpoints are `POST /api/*` unless noted as `GET`. Auth endpoints use `Authorization: Bearer <token>`; most other endpoints use `x-api-key` header (falls back to `NVIDIA_API_KEY` env var).
+All endpoints are `POST /api/*` unless noted as `GET`. Auth endpoints use `Authorization: Bearer <token>`; most other endpoints use `x-api-key` header.
 
 ### Authentication
 
@@ -291,6 +333,8 @@ All endpoints are `POST /api/*` unless noted as `GET`. Auth endpoints use `Autho
 | Auth | `POST /api/auth/register` | None | Create account |
 | Auth | `POST /api/auth/login` | None | Sign in |
 | Auth | `GET /api/auth/me` | JWT | Get current user |
+| Auth | `POST /api/auth/forgot-password` | None | Request password reset |
+| Auth | `POST /api/auth/reset-password` | None | Execute password reset (token in body) |
 
 ### Core
 
@@ -299,7 +343,7 @@ All endpoints are `POST /api/*` unless noted as `GET`. Auth endpoints use `Autho
 | Chat | `/chat` | API key | General AI chat |
 | Chat | `/chat/agent` | API key | Agent-specific chat (CEO, CTO, etc.) |
 | Reality | `/engines/reality` | API key | Goal feasibility scoring |
-| Reality | `/engines/reality/score` | None | Score from onboarding answers |
+| Reality | `/engines/reality/score` | API key | Score from onboarding answers |
 | Negotiation | `/engines/negotiate` | API key | Alternative goal generation |
 | Board | `/board` | API key | Single-turn board meeting |
 | Board | `/board/chat` | API key | Multi-turn board debate |
@@ -344,7 +388,7 @@ All endpoints are `POST /api/*` unless noted as `GET`. Auth endpoints use `Autho
 | Category | Endpoint | Auth | Purpose |
 |---|---|---|---|
 | Business | `/business/blueprint` (POST) | API key | Blueprint generation |
-| Business | `/business/blueprint` (GET) | None | Get stored blueprint |
+| Business | `/business/blueprint` (GET) | JWT | Get stored blueprint |
 | Execution | `/execution/plan` | API key | Generate execution plan |
 | Execution | `/execution/step` | API key | Execute a step |
 
@@ -355,6 +399,7 @@ All endpoints are `POST /api/*` unless noted as `GET`. Auth endpoints use `Autho
 | Memory | `/memory/nodes` (POST) | JWT | Add memory node |
 | Memory | `/memory/nodes/:id` (GET) | JWT | Get memory nodes |
 | Memory | `/memory/timeline/:id` (GET) | JWT | Get memory timeline |
+| Memory | `/memory/graph/:id` (GET) | JWT | Get full memory graph |
 
 ### Health
 
@@ -393,6 +438,21 @@ Startup Dashboard → 14 AI-powered views
     ↓
 Continuous AI Loop (memory, research, review, replan)
 ```
+
+---
+
+## Test Coverage
+
+| Category | Files | Tests |
+|----------|-------|-------|
+| **Store Tests** | 6 | 51 |
+| **Component Tests** | 16 | 52 |
+| **Engine Tests** | 5 | 30 |
+| **Route Tests** | 2 | 21 |
+| **Service Tests** | 1 | 14 |
+| **Utility Tests** | 1 | 19 |
+| **E2E Tests** | 3 | 9 |
+| **Total** | **31 files** | **206 tests** |
 
 ---
 

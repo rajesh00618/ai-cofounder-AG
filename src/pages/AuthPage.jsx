@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Mail, Lock, User, ArrowRight, Eye, EyeOff, LogIn, LogOut } from 'lucide-react';
+import { Sparkles, Mail, Lock, User, ArrowRight, Eye, EyeOff, LogIn, LogOut, Loader2 } from 'lucide-react';
 import { api } from '../utils/api';
 import { useAuthStore } from '../store/authStore';
 import { useFounderStore } from '../store/founderStore';
@@ -19,6 +19,21 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    const unsub = useAuthStore.persist.onFinishHydration(() => setHydrated(true));
+    if (useAuthStore.persist.hasHydrated()) setHydrated(true);
+    return () => unsub();
+  }, []);
+
+  if (!hydrated) {
+    return (
+      <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',background:'var(--color-bg-primary)',color:'var(--color-text-tertiary)',gap:'0.5rem',fontSize:'0.9375rem'}}>
+        <Loader2 size={16} style={{animation:'spin 1s linear infinite'}} /> Loading...
+      </div>
+    );
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -124,7 +139,7 @@ export default function AuthPage() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
-                  minLength={6}
+                  minLength={8}
                 />
                 <button
                   type="button"
@@ -134,6 +149,15 @@ export default function AuthPage() {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {mode === 'login' && (
+                <button
+                  type="button"
+                  style={styles.forgotLink}
+                  onClick={() => navigate('/reset-password')}
+                >
+                  Forgot password?
+                </button>
+              )}
             </div>
 
             {error && <div style={styles.error}>{error}</div>}
@@ -194,6 +218,7 @@ const styles = {
   inputIcon: { position:'absolute', left:'12px', color:'var(--color-text-tertiary)', pointerEvents:'none' },
   input: { width:'100%', padding:'0.75rem 0.75rem 0.75rem 2.5rem', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:'10px', color:'var(--color-text-primary)', fontSize:'0.9375rem', outline:'none', transition:'border-color 0.2s' },
   eyeBtn: { position:'absolute', right:'12px', background:'none', border:'none', color:'var(--color-text-tertiary)', cursor:'pointer', padding:'4px', display:'flex' },
+  forgotLink: { background:'none', border:'none', color:'var(--color-accent-light)', cursor:'pointer', fontSize:'0.8125rem', fontWeight:500, padding:'0.25rem 0', textAlign:'right', width:'100%' },
   error: { padding:'0.75rem 1rem', background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:'10px', color:'var(--color-danger)', fontSize:'0.875rem', textAlign:'center' },
   submitBtn: { width:'100%', justifyContent:'center', gap:'0.5rem', marginTop:'0.5rem' },
   footer: { display:'flex', alignItems:'center', justifyContent:'center', gap:'0.5rem', marginTop:'1.5rem' },
