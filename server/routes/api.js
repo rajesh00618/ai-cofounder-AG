@@ -7,7 +7,7 @@ import { runDecisionSimulation, runCompanySimulation, simulateCustomerReaction }
 import { getResearch, getOpportunities, getMorningBriefing } from '../engines/research.js';
 import { addMemoryNode, getMemoryNodes, getMemoryTimeline, addMemoryEdge, getMemoryGraph } from '../engines/memory.js';
 import { generateExecutionPlan, executeStep } from '../engines/execution.js';
-import { generateBlueprint } from '../engines/business.js';
+import { generateBlueprint, generateBlueprintTasks, generateScores } from '../engines/business.js';
 import { generateDocument } from '../engines/documents.js';
 import { generateRoadmap, generateStageGuidance } from '../engines/roadmap.js';
 import { analyzeDNA, generateAdaptations } from '../engines/dna.js';
@@ -418,6 +418,26 @@ router.get('/business/blueprint', requireJwt, async (req, res) => {
   const cached = getCachedBlueprint(req.userId);
   if (cached) return res.json(cached);
   res.status(404).json({ error: 'No blueprint found for this user' });
+});
+
+router.post('/business/blueprint/tasks', requireApiKey, requireBody('answers'), async (req, res) => {
+  try {
+    const { answers, blueprint } = req.body;
+    const tasks = await generateBlueprintTasks(req.apiKey, answers, blueprint);
+    res.json({ tasks });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/business/blueprint/scores', requireApiKey, requireBody('answers'), async (req, res) => {
+  try {
+    const { answers, blueprint, profile } = req.body;
+    const scores = await generateScores(req.apiKey, answers, blueprint, profile);
+    res.json(scores);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // --- EXECUTION ---

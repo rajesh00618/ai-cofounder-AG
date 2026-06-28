@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Beaker, TrendingUp, AlertTriangle, Sparkles, Users, MessageSquare, Loader2 } from 'lucide-react';
-import { delay, randomBetween, getScoreColor } from '../../utils/helpers';
+import { getScoreColor } from '../../utils/helpers';
 import { useBusinessStore } from '../../store/businessStore';
 import { api } from '../../utils/api';
 
@@ -26,42 +26,25 @@ export default function DecisionSimulator() {
   const runSimulation = async () => {
     if (!question.trim()) return;
     setSimulating(true);
-    let data;
     try {
-      data = await api.simulateDecision(question);
-    } catch {
-      await delay(2000);
-      const scenarios = [
-        { label: 'Option A — ' + (question.includes('app') ? 'Native App' : question.includes('price') ? 'Premium Pricing' : 'Aggressive Approach'), timeline: randomBetween(2,6)+' months', success: randomBetween(30,55), risk: 'High' },
-        { label: 'Option B — ' + (question.includes('app') ? 'Web App' : question.includes('price') ? 'Competitive Pricing' : 'Balanced Approach'), timeline: randomBetween(1,3)+' months', success: randomBetween(65,88), risk: 'Medium' },
-        { label: 'Option C — ' + (question.includes('app') ? 'PWA' : question.includes('price') ? 'Freemium' : 'Conservative Approach'), timeline: randomBetween(2,4)+' months', success: randomBetween(50,75), risk: 'Low' },
-      ];
-      data = { question, scenarios, recommendation: scenarios.sort((a,b)=>b.success-a.success)[0].label, failureRisk: randomBetween(25,65) };
+      const data = await api.simulateDecision(question);
+      setResult(data);
+    } catch (e) {
+      setResult({ error: e.message });
     }
-    setResult(data);
     setSimulating(false);
   };
 
   const runCompanySim = async () => {
     if (!question.trim()) return;
     setSimulating(true);
-    let data;
     try {
-      data = await api.simulateCompany(question);
-    } catch {
-      await delay(2500);
-      data = {
-        question, isCompanySim: true,
-        virtualCustomers: 1000,
-        conversion: randomBetween(2,8) + '%',
-        projectedRevenue: '$' + randomBetween(3,25) + 'K/mo',
-        complaints: ['Price too high for features offered', 'Onboarding too complex', 'Missing key integration'],
-        retention: randomBetween(60,85) + '%',
-        recommendation: 'Reduce initial pricing by 20% and simplify onboarding to improve conversion by an estimated 40%.'
-      };
+      const data = await api.simulateCompany(question);
+      data.isCompanySim = true;
+      setResult(data);
+    } catch (e) {
+      setResult({ error: e.message, isCompanySim: true });
     }
-    data.isCompanySim = true;
-    setResult(data);
     setSimulating(false);
   };
 
@@ -70,18 +53,7 @@ export default function DecisionSimulator() {
       setFailureLoading(true);
       api.getFailurePrediction({ businessHealth, blueprint })
         .then(data => setFailureData(data))
-        .catch(() => {
-          setFailureData({
-            failureProbability: randomBetween(45, 72),
-            topRisks: [
-              { risk: 'No customer validation done yet', impact: 'high', mitigation: 'Interview 5 target customers this week' },
-              { risk: 'No distribution channel established', impact: 'high', mitigation: 'Create a go-to-market plan' },
-              { risk: 'Marketing strategy undefined', impact: 'medium', mitigation: 'Define target channels and messaging' },
-              { risk: 'Revenue model unproven', impact: 'medium', mitigation: 'Test pricing with early adopters' }
-            ],
-            recommendation: 'Let\'s fix these — starting with customer validation. I can help you set up 5 customer interviews this week.'
-          });
-        })
+        .catch(e => setFailureData({ error: e.message }))
         .finally(() => setFailureLoading(false));
     }
   }, [tab, businessHealth, blueprint]);
@@ -89,25 +61,12 @@ export default function DecisionSimulator() {
   const runCustomerSim = async () => {
     if (!question.trim()) return;
     setSimulating(true);
-    let data;
     try {
-      data = await api.simulateCustomer(question, selectedPersona);
-    } catch {
-      await delay(1500);
-      const reactions = {
-        student: "As a College Student with Limited budget, I like the idea but need a free tier or student discount.",
-        ceo: "As a CEO/Executive, I'm interested but need to see clear ROI before committing.",
-        developer: "As a Developer, I'm evaluating the API quality and documentation standards.",
-        teacher: "As a Teacher/Educator, I need this to be intuitive for my students.",
-        doctor: "As a Doctor/Medical professional, compliance and reliability are my top concerns.",
-      };
-      data = {
-        persona: { name: CUSTOMER_PERSONAS.find(p=>p.id===selectedPersona)?.label, budget: 'Varies' },
-        reaction: reactions[selectedPersona] || `As a customer, I have concerns about ${question}.`,
-        objections: ['Need more information', 'Price concerns', 'Integration complexity']
-      };
+      const data = await api.simulateCustomer(question, selectedPersona);
+      setCustomerResult(data);
+    } catch (e) {
+      setCustomerResult({ error: e.message });
     }
-    setCustomerResult(data);
     setSimulating(false);
   };
 

@@ -101,50 +101,26 @@ export default function GoalPage() {
     setGeneratingQuestions(true);
     try {
       const result = await api.chat(
-        'Generate 5-7 clarifying questions about this startup goal. Return only a JSON array of strings. Example: ["Question 1?", "Question 2?", ...]',
+        'Generate 5-7 clarifying questions about this startup goal. For each question, provide 4-6 relevant, specific answer options that make sense for that question. Return ONLY a JSON array of objects with "q" (string) and "opts" (array of strings). Example: [{"q": "Who is your target customer?", "opts": ["Consumers (B2C)", "Small businesses (SMB)", "Enterprise (B2B)", "Developers", "Not sure yet"]}]',
         { goal: goalText }
       );
       let parsed;
       try { parsed = JSON.parse(result.content); } catch { parsed = null; }
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        setClarQuestions(parsed.map((q, i) => ({
-          id: i + 1,
-          q: q.replace(/^\d+[.)]\s*/, ''),
-          opts: ['Yes', 'No', 'I\'m not sure', 'Tell me more']
-        })));
-      } else {
-        throw new Error('Invalid format');
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        throw new Error('AI returned invalid questions format');
       }
-    } catch {
-      setClarQuestions(generateClarQuestions(goalText));
+      setClarQuestions(parsed.map((item, i) => {
+        if (!item.q || !Array.isArray(item.opts) || item.opts.length < 2) {
+          throw new Error('AI returned question without valid options');
+        }
+        return { id: i + 1, q: item.q.replace(/^\d+[.)]\s*/, ''), opts: item.opts };
+      }));
+    } catch (e) {
+      setPageError('Failed to generate clarifying questions: ' + e.message);
+      throw e;
     }
     setGeneratingQuestions(false);
     setPhase(PHASES.CLARIFYING);
-  };
-
-  const generateClarQuestions = (goal) => {
-    const gl = goal.toLowerCase();
-    const qs = [];
-    if (gl.includes('revenue') || gl.includes('$') || gl.includes('earn') || gl.includes('money')) {
-      qs.push({ id: 1, q: 'How will you earn it?', opts: ['SaaS', 'AI Agency', 'Freelancing', 'AI Product', 'E-commerce', 'Not sure'] });
-      qs.push({ id: 2, q: 'Current stage?', opts: ['Idea', 'Prototype/MVP', 'Existing product', 'Nothing yet'] });
-      qs.push({ id: 3, q: 'Daily available time?', opts: ['2 hrs', '4 hrs', '8 hrs', 'Full-time'] });
-      qs.push({ id: 4, q: 'Budget available?', opts: ['$0', 'Under $100', 'Under $1000', 'More'] });
-      qs.push({ id: 5, q: 'Strongest skill?', opts: ['AI/Programming', 'Sales', 'Marketing', 'Design', 'Product Management'] });
-    } else if (gl.includes('launch') || gl.includes('build') || gl.includes('mvp') || gl.includes('app')) {
-      qs.push({ id: 1, q: 'What are you building?', opts: ['Web App', 'Mobile App', 'SaaS Platform', 'API/Tool', 'Marketplace', 'Other'] });
-      qs.push({ id: 2, q: 'Target customer?', opts: ['Consumers (B2C)', 'Small Business (SMB)', 'Enterprise (B2B)', 'Developers', 'Not sure'] });
-      qs.push({ id: 3, q: 'Technical capability?', opts: ['Can code', 'Some coding', 'No-code tools', 'Need a developer'] });
-      qs.push({ id: 4, q: 'Timeline goal?', opts: ['2 weeks', '1 month', '3 months', '6 months'] });
-      qs.push({ id: 5, q: 'Have you validated the idea?', opts: ['Yes, with paying users', 'Talked to users', 'Only research', 'No validation'] });
-    } else {
-      qs.push({ id: 1, q: 'What industry/niche?', opts: ['Tech/SaaS', 'AI/ML', 'E-commerce', 'Education', 'Health', 'Finance', 'Other'] });
-      qs.push({ id: 2, q: 'Who is your target customer?', opts: ['Consumers', 'Small businesses', 'Enterprise', 'Developers', 'Not sure'] });
-      qs.push({ id: 3, q: 'What\'s your budget?', opts: ['$0', 'Under $500', 'Under $5000', 'More'] });
-      qs.push({ id: 4, q: 'Timeline?', opts: ['1 month', '3 months', '6 months', '1 year'] });
-      qs.push({ id: 5, q: 'Strongest skill?', opts: ['Technical', 'Sales', 'Marketing', 'Design', 'Domain expertise'] });
-    }
-    return qs;
   };
 
   const handleClarAnswer = async (qid, answer) => {
@@ -157,21 +133,24 @@ export default function GoalPage() {
       setThinking(true);
       try {
         const realityResult = await api.evaluateGoal(goalText);
+        if (!realityResult?.dimensions || realityResult.score === undefined) {
+          throw new Error('AI returned incomplete reality assessment');
+        }
         const formattedReality = {
           scores: {
-            'Market Size': realityResult?.dimensions?.market || 50,
-            'Competition Intensity': realityResult?.dimensions?.competition || 50,
-            'Tech Feasibility': realityResult?.dimensions?.tech || 50,
-            'Customer Access': realityResult?.dimensions?.customer || 50,
-            'Founder Fit': realityResult?.dimensions?.founder || 50,
-            'Revenue Potential': realityResult?.dimensions?.revenue || 50,
-            'Timeline Feasibility': realityResult?.dimensions?.timing || 50,
-            'Execution Complexity': realityResult?.dimensions?.execution || 50
+            'Market Size': realityResult.dimensions.market,
+            'Competition Intensity': realityResult.dimensions.competition,
+            'Tech Feasibility': realityResult.dimensions.tech,
+            'Customer Access': realityResult.dimensions.customer,
+            'Founder Fit': realityResult.dimensions.founder,
+            'Revenue Potential': realityResult.dimensions.revenue,
+            'Timeline Feasibility': realityResult.dimensions.timing,
+            'Execution Complexity': realityResult.dimensions.execution
           },
-          overallScore: realityResult?.score || 50,
-          probability: `${Math.max(5, (realityResult?.score || 50) - 15)}–${Math.min(95, (realityResult?.score || 50) + 10)}%`,
-          risks: realityResult?.risks || [],
-          recommendation: realityResult?.verdict || ''
+          overallScore: realityResult.score,
+          probability: `${Math.max(5, realityResult.score - 15)}–${Math.min(95, realityResult.score + 10)}%`,
+          risks: realityResult.risks,
+          recommendation: realityResult.verdict
         };
         
         setReality(formattedReality);

@@ -36,3 +36,56 @@ Answers:
   const response = await callOpenAI(apiKey, BLUEPRINT_PROMPT, userPrompt, 0.3);
   return extractJSON(response);
 };
+
+const TASKS_PROMPT = `You are an AI sprint planner for a startup. Given the founder's business answers and their blueprint, generate 6 actionable tasks for the first validation sprint.
+Return EXACTLY this JSON array (no markdown, no code fences):
+[
+  { "title": "task description", "priority": "high|medium|low", "estimatedTime": "X hrs", "aiAssistance": "AI-powered|AI-assisted|AI-generated" }
+]`;
+
+export const generateBlueprintTasks = async (apiKey, answers, blueprint) => {
+  const userPrompt = `Answers:\n${Object.entries(answers || {}).map(([k,v]) => `- ${k}: ${v}`).join('\n')}\n\nBlueprint:\nExecutive Summary: ${blueprint?.executiveSummary || ''}\nProblem: ${blueprint?.problem || ''}\nMVP Plan: ${blueprint?.mvpPlan || ''}\nValidation Plan: ${blueprint?.validationPlan || ''}`;
+
+  const response = await callOpenAI(apiKey, TASKS_PROMPT, userPrompt, 0.3);
+  const tasks = extractJSON(response);
+  return Array.isArray(tasks) ? tasks.map(t => ({
+    title: t.title,
+    priority: t.priority || 'medium',
+    estimatedTime: t.estimatedTime || '1 hr',
+    aiAssistance: t.aiAssistance || t.AIAssistance || 'AI-assisted'
+  })) : [];
+};
+
+const SCORES_PROMPT = `You are a startup analyst. Given a business blueprint and founder profile, evaluate the startup across multiple dimensions.
+Return EXACTLY this JSON (no markdown, no code fences):
+{
+  "businessHealth": { "idea": 0-100, "validation": 0-100, "product": 0-100, "marketing": 0-100, "sales": 0-100, "finance": 0-100 },
+  "startupScore": { "execution": 0-100, "business": 0-100, "customers": 0-100, "product": 0-100, "cash": 0-100, "aiConfidence": 0-100 }
+}
+Be realistic and critical — most early startups should score between 20-60. Only exceptional answers get higher.`;
+
+export const generateScores = async (apiKey, answers, blueprint, founderProfile) => {
+  const userPrompt = `Founder: ${founderProfile?.name || 'Unknown'}
+Experience: ${founderProfile?.experienceLevel || 'First-time'}
+Team: ${founderProfile?.teamStatus || 'Solo'}
+Time: ${founderProfile?.timeAvailable || 'Part-time'}
+
+Answers:
+${Object.entries(answers || {}).map(([k,v]) => `- Q${k}: ${v}`).join('\n')}
+
+Blueprint:
+Executive Summary: ${blueprint?.executiveSummary || ''}
+Problem: ${blueprint?.problem || ''}
+Solution: ${blueprint?.solution || ''}
+Target Customer: ${blueprint?.targetCustomer || ''}
+Market Size: ${blueprint?.marketSize || ''}
+Revenue Model: ${blueprint?.revenueModel || ''}
+GTM Plan: ${blueprint?.gtmPlan || ''}
+Validation Plan: ${blueprint?.validationPlan || ''}
+MVP Plan: ${blueprint?.mvpPlan || ''}
+Risks: ${(blueprint?.risks || []).join(', ')}
+Success Metrics: ${(blueprint?.successMetrics || []).join(', ')}`;
+
+  const response = await callOpenAI(apiKey, SCORES_PROMPT, userPrompt, 0.3);
+  return extractJSON(response);
+};

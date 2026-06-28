@@ -83,7 +83,7 @@ export default function CommandCenter({ onNavigate }) {
                 <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-tertiary)' }}>Crafting your mission...</span>
               </div>
             ) : (
-              <p style={styles.missionText}>{mission || (blueprint ? 'Validate your core assumptions with real customer conversations' : 'Complete your business blueprint to unlock your roadmap')}</p>
+              <p style={styles.missionText}>{mission || 'Waiting for mission...'}</p>
             )}
             <div style={styles.missionMeta}>
               <span className="badge badge-warning">Priority</span>
@@ -138,9 +138,7 @@ export default function CommandCenter({ onNavigate }) {
               </div>
             ) : (
               <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
-                {recommendation || (blueprint
-                  ? "Your validation score is low. Before building anything, interview at least 5 potential customers this week. I can help you draft interview questions and find prospects."
-                  : "You haven't generated a business blueprint yet. This is your foundation — let's build it now.")}
+                {recommendation || 'Waiting for AI recommendation...'}
               </p>
             )}
             <button className="btn btn-primary btn-sm" style={{ marginTop: '0.75rem' }} onClick={() => onNavigate('workspace')}>

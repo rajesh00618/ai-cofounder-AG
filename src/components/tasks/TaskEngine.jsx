@@ -27,8 +27,8 @@ export default function TaskEngine() {
     try {
       const res = await api.getTaskSuggestions({ sprint: sprint.goal, stage: 'ideation' });
       setSuggestions(res.suggestions || []);
-    } catch {
-      setTaskError('Failed to get AI suggestions');
+    } catch (e) {
+      setTaskError(e.message);
     }
     setSuggesting(false);
   };

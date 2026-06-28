@@ -78,12 +78,7 @@ export default function DailyReview() {
               <Sparkles size={16} style={{ color: 'var(--color-accent-light)' }} />
               <span>{aiNote}</span>
             </div>
-          ) : (
-            <div style={styles.aiNote}>
-              <Sparkles size={16} style={{ color: 'var(--color-accent-light)' }} />
-              <span>{mood === 'low' ? "I noticed you're feeling low today. I'll reduce tomorrow's workload." : energy === 'low' ? "Your energy is low — I'll schedule lighter tasks tomorrow." : "Great day! I'll keep the momentum going."}</span>
-            </div>
-          )}
+          ) : null}
           {error && <div style={styles.errorBanner}><AlertCircle size={14} /> {error}</div>}
         </div>
       </div>

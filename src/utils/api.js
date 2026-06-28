@@ -132,6 +132,8 @@ export const api = {
   submitReviewNote: (review, extra) => apiPost('/review/note', { review, ...extra }),
   getTaskSuggestions: (context) => apiPost('/tasks/suggest', { ...context }),
   getBusinessBlueprint: () => apiGet('/business/blueprint'),
+  generateBlueprintTasks: (answers, blueprint) => apiPost('/business/blueprint/tasks', { answers, blueprint }),
+  generateBlueprintScores: (answers, blueprint, profile) => apiPost('/business/blueprint/scores', { answers, blueprint, profile }),
   healthCheck: () => apiGet('/health'),
 
   // WhatsApp

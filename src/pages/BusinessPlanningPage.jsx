@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBusinessStore } from '../store/businessStore';
 import { useTaskStore } from '../store/taskStore';
+import { useFounderStore } from '../store/founderStore';
 import { FileText, ArrowRight, Sparkles, CheckCircle2, Loader2, Edit3, Download } from 'lucide-react';
 import { delay, generateId } from '../utils/helpers';
 import { api } from '../utils/api';
@@ -25,6 +26,7 @@ export default function BusinessPlanningPage() {
   const navigate = useNavigate();
   const { setBlueprint, setBusinessHealth, setStartupScore } = useBusinessStore();
   const { addTask, createSprint } = useTaskStore();
+  const { profile } = useFounderStore();
   const [phase, setPhase] = useState('questions');
   const [answers, setAnswers] = useState({});
   const [currentQ, setCurrentQ] = useState(0);
@@ -58,22 +60,27 @@ export default function BusinessPlanningPage() {
       bp.createdAt = new Date().toISOString();
       setBp(bp);
       setBlueprint(bp);
-      setBusinessHealth({ idea: 50, validation: 50, product: 50, marketing: 50, sales: 50, finance: 50 });
-      setStartupScore({ execution: 50, business: 50, customers: 50, product: 50, cash: 50, aiConfidence: 50 });
+
+      const [scores, { tasks }] = await Promise.all([
+        api.generateBlueprintScores(answers, bp, profile),
+        api.generateBlueprintTasks(answers, bp)
+      ]);
+
+      if (scores?.businessHealth && scores?.startupScore) {
+        setBusinessHealth(scores.businessHealth);
+        setStartupScore(scores.startupScore);
+      }
       const sprintId = createSprint({ goal: 'Initial Validation', deadline: 'This week', week: 1 });
-      addTask({ title: 'Interview 5 target customers', priority: 'high', estimatedTime: '2 hrs', aiAssistance: 'AI-assisted', sprintId });
-      addTask({ title: 'Build landing page', priority: 'high', estimatedTime: '3 hrs', aiAssistance: 'AI-generated', sprintId });
-      addTask({ title: 'Set up analytics tracking', priority: 'medium', estimatedTime: '1 hr', aiAssistance: 'AI-assisted', sprintId });
-      addTask({ title: 'Create social media presence', priority: 'medium', estimatedTime: '1 hr', aiAssistance: 'AI-assisted', sprintId });
-      addTask({ title: 'Draft pricing page', priority: 'medium', estimatedTime: '45 min', aiAssistance: 'AI-generated', sprintId });
-      addTask({ title: 'Competitor deep-dive analysis', priority: 'high', estimatedTime: '1.5 hrs', aiAssistance: 'AI-powered', sprintId });
+      if (Array.isArray(tasks) && tasks.length > 0) {
+        tasks.forEach(t => addTask({ ...t, sprintId }));
+      }
     } catch (e) {
       setBpError('AI Generation failed: ' + e.message);
       console.error(e);
     }
     setGenerating(false);
     setPhase('blueprint');
-  }, [answers, addTask, createSprint, setBlueprint, setBusinessHealth, setStartupScore]);
+  }, [answers, addTask, createSprint, setBlueprint, setBusinessHealth, setStartupScore, profile]);
 
   return (
     <div style={styles.page}>
