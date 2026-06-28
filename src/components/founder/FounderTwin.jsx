@@ -8,21 +8,49 @@ import { api } from '../../utils/api';
 export default function FounderTwin() {
   const { dnaScores, founderTwin } = useFounderStore();
   const dims = DNA_DIMENSIONS;
-  const avgScore = Math.round(Object.values(dnaScores).reduce((a, b) => a + b, 0) / dims.length);
   const [adaptations, setAdaptations] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+
+  const hasDnaScores = dnaScores && typeof dnaScores === 'object' && Object.keys(dnaScores).length > 0;
+  const avgScore = hasDnaScores ? Math.round(Object.values(dnaScores).reduce((a, b) => a + b, 0) / dims.length) : 0;
 
   useEffect(() => {
+    if (!hasDnaScores) {
+      setAnalyzing(true);
+      api.analyzeDNA(useFounderStore.getState().profile)
+        .then(res => {
+          if (res.dnaScores) useFounderStore.getState().updateDnaScore && Object.entries(res.dnaScores).forEach(([k, v]) => useFounderStore.setState(s => ({ dnaScores: { ...s.dnaScores, [k]: v } })));
+          if (res.founderTwin) useFounderStore.setState({ founderTwin: res.founderTwin });
+        })
+        .catch(() => {})
+        .finally(() => setAnalyzing(false));
+      return;
+    }
     setLoading(true);
     api.adaptDNA(dnaScores, founderTwin)
       .then(res => setAdaptations(res.adaptations || []))
       .catch(() => setAdaptations([]))
       .finally(() => setLoading(false));
-  }, [dnaScores, founderTwin]);
+  }, [dnaScores, founderTwin, hasDnaScores]);
+
+  if (!hasDnaScores) {
+    return (
+      <div style={styles.page} className="page-enter">
+        <h2 style={styles.title}><Dna size={22} style={{ color: 'var(--color-accent-light)' }} /> Founder DNA</h2>
+        <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+          <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: 'var(--color-accent)' }} />
+          <p style={{ color: 'var(--color-text-tertiary)', marginTop: '1rem' }}>
+            {analyzing ? 'AI is analyzing your founder profile...' : 'DNA analysis not yet run. Complete onboarding to activate.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const size = 260, cx = size / 2, cy = size / 2, r = 90;
   const getPoint = (i, val) => { const angle = (Math.PI * 2 * i) / dims.length - Math.PI / 2; const dist = (val / 100) * r; return { x: cx + dist * Math.cos(angle), y: cy + dist * Math.sin(angle) }; };
-  const points = dims.map((_, i) => getPoint(i, dnaScores[dims[i]]));
+  const points = dims.map((_, i) => getPoint(i, dnaScores[dims[i]] || 0));
   const polygon = points.map(p => `${p.x},${p.y}`).join(' ');
 
   return (

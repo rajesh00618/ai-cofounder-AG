@@ -145,7 +145,6 @@ describe('API Routes', () => {
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data).toHaveProperty('content');
-    expect(data).toHaveProperty('confidence');
   });
 
   it('responds to /engines/reality endpoint', async () => {

@@ -28,7 +28,7 @@ const ScoreCard = React.memo(function ScoreCard({ label, value, icon: Icon, colo
 
 export default function CommandCenter({ onNavigate }) {
   const { profile, dnaScores } = useFounderStore(
-    useShallow(s => ({ profile: s.profile, dnaScores: s.dnaScores }))
+    useShallow(s => ({ profile: s.profile, dnaScores: s.dnaScores || {} }))
   );
   const { businessHealth, startupScore, currentStage, blueprint } = useBusinessStore(
     useShallow(s => ({ businessHealth: s.businessHealth, startupScore: s.startupScore, currentStage: s.currentStage, blueprint: s.blueprint }))
@@ -37,6 +37,7 @@ export default function CommandCenter({ onNavigate }) {
     useShallow(s => ({ tasks: s.tasks }))
   );
   const [mission, setMission] = useState('');
+  const [estimatedTime, setEstimatedTime] = useState('');
   const [recommendation, setRecommendation] = useState('');
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState('');
@@ -54,7 +55,7 @@ export default function CommandCenter({ onNavigate }) {
     setLoading(true);
     const ctx = { businessHealth, startupScore, profile, blueprint, currentStage, dnaScores, tasks };
     Promise.all([
-      api.getMission(ctx).then(r => setMission(r.mission)).catch(() => setApiError('Failed to load mission data')),
+      api.getMission(ctx).then(r => { setMission(r.mission); setEstimatedTime(r.estimatedTime || ''); }).catch(() => setApiError('Failed to load mission data')),
       api.getHealth(ctx).then(r => setRecommendation(r.recommendation)).catch(() => setApiError('Failed to load health data'))
     ]).finally(() => setLoading(false));
   }, [businessHealth, startupScore, profile, blueprint, tasks, currentStage, dnaScores]);
@@ -98,7 +99,7 @@ export default function CommandCenter({ onNavigate }) {
             )}
             <div style={styles.missionMeta}>
               <span className="badge badge-warning">Priority</span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)' }}>~2 hrs estimated</span>
+              {estimatedTime && <span style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)' }}>{estimatedTime}</span>}
             </div>
           </div>
 

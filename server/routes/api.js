@@ -73,8 +73,7 @@ router.post('/chat', requireApiKey, requireBody('message'), async (req, res) => 
     const sanitizedContext = sanitizeContext(context);
     const prompt = `Context:\n${JSON.stringify(sanitizedContext || {})}\n\nUser: ${JSON.stringify(message)}`;
     const response = sanitizeOutput(await callOpenAI(req.apiKey, PROMPTS.CEO, prompt, 0.7));
-    const confidence = response?.length > 100 ? 85 : response?.length > 50 ? 75 : 65;
-    res.json({ content: response, confidence, confidenceReason: confidence >= 80 ? 'High confidence — detailed reasoning available' : confidence >= 70 ? 'Medium confidence — consider verifying key assumptions' : 'Lower confidence — limited context for this response' });
+    res.json({ content: response });
   } catch (error) {
     sendError(res, error);
   }
@@ -110,8 +109,7 @@ router.post('/chat/agent', requireApiKey, requireBody('message', 'agent'), async
     const agents = { ceo: getCEOAdvice, cto: getCTOAdvice, cmo: getCMOAdvice, sales: getSalesAdvice, finance: getFinanceAdvice, research: getResearchAdvice, legal: getLegalAdvice, designer: getDesignerAdvice, developer: getDeveloperAdvice, planner: getPlannerAdvice };
     const agentFn = agents[agent] || getCEOAdvice;
     const response = sanitizeOutput(await agentFn(req.apiKey, context || {}, message));
-    const confidence = response?.length > 100 ? 85 : response?.length > 50 ? 75 : 65;
-    res.json({ content: response, confidence, agent });
+    res.json({ content: response, agent });
   } catch (error) {
     sendError(res, error);
   }
@@ -133,7 +131,7 @@ router.post('/engines/reality/score', requireApiKey, async (req, res) => {
     if (!answers || typeof answers !== 'object') {
       return res.status(400).json({ error: 'Missing required field: answers' });
     }
-    const score = calculateRealityScore(answers);
+    const score = await calculateRealityScore(req.apiKey, answers);
     res.json({ score });
   } catch (error) {
     sendError(res, error);

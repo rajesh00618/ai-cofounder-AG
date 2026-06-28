@@ -16,7 +16,6 @@ const ExecutionMode = React.lazy(() => import('../components/ai/ExecutionMode'))
 const DecisionSimulator = React.lazy(() => import('../components/simulators/DecisionSimulator'));
 const DailyReview = React.lazy(() => import('../components/review/DailyReview'));
 const SettingsPanel = React.lazy(() => import('../components/dashboard/SettingsPanel'));
-const AnalyticsDashboard = React.lazy(() => import('../components/dashboard/AnalyticsDashboard'));
 const InvestorMode = React.lazy(() => import('../components/ai/InvestorMode'));
 const WeeklyReview = React.lazy(() => import('../components/review/WeeklyReview'));
 import { useNavigate } from 'react-router-dom';
@@ -34,7 +33,6 @@ const VIEWS = {
   board: AIBoardMeeting,
   investor: InvestorMode,
   build: ExecutionMode,
-  analytics: AnalyticsDashboard,
   simulator: DecisionSimulator,
   review: DailyReview,
   'weekly-review': WeeklyReview,

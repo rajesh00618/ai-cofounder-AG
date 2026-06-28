@@ -6,7 +6,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useBusinessStore } from '../../store/businessStore';
 import { useTaskStore } from '../../store/taskStore';
 import { useChatStore } from '../../store/chatStore';
-import { Home, MessageSquare, Briefcase, CheckSquare, Map, Brain, Search, FileText, Users, Beaker, CalendarCheck, ChevronLeft, ChevronRight, ChevronDown, Sparkles, Dna, Zap, Menu, LogOut, BarChart3, DollarSign, Award } from 'lucide-react';
+import { Home, MessageSquare, Briefcase, CheckSquare, Map, Brain, Search, FileText, Users, Beaker, CalendarCheck, ChevronLeft, ChevronRight, ChevronDown, Sparkles, Dna, Zap, Menu, LogOut, DollarSign, Award } from 'lucide-react';
 
 const NAV_SECTIONS = [
   {
@@ -24,7 +24,6 @@ const NAV_SECTIONS = [
       { id: 'roadmap', label: 'Roadmap', icon: Map },
       { id: 'research', label: 'Research', icon: Search },
       { id: 'documents', label: 'Documents', icon: FileText },
-      { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     ],
   },
   {
@@ -136,7 +135,7 @@ export default function Sidebar({ activeView, onNavigate }) {
         useBusinessStore.setState({ blueprint: null, businessHealth: { idea: 0, validation: 0, product: 0, marketing: 0, sales: 0, finance: 0 }, startupScore: { execution: 0, business: 0, customers: 0, product: 0, cash: 0, aiConfidence: 50 }, currentStage: 'idea', businessAnswers: {}, documents: [] });
         useTaskStore.setState({ tasks: [], sprints: [], currentSprintId: null });
         useChatStore.setState({ messages: [], isThinking: false, thinkingStep: '', confidence: null, activeAgent: 'ceo', boardMeetingActive: false, debateActive: false, investorModeActive: false, customerSimActive: false });
-        useFounderStore.setState({ profile: null, onboardingComplete: false, goal: '', clarificationAnswers: {}, realityScore: null, negotiationResult: null, founderTwin: null, dnaScores: { 'Decision-making': 50, 'Execution': 50, 'Consistency': 50, 'Learning': 50, 'Leadership': 50, 'Sales': 50, 'Technical': 50, 'Communication': 50, 'Focus': 50, 'Confidence': 50 } });
+        useFounderStore.setState({ profile: null, onboardingComplete: false, goal: '', clarificationAnswers: {}, realityScore: null, negotiationResult: null, founderTwin: null, dnaScores: null });
         navigate('/');
       }}
         style={{

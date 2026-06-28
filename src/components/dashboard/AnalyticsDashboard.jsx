@@ -2,16 +2,7 @@ import React, { useState } from 'react';
 import { useBusinessStore } from '../../store/businessStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getScoreColor, calculateOverallScore } from '../../utils/helpers';
-import { TrendingUp, DollarSign, Users, Activity, Flame, BarChart3, Brain, ArrowUp, ArrowDown, Info, Sparkles } from 'lucide-react';
-
-const METRIC_EXPLANATIONS = {
-  revenue: 'Total revenue generated. A measure of your startup\'s ability to convert customers into paying users.',
-  userGrowth: 'Rate at which your user base is expanding month-over-month. Indicates market traction.',
-  mrr: 'Monthly Recurring Revenue — predictable revenue stream. Key SaaS metric for valuation.',
-  retention: 'Percentage of customers who continue using your product over time. Higher retention = stronger product-market fit.',
-  burnRate: 'Monthly cash consumption. How fast you\'re spending vs earning. Critical for runway planning.',
-  growthScore: 'Composite growth indicator derived from execution, business health, and customer traction.',
-};
+import { TrendingUp, DollarSign, Users, Activity, Flame, BarChart3, Brain, Lightbulb, Info, Sparkles } from 'lucide-react';
 
 function MetricTooltip({ explanation }) {
   const [show, setShow] = useState(false);
@@ -33,7 +24,7 @@ function MetricTooltip({ explanation }) {
   );
 }
 
-const MetricCard = React.memo(function MetricCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel, explanation }) {
+const MetricCard = React.memo(function MetricCard({ title, value, subtitle, icon: Icon, color, explanation }) {
   return (
     <div style={styles.metricCard}>
       <div style={styles.metricHeader}>
@@ -45,19 +36,8 @@ const MetricCard = React.memo(function MetricCard({ title, value, subtitle, icon
       </div>
       <div style={styles.metricValueRow}>
         <span style={{ ...styles.metricValue, color }}>{value}</span>
-        {trend !== undefined && (
-          <span style={{
-            ...styles.trendBadge,
-            color: trend >= 0 ? 'var(--color-success)' : 'var(--color-danger)',
-            background: trend >= 0 ? 'var(--color-success-subtle)' : 'var(--color-danger-subtle)',
-          }}>
-            {trend >= 0 ? <ArrowUp size={10} /> : <ArrowDown size={10} />}
-            {Math.abs(trend)}%
-          </span>
-        )}
       </div>
       {subtitle && <span style={styles.metricSubtitle}>{subtitle}</span>}
-      {trendLabel && <span style={styles.trendLabel}>{trendLabel}</span>}
     </div>
   );
 });
@@ -89,63 +69,54 @@ export default function AnalyticsDashboard() {
   const overallHealth = calculateOverallScore(businessHealth);
   const avgStartupScore = calculateOverallScore(startupScore);
 
-  const revenue = Math.round((startupScore.business * 120 + startupScore.cash * 80) / 100);
-  const revenueTrend = Math.round((startupScore.business - 50) * 0.6);
+  const ideaScore = businessHealth.idea || 0;
+  const validationScore = businessHealth.validation || 0;
+  const productScore = businessHealth.product || 0;
+  const marketingScore = businessHealth.marketing || 0;
+  const salesScore = businessHealth.sales || 0;
+  const financeScore = businessHealth.finance || 0;
 
-  const userGrowth = Math.max(0, Math.round(startupScore.customers * 1.4));
-  const userGrowthTrend = Math.round((startupScore.customers - 40) * 0.8);
-
-  const mrr = Math.round(revenue * 0.65);
-  const mrrTrend = Math.round((startupScore.cash - 45) * 0.5);
-
-  const retention = Math.max(0, Math.min(100, Math.round(
-    (businessHealth.product * 0.4 + businessHealth.marketing * 0.3 + businessHealth.sales * 0.3)
-  )));
-  const retentionTrend = Math.round((retention - 50) * 0.4);
-
-  const burnRate = Math.max(0, Math.round((100 - businessHealth.finance) * 1.8));
-  const burnRateTrend = Math.round((businessHealth.finance - 50) * 0.7);
-
-  const growthScore = Math.max(0, Math.min(100, Math.round(
-    (avgStartupScore * 0.5 + overallHealth * 0.3 + startupScore.customers * 0.2)
-  )));
-  const growthTrend = Math.round((growthScore - 50) * 0.3);
-
-  const formatCurrency = (val) => `$${val.toLocaleString()}`;
+  const executionScore = startupScore.execution || 0;
+  const customerScore = startupScore.customers || 0;
+  const aiConfidence = startupScore.aiConfidence || 50;
 
   const insights = [];
 
-  if (revenue < 100) {
-    insights.push('Revenue is still early-stage. Focus on closing first paying customers to validate demand and build a repeatable sales motion.');
-  } else if (revenue < 500) {
-    insights.push('Revenue is growing but hasn\'t reached stability. Double down on your highest-converting channel to accelerate MRR growth.');
-  } else {
-    insights.push('Revenue trajectory looks healthy. Consider expanding to adjacent segments or upselling existing customers to increase LTV.');
+  if (ideaScore < 30) {
+    insights.push('Idea clarity is low. Revisit your problem statement and validate that you\'re solving a real, painful customer problem.');
+  } else if (ideaScore >= 70) {
+    insights.push('Strong idea foundation. Move quickly to validation — don\'t let analysis paralysis slow you down.');
   }
 
-  if (retention < 40) {
-    insights.push('Retention is below target — customers may not be getting enough ongoing value. Conduct exit interviews and review onboarding flows.');
-  } else if (retention < 65) {
-    insights.push('Retention is moderate. Improve engagement loops and consider adding usage-based triggers to bring users back more frequently.');
-  } else {
-    insights.push('Strong retention indicates solid product-market fit. Shift focus toward acquisition to grow the top of the funnel.');
+  if (validationScore < 30) {
+    insights.push('Validation is critical — interview 10 target customers before building anything. Assumptions without data are liabilities.');
+  } else if (validationScore < 60) {
+    insights.push('Validation is in progress. Double down on customer interviews and landing page tests to confirm demand.');
   }
 
-  if (burnRate > 60) {
-    insights.push('Burn rate is high relative to revenue. Review non-essential spending and consider extending runway before the next fundraising round.');
-  } else if (burnRate > 30) {
-    insights.push('Burn rate is manageable. Maintain current discipline while investing in growth channels with proven unit economics.');
-  } else {
-    insights.push('Burn rate is well-controlled. This is the right time to invest aggressively in scalable acquisition channels.');
+  if (productScore < 30) {
+    insights.push('Product needs attention. Focus on shipping an MVP that solves one core problem well — don\'t build everything at once.');
   }
 
-  if (userGrowth < 30) {
-    insights.push('User growth needs attention. Experiment with referral programs, content marketing, or partnerships to drive new signups.');
-  } else {
-    insights.push('User growth is on track. Keep monitoring cohort quality to ensure new users convert at similar rates to existing ones.');
+  if (marketingScore < 30) {
+    insights.push('Marketing is a weak spot. Start with one channel, master it, then expand. Don\'t spread thin across 5 platforms.');
   }
 
-  insights.push(`Your composite Growth Score of ${growthScore}% reflects the balance of all business dimensions. Review the cards above to identify which metric needs the most immediate action.`);
+  if (salesScore < 30) {
+    insights.push('Sales pipeline is empty. Your next priority is finding and closing your first paying customers — everything else can wait.');
+  }
+
+  if (financeScore < 30) {
+    insights.push('Financial health needs work. Track every dollar, extend your runway, and validate willingness to pay before scaling spend.');
+  }
+
+  if (executionScore < 40) {
+    insights.push('Execution score is low. Break tasks into smaller chunks and focus on completing one thing at a time.');
+  }
+
+  if (insights.length === 0) {
+    insights.push('All dimensions are above 30%. You\'re in good shape — focus on the lowest-scoring area to accelerate growth.');
+  }
 
   return (
     <div style={styles.page} className="page-enter">
@@ -165,59 +136,79 @@ export default function AnalyticsDashboard() {
 
       <div style={styles.grid}>
         <MetricCard
-          title="Revenue"
-          value={formatCurrency(revenue)}
-          subtitle="Total revenue to date"
-          icon={DollarSign}
-          color="var(--color-success)"
-          trend={revenueTrend}
-          explanation={METRIC_EXPLANATIONS.revenue}
+          title="Idea Clarity"
+          value={`${ideaScore}%`}
+          subtitle="How well-defined is your idea"
+          icon={Lightbulb}
+          color={getScoreColor(ideaScore)}
+          explanation="Measures how clear and specific your problem/solution fit is."
         />
         <MetricCard
-          title="User Growth"
-          value={`${userGrowth}%`}
-          subtitle="Monthly active user increase"
-          icon={TrendingUp}
-          color="var(--color-accent-light)"
-          trend={userGrowthTrend}
-          explanation={METRIC_EXPLANATIONS.userGrowth}
-        />
-        <MetricCard
-          title="MRR"
-          value={formatCurrency(mrr)}
-          subtitle="Monthly Recurring Revenue"
-          icon={BarChart3}
-          color="var(--color-info-light)"
-          trend={mrrTrend}
-          explanation={METRIC_EXPLANATIONS.mrr}
-        />
-        <MetricCard
-          title="Retention Rate"
-          value={`${retention}%`}
-          subtitle="Customer retention over time"
+          title="Validation"
+          value={`${validationScore}%`}
+          subtitle="Customer demand confirmed"
           icon={Users}
-          color="var(--color-warning-light)"
-          trend={retentionTrend}
-          explanation={METRIC_EXPLANATIONS.retention}
+          color={getScoreColor(validationScore)}
+          explanation="How much real customer evidence you have that people will pay for this."
         />
         <MetricCard
-          title="Burn Rate"
-          value={`${burnRate}%`}
-          subtitle="Monthly cash consumption rate"
+          title="Product"
+          value={`${productScore}%`}
+          subtitle="Product readiness"
+          icon={TrendingUp}
+          color={getScoreColor(productScore)}
+          explanation="How close your product is to solving the core problem effectively."
+        />
+        <MetricCard
+          title="Marketing"
+          value={`${marketingScore}%`}
+          subtitle="Go-to-market strength"
+          icon={BarChart3}
+          color={getScoreColor(marketingScore)}
+          explanation="Your ability to reach and convert target customers."
+        />
+        <MetricCard
+          title="Sales"
+          value={`${salesScore}%`}
+          subtitle="Revenue generation"
+          icon={DollarSign}
+          color={getScoreColor(salesScore)}
+          explanation="Your sales pipeline and ability to close paying customers."
+        />
+        <MetricCard
+          title="Finance"
+          value={`${financeScore}%`}
+          subtitle="Financial health"
           icon={Flame}
-          color="var(--color-danger-light)"
-          trend={burnRateTrend}
-          trendLabel={burnRate > 50 ? 'High burn — review spending' : 'Sustainable'}
-          explanation={METRIC_EXPLANATIONS.burnRate}
+          color={getScoreColor(financeScore)}
+          explanation="Runway, burn rate, and unit economics sustainability."
+        />
+      </div>
+
+      <div style={{ ...styles.grid, gridTemplateColumns: 'repeat(3, 1fr)', marginTop: '1rem' }}>
+        <MetricCard
+          title="Execution"
+          value={`${executionScore}%`}
+          subtitle="Task completion rate"
+          icon={Activity}
+          color={getScoreColor(executionScore)}
+          explanation="How consistently you ship and hit deadlines."
         />
         <MetricCard
-          title="Growth Score"
-          value={`${growthScore}%`}
-          subtitle="Composite growth indicator"
+          title="Customer Traction"
+          value={`${customerScore}%`}
+          subtitle="Market penetration"
+          icon={Users}
+          color={getScoreColor(customerScore)}
+          explanation="Real customer engagement and growth signals."
+        />
+        <MetricCard
+          title="Overall Health"
+          value={`${overallHealth}%`}
+          subtitle="Composite business score"
           icon={Brain}
-          color={getScoreColor(growthScore)}
-          trend={growthTrend}
-          explanation={METRIC_EXPLANATIONS.growthScore}
+          color={getScoreColor(overallHealth)}
+          explanation="Weighted average across all business dimensions."
         />
       </div>
 

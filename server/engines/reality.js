@@ -6,15 +6,20 @@ export const evaluateGoal = async (apiKey, goal) => {
   return extractJSON(response);
 };
 
-export const calculateRealityScore = (answers) => {
-  let score = 50;
-  if (answers.experience === 'Serial entrepreneur') score += 15;
-  else if (answers.experience === 'Currently running one') score += 10;
-  else if (answers.experience === 'Tried before') score += 5;
-  if (answers.time === 'Full-time') score += 15;
-  else if (answers.time === '3–5 hrs/day') score += 10;
-  else if (answers.time === '1–2 hrs/day') score += 5;
-  if (answers.budget === 'More') score += 10;
-  else if (answers.budget === 'Under $1000') score += 5;
-  return Math.min(Math.max(score, 10), 98);
+export const calculateRealityScore = async (apiKey, answers) => {
+  const prompt = `You are a startup reality scorer. Given these founder answers, calculate a realistic feasibility score.
+
+Founder answers:
+${JSON.stringify(answers, null, 2)}
+
+Return JSON only:
+{
+  "score": <number 0-100>,
+  "breakdown": { "experience": <0-100>, "time": <0-100>, "resources": <0-100>, "marketFit": <0-100> },
+  "reasoning": "1-2 sentence explanation of the score"
+}`;
+
+  const response = await callOpenAI(apiKey, prompt, '', 0.2);
+  const parsed = extractJSON(response);
+  return { score: Math.min(Math.max(parsed.score || 50, 10), 98), ...parsed };
 };

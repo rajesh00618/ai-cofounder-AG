@@ -14,26 +14,8 @@ export const useFounderStore = create(
   clarificationAnswers: {},
   realityScore: null,
   negotiationResult: null,
-  founderTwin: {
-    thinkStyle: 'analytical',
-    decideStyle: 'balanced',
-    learnStyle: 'building',
-    workPattern: 'focused',
-    failurePattern: 'stall',
-    recoveryPattern: 'structured'
-  },
-  dnaScores: {
-    'Decision-making': 50,
-    'Execution': 50,
-    'Consistency': 50,
-    'Learning speed': 50,
-    'Leadership': 50,
-    'Sales ability': 50,
-    'Technical skill': 50,
-    'Communication': 50,
-    'Focus': 50,
-    'Confidence': 50
-  },
+  founderTwin: null,
+  dnaScores: null,
 
   setOnboardingAnswer: (questionId, answer) => set(s => ({
     onboardingAnswers: { ...s.onboardingAnswers, [questionId]: answer }
@@ -71,6 +53,8 @@ export const useFounderStore = create(
     clarificationAnswers: {},
     realityScore: null,
     negotiationResult: null,
+    founderTwin: null,
+    dnaScores: null,
   }),
 
   setGoal: (goal) => set({ goal }),
