@@ -1,4 +1,5 @@
 import { callOpenAI, extractJSON, sanitizeForPrompt } from '../services/ai.js';
+import { logger } from '../services/logger.js';
 
 const BLUEPRINT_PROMPT = `You are a seasoned startup advisor and business strategist. Given a founder's answers about their idea, generate a comprehensive business blueprint in valid JSON only.
 
@@ -50,7 +51,8 @@ export const generateBlueprintTasks = async (apiKey, answers, blueprint) => {
   try {
     const response = await callOpenAI(apiKey, TASKS_PROMPT, userPrompt, 0.3);
     tasks = extractJSON(response);
-  } catch {
+  } catch (err) {
+    logger.warn(`[Business] Failed to parse tasks: ${err.message}`);
     tasks = [];
   }
   return Array.isArray(tasks) ? tasks.map(t => ({

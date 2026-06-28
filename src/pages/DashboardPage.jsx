@@ -59,10 +59,9 @@ export default function DashboardPage() {
     return () => unsub();
   }, []);
 
-  if (hydrated && !profile) {
-    navigate('/onboarding');
-    return null;
-  }
+  useEffect(() => {
+    if (hydrated && !profile) navigate('/onboarding');
+  }, [hydrated, profile, navigate]);
 
   if (!hydrated) return null;
 
@@ -70,7 +69,7 @@ export default function DashboardPage() {
 
   return (
     <div style={styles.layout}>
-      <Suspense fallback={null}><Sidebar activeView={activeView} onNavigate={setActiveView} /></Suspense>
+      <Suspense fallback={<div style={{width: sidebarCollapsed ? '72px' : '260px', padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.8125rem'}}>Loading...</div>}><Sidebar activeView={activeView} onNavigate={setActiveView} /></Suspense>
       <main className="dashboard-main" style={{...styles.main, marginLeft: isMobile ? '56px' : (sidebarCollapsed ? '72px' : '260px')}}>
         <Suspense fallback={<div style={{display:'flex',alignItems:'center',justifyContent:'center',padding:'4rem',color:'var(--color-text-tertiary)'}}>Loading...</div>}>
           <ActiveComponent onNavigate={setActiveView} />

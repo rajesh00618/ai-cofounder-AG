@@ -21,7 +21,7 @@ export const useTaskStore = create(
       dependencies: task.dependencies || [],
       aiAssistance: task.aiAssistance || 'assisted',
       status: 'todo',
-      sprintId: task.sprintId || get().currentSprintId,
+      sprintId: task.sprintId || s.currentSprintId,
       createdAt: new Date().toISOString(),
       completedAt: null
     }]
@@ -49,7 +49,8 @@ export const useTaskStore = create(
   },
 
   completeSprint: (id) => set(s => ({
-    sprints: s.sprints.map(sp => sp.id === id ? { ...sp, status: 'completed' } : sp)
+    sprints: s.sprints.map(sp => sp.id === id ? { ...sp, status: 'completed' } : sp),
+    currentSprintId: s.currentSprintId === id ? null : s.currentSprintId,
   })),
 
   getActiveSprint: () => {

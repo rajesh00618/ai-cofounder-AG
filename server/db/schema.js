@@ -1,6 +1,7 @@
 import { getDb } from './database.js';
 import { logger } from '../services/logger.js';
 
+// Source of truth for these constants is server/engines/memory.js
 const VALID_NODE_TYPES = ['idea', 'task', 'customer', 'document', 'milestone', 'revenue', 'goal', 'project'];
 const VALID_RELATIONSHIPS = ['related_to', 'depends_on', 'part_of', 'influences', 'blocks', 'enables', 'contradicts'];
 
@@ -112,12 +113,7 @@ const LOCK_KEY = 'schema_migration_lock';
 
 const acquireLock = async (supabase) => {
   try {
-    const { error } = await supabase.rpc('exec_sql', { query: `
-      INSERT INTO schema_migrations (version, name)
-      VALUES (-1, '${LOCK_KEY}')
-      ON CONFLICT (version) DO NOTHING
-      RETURNING version;
-    `});
+    const { error } = await supabase.from('schema_migrations').insert({ version: -1, name: LOCK_KEY }, { onConflict: 'version', ignoreDuplicates: true }).select('version').maybeSingle();
     if (error) return false;
     return true;
   } catch {
@@ -127,7 +123,7 @@ const acquireLock = async (supabase) => {
 
 const releaseLock = async (supabase) => {
   try {
-    await supabase.rpc('exec_sql', { query: `DELETE FROM schema_migrations WHERE version = -1 AND name = '${LOCK_KEY}';` });
+    await supabase.from('schema_migrations').delete().eq('version', -1).eq('name', LOCK_KEY);
   } catch {}
 };
 

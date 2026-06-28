@@ -91,6 +91,10 @@ export default function MemoryGraph() {
   const PAGE_LIMIT = 100;
   const svgRef = useRef(null);
   const [svgWidth, setSvgWidth] = useState(700);
+  const mountedRef = useRef(true);
+  const reqIdRef = useRef(0);
+
+  useEffect(() => { return () => { mountedRef.current = false; }; }, []);
 
   useEffect(() => {
     const resize = () => {
@@ -116,9 +120,12 @@ export default function MemoryGraph() {
   }, [showAddModal, showEdgeModal]);
 
   const loadGraph = useCallback(async (loadOffset = 0, append = false) => {
+    const reqId = ++reqIdRef.current;
+    setMemError('');
     try {
       if (profile?.id) {
         const data = await api.getMemoryGraph(profile.id, PAGE_LIMIT, loadOffset);
+        if (!mountedRef.current || reqId !== reqIdRef.current) return;
         if (data && data.nodes) {
           setGraph(prev => append ? {
             nodes: [...prev.nodes, ...data.nodes],
@@ -129,9 +136,10 @@ export default function MemoryGraph() {
         }
       }
     } catch (err) {
+      if (!mountedRef.current) return;
       setMemError('Could not load memory graph: ' + err.message);
     }
-    setLoading(false);
+    if (mountedRef.current) setLoading(false);
   }, [profile]);
 
   useEffect(() => { loadGraph(); }, [loadGraph]);
@@ -142,25 +150,29 @@ export default function MemoryGraph() {
 
   const handleAddNode = async () => {
     if (!newNode.label.trim() || !profile?.id) return;
+    setMemError('');
     try {
       await api.addMemoryNode(profile.id, newNode.type, newNode.label, newNode.metadata ? { description: newNode.metadata } : {});
+      if (!mountedRef.current) return;
       setNewNode({ type: 'idea', label: '', metadata: '' });
       setShowAddModal(false);
       await loadGraph();
     } catch (err) {
-      setMemError(err.message);
+      if (mountedRef.current) setMemError(err.message);
     }
   };
 
   const handleAddEdge = async () => {
     if (!newEdge.sourceId || !newEdge.targetId) return;
+    setMemError('');
     try {
       await api.addMemoryEdge(newEdge.sourceId, newEdge.targetId, newEdge.relationship);
+      if (!mountedRef.current) return;
       setNewEdge({ sourceId: '', targetId: '', relationship: 'related_to' });
       setShowEdgeModal(false);
       await loadGraph();
     } catch (err) {
-      setMemError(err.message);
+      if (mountedRef.current) setMemError(err.message);
     }
   };
 

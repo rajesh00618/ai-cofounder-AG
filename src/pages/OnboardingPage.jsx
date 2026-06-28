@@ -10,6 +10,7 @@ export default function OnboardingPage() {
   const [name, setName] = useState('');
   const [showNameInput, setShowNameInput] = useState(false);
   const [customMode, setCustomMode] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
   const [customInput, setCustomInput] = useState('');
   const customRef = useRef(null);
   const totalSteps = ONBOARDING_QUESTIONS.length;
@@ -18,11 +19,13 @@ export default function OnboardingPage() {
   useEffect(() => { if (customMode) customRef.current?.focus(); }, [customMode]);
 
   const handleSelect = (answer) => {
+    if (transitioning) return;
     setOnboardingAnswer(onboardingStep + 1, answer);
     setCustomMode(false);
     setCustomInput('');
     if (onboardingStep < totalSteps - 1) {
-      setTimeout(() => nextOnboardingStep(), 300);
+      setTransitioning(true);
+      setTimeout(() => { nextOnboardingStep(); setTransitioning(false); }, 300);
     } else {
       setShowNameInput(true);
     }

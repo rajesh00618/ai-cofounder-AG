@@ -83,10 +83,18 @@ export const startReminderScheduler = () => {
         const { getDb } = await import('../db/database.js');
         const supabase = getDb();
         if (!supabase) return;
-        const { data: users } = await supabase.from('users').select('id, name, email').limit(50);
-        if (!users?.length) return;
+        let offset = 0;
+        const PAGE_SIZE = 50;
+        let allUsers = [];
+        while (true) {
+          const { data: users } = await supabase.from('users').select('id, name, email').range(offset, offset + PAGE_SIZE - 1);
+          if (!users?.length) break;
+          allUsers = allUsers.concat(users);
+          offset += PAGE_SIZE;
+        }
+        if (!allUsers.length) return;
 
-        const userIds = users.map(u => u.id);
+        const userIds = allUsers.map(u => u.id);
         const tasksRes = await supabase
           .from('tasks').select('user_id, title, status')
           .in('user_id', userIds);
@@ -96,7 +104,7 @@ export const startReminderScheduler = () => {
           tasksByUser[t.user_id].push(t);
         }
 
-        for (const user of users) {
+        for (const user of allUsers) {
           const userTasks = (tasksByUser[user.id] || []).slice(0, 10);
           const phone = getPhoneForEmail(user.email);
           if (phone) {
@@ -114,12 +122,12 @@ export const startReminderScheduler = () => {
 
     if (hours === 9 && minutes === 0) {
       logger.info('[Reminders] Morning reminder time');
-      sendRemindersForUsers(true);
+      await sendRemindersForUsers(true);
     }
 
     if (hours === 18 && minutes === 0) {
       logger.info('[Reminders] Evening reminder time');
-      sendRemindersForUsers(false);
+      await sendRemindersForUsers(false);
     }
   };
 

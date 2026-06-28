@@ -39,14 +39,17 @@ export const getDb = () => {
   if (client && supabaseUrl === clientUrl && supabaseKey === clientKey) {
     return client;
   }
+  // Create new client first, then atomically swap — avoids a window where
+  // clientUrl/clientKey are updated but client is still the old value.
+  const newClient = createClient(supabaseUrl, supabaseKey, {
+    auth: { persistSession: false },
+  });
   if (client) {
     try { client.auth.signOut(); } catch {}
   }
   clientUrl = supabaseUrl;
   clientKey = supabaseKey;
-  client = createClient(supabaseUrl, supabaseKey, {
-    auth: { persistSession: false },
-  });
+  client = newClient;
   return client;
 };
 
@@ -67,11 +70,14 @@ export const getQuery = async (table, column, value) => {
   return data;
 };
 
+const ALLOWED_COLUMNS = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
 export const allQuery = async (table, filters = {}, options = {}) => {
   const supabase = getDb();
   if (!supabase) return [];
   let query = supabase.from(table).select(options.select || '*');
   for (const [col, val] of Object.entries(filters)) {
+    if (!ALLOWED_COLUMNS.test(col)) throw new Error(`Invalid filter column: ${col}`);
     if (val !== undefined && val !== null) {
       query = query.eq(col, val);
     }

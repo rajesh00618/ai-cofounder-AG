@@ -79,9 +79,10 @@ function FocusAreaCard({ area, status, recommendation }) {
 }
 
 export default function WeeklyReview() {
-  const { profile, dnaScores } = useFounderStore(
-    useShallow(s => ({ profile: s.profile, dnaScores: s.dnaScores || {} }))
+  const { profile, dnaScores: rawDnaScores } = useFounderStore(
+    useShallow(s => ({ profile: s.profile, dnaScores: s.dnaScores }))
   );
+  const dnaScores = rawDnaScores || {};
   const { businessHealth, startupScore } = useBusinessStore(
     useShallow(s => ({ businessHealth: s.businessHealth, startupScore: s.startupScore }))
   );

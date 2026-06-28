@@ -12,9 +12,11 @@ const INITIAL_STATE = {
   appError: null,
 };
 
+let notificationCounter = 0;
+
 export const useAppStore = create(
   persist(
-    (set, _get) => ({
+    (set) => ({
   ...INITIAL_STATE,
 
   setPage: (page) => set({ currentPage: page }),
@@ -23,22 +25,21 @@ export const useAppStore = create(
   setActivePanel: (panel) => set({ activePanel: panel }),
   setApiKey: (key) => set({ apiKey: key }),
   setAppError: (error) => set({ appError: error }),
-  addNotification: (n) => set(s => ({ notifications: [{ id: Date.now(), ...n }, ...s.notifications] })),
+  addNotification: (n) => set(s => ({ notifications: [{ id: `notif-${++notificationCounter}-${Date.now()}`, ...n }, ...s.notifications] })),
   clearNotification: (id) => set(s => ({ notifications: s.notifications.filter(n => n.id !== id) })),
-  resetApp: () => set(INITIAL_STATE),
+  resetApp: () => set({
+    currentPage: 'landing',
+    sidebarOpen: true,
+    sidebarCollapsed: false,
+    activePanel: 'business',
+    settingsOpen: false,
+    apiKey: '',
+    notifications: [],
+    appError: null,
+  }),
     }),
     {
       name: 'ai-cofounder-app-storage',
-      partialize: (state) => ({
-        currentPage: state.currentPage,
-        sidebarOpen: state.sidebarOpen,
-        sidebarCollapsed: state.sidebarCollapsed,
-        activePanel: state.activePanel,
-        settingsOpen: state.settingsOpen,
-        apiKey: state.apiKey,
-        notifications: state.notifications,
-        appError: state.appError,
-      }),
     }
   )
 );

@@ -44,9 +44,14 @@ export default function AuthPage() {
         ? await api.login(email, password)
         : await api.register(name, email, password);
       setAuth(res.user, res.token);
-      resetOnboarding();
-      ['ai-cofounder-founder-storage', 'ai-cofounder-business-storage', 'ai-cofounder-task-storage', 'ai-cofounder-chat-storage'].forEach(k => localStorage.removeItem(k));
-      navigate('/onboarding');
+      if (mode === 'register') {
+        resetOnboarding();
+        ['ai-cofounder-founder-storage', 'ai-cofounder-business-storage', 'ai-cofounder-task-storage', 'ai-cofounder-chat-storage'].forEach(k => localStorage.removeItem(k));
+        navigate('/onboarding');
+      } else {
+        const existingProfile = useFounderStore.getState().profile;
+        navigate(existingProfile ? '/dashboard' : '/onboarding');
+      }
     } catch (err) {
       setError(err.message);
     } finally {

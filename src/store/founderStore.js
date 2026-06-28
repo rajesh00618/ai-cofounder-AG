@@ -16,11 +16,14 @@ export const useFounderStore = create(
   negotiationResult: null,
   founderTwin: null,
   dnaScores: null,
+  founderError: null,
+
+  setFounderError: (error) => set({ founderError: error }),
 
   setOnboardingAnswer: (questionId, answer) => set(s => ({
     onboardingAnswers: { ...s.onboardingAnswers, [questionId]: answer }
   })),
-  nextOnboardingStep: () => set(s => ({ onboardingStep: s.onboardingStep + 1 })),
+  nextOnboardingStep: () => set(s => ({ onboardingStep: Math.min(10, s.onboardingStep + 1) })),
   prevOnboardingStep: () => set(s => ({ onboardingStep: Math.max(0, s.onboardingStep - 1) })),
 
   completeOnboarding: (name) => {
@@ -55,13 +58,14 @@ export const useFounderStore = create(
     negotiationResult: null,
     founderTwin: null,
     dnaScores: null,
+    founderError: null,
   }),
 
   setGoal: (goal) => set({ goal }),
   setClarificationAnswers: (answers) => set({ clarificationAnswers: answers, goalClarified: true }),
   setRealityScore: (score) => set({ realityScore: score }),
   setNegotiationResult: (result) => set({ negotiationResult: result }),
-  updateDnaScore: (dim, val) => set(s => ({ dnaScores: { ...s.dnaScores, [dim]: val } })),
+  updateDnaScore: (dim, val) => set(s => ({ dnaScores: { ...(s.dnaScores || {}), [dim]: val } })),
     }),
     {
       name: 'ai-cofounder-founder-storage',

@@ -89,10 +89,23 @@ const write = (target, entry) => {
 };
 
 // Make sure no log entries are lost on shutdown.
+const flushAllSync = () => {
+  ['log', 'error'].forEach(target => {
+    const data = buffers[target];
+    if (!data) return;
+    buffers[target] = '';
+    try {
+      fs.appendFileSync(target === 'error' ? getErrorFile() : getLogFile(), data);
+    } catch (err) {
+      console.error(`[Logger] Failed to flush ${target} log:`, err.message);
+    }
+  });
+};
+
 const gracefulShutdown = () => flushAll();
 process.on('SIGINT', gracefulShutdown);
 process.on('SIGTERM', gracefulShutdown);
-process.on('exit', gracefulShutdown);
+process.on('exit', flushAllSync);
 
 export const logger = {
   debug: (msg, meta) => write('log', formatEntry('DEBUG', msg, meta)),

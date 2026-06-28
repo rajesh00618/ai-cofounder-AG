@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useFounderStore } from '../../store/founderStore';
 import { DNA_DIMENSIONS } from '../../utils/constants';
 import { Dna, Brain, Zap, Loader2 } from 'lucide-react';
@@ -11,6 +11,9 @@ export default function FounderTwin() {
   const [adaptations, setAdaptations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => { return () => { mountedRef.current = false; }; }, []);
 
   const hasDnaScores = dnaScores && typeof dnaScores === 'object' && Object.keys(dnaScores).length > 0;
   const avgScore = hasDnaScores ? Math.round(Object.values(dnaScores).reduce((a, b) => a + b, 0) / dims.length) : 0;
@@ -20,22 +23,24 @@ export default function FounderTwin() {
       setAnalyzing(true);
       api.analyzeDNA(useFounderStore.getState().profile)
         .then(res => {
+          if (!mountedRef.current) return;
           if (res.dnaScores) {
-            const updater = useFounderStore.getState().updateDnaScore;
-            if (typeof updater === 'function') updater(res.dnaScores);
-            Object.entries(res.dnaScores).forEach(([k, v]) => useFounderStore.setState(s => ({ dnaScores: { ...s.dnaScores, [k]: v } })));
+            const { updateDnaScore } = useFounderStore.getState();
+            if (typeof updateDnaScore === 'function') {
+              Object.entries(res.dnaScores).forEach(([k, v]) => updateDnaScore(k, v));
+            }
           }
           if (res.founderTwin) useFounderStore.setState({ founderTwin: res.founderTwin });
         })
         .catch(() => {})
-        .finally(() => setAnalyzing(false));
+        .finally(() => { if (mountedRef.current) setAnalyzing(false); });
       return;
     }
     setLoading(true);
     api.adaptDNA(dnaScores, founderTwin)
-      .then(res => setAdaptations(res.adaptations || []))
-      .catch(() => setAdaptations([]))
-      .finally(() => setLoading(false));
+      .then(res => { if (mountedRef.current) setAdaptations(res.adaptations || []); })
+      .catch(() => { if (mountedRef.current) setAdaptations([]); })
+      .finally(() => { if (mountedRef.current) setLoading(false); });
   }, [dnaScores, founderTwin, hasDnaScores]);
 
   if (!hasDnaScores) {
@@ -123,8 +128,8 @@ export default function FounderTwin() {
         ) : adaptations.length === 0 ? (
           <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>No specific adaptations needed right now.</p>
         ) : (
-          adaptations.map((a) => (
-            <div key={`ad-${a.weakness?.slice(0,20) || Math.random()}`} style={styles.adaptRow}>
+          adaptations.map((a, idx) => (
+            <div key={`ad-${a.weakness?.slice(0,20) || a.action?.slice(0,20) || idx}`} style={styles.adaptRow}>
               <span className="badge badge-warning" style={{ fontSize: '0.5rem', minWidth: '60px', justifyContent: 'center' }}>{a.weakness}</span>
               <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>→ {a.action}</span>
             </div>

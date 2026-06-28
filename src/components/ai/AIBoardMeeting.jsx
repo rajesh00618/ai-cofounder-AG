@@ -11,8 +11,12 @@ export default function AIBoardMeeting() {
   const [loading, setLoading] = useState(false);
   const [debating, setDebating] = useState(false);
   const bottomRef = useRef(null);
+  const mountedRef = useRef(true);
+  const msgCounterRef = useRef(0);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+  useEffect(() => { return () => { mountedRef.current = false; }; }, []);
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
@@ -25,14 +29,20 @@ export default function AIBoardMeeting() {
       const history = [...messages, userMsg];
       const data = await api.boardChat(history);
       for (const resp of data.responses) {
+        if (!mountedRef.current) return;
         await new Promise(r => setTimeout(r, 400));
-        setMessages(prev => [...prev, { id: `resp-${Date.now()}-${Math.random()}`, role: 'assistant', name: resp.agent, icon: resp.icon, color: resp.color, content: resp.position }]);
+        if (!mountedRef.current) return;
+        const msgId = `resp-${Date.now()}-${++msgCounterRef.current}`;
+        setMessages(prev => [...prev, { id: msgId, role: 'assistant', name: resp.agent, icon: resp.icon, color: resp.color, content: resp.position }]);
       }
     } catch (err) {
+      if (!mountedRef.current) return;
       setMessages(prev => [...prev, { id: `err-${Date.now()}`, role: 'assistant', name: 'Board', icon: '⚠️', color: '#ef4444', content: `Error: ${err.message}` }]);
     } finally {
-      setLoading(false);
-      setDebating(false);
+      if (mountedRef.current) {
+        setLoading(false);
+        setDebating(false);
+      }
     }
   };
 

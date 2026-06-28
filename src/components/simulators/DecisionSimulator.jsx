@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Beaker, TrendingUp, AlertTriangle, Sparkles, Users, MessageSquare, Loader2 } from 'lucide-react';
 import { getScoreColor } from '../../utils/helpers';
 import { useBusinessStore } from '../../store/businessStore';
@@ -22,17 +22,20 @@ export default function DecisionSimulator() {
   const [customerResult, setCustomerResult] = useState(null);
   const [failureData, setFailureData] = useState(null);
   const [failureLoading, setFailureLoading] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => { return () => { mountedRef.current = false; }; }, []);
 
   const runSimulation = async () => {
     if (!question.trim()) return;
     setSimulating(true);
     try {
       const data = await api.simulateDecision(question);
-      setResult(data);
+      if (mountedRef.current) setResult(data);
     } catch (e) {
-      setResult({ error: e.message });
+      if (mountedRef.current) setResult({ error: e.message });
     }
-    setSimulating(false);
+    if (mountedRef.current) setSimulating(false);
   };
 
   const runCompanySim = async () => {
@@ -40,21 +43,22 @@ export default function DecisionSimulator() {
     setSimulating(true);
     try {
       const data = await api.simulateCompany(question);
+      if (!mountedRef.current) return;
       data.isCompanySim = true;
       setResult(data);
     } catch (e) {
-      setResult({ error: e.message, isCompanySim: true });
+      if (mountedRef.current) setResult({ error: e.message, isCompanySim: true });
     }
-    setSimulating(false);
+    if (mountedRef.current) setSimulating(false);
   };
 
   useEffect(() => {
     if (tab === 'failure') {
       setFailureLoading(true);
       api.getFailurePrediction({ businessHealth, blueprint })
-        .then(data => setFailureData(data))
-        .catch(e => setFailureData({ error: e.message }))
-        .finally(() => setFailureLoading(false));
+        .then(data => { if (mountedRef.current) setFailureData(data); })
+        .catch(e => { if (mountedRef.current) setFailureData({ error: e.message }); })
+        .finally(() => { if (mountedRef.current) setFailureLoading(false); });
     }
   }, [tab, businessHealth, blueprint]);
 
@@ -63,11 +67,11 @@ export default function DecisionSimulator() {
     setSimulating(true);
     try {
       const data = await api.simulateCustomer(question, selectedPersona);
-      setCustomerResult(data);
+      if (mountedRef.current) setCustomerResult(data);
     } catch (e) {
-      setCustomerResult({ error: e.message });
+      if (mountedRef.current) setCustomerResult({ error: e.message });
     }
-    setSimulating(false);
+    if (mountedRef.current) setSimulating(false);
   };
 
   return (
@@ -123,7 +127,7 @@ export default function DecisionSimulator() {
 
       {result && !result.isCompanySim && tab === 'decision' && (
         <div className="page-enter">
-          {result.scenarios.map((s) => (
+          {(result.scenarios || []).map((s) => (
             <div key={`sc-${s.label}`} style={{...styles.scenarioCard, borderLeftColor:getScoreColor(s.success)}}>
               <div style={styles.scenarioHeader}>
                 <span style={{fontWeight:600}}>{s.label}</span>
@@ -148,7 +152,7 @@ export default function DecisionSimulator() {
       {result && result.isCompanySim && tab === 'company' && (
         <div className="page-enter">
           <div style={styles.companyResult}>
-            <h3 style={{fontWeight:600,marginBottom:'1rem'}}>Simulation Results — {result.virtualCustomers} Virtual Customers</h3>
+            <h3 style={{fontWeight:600,marginBottom:'1rem'}}>Simulation Results — {result.virtualCustomers ?? 'N/A'} Virtual Customers</h3>
             <div style={styles.metricGrid}>
               {[{l:'Conversion',v:result.conversion},{l:'Projected Revenue',v:result.projectedRevenue},{l:'Retention',v:result.retention}].map(m => (
                 <div key={`met-${m.l}`} style={styles.metricCard}>
@@ -158,7 +162,7 @@ export default function DecisionSimulator() {
               ))}
             </div>
             <h4 style={{fontWeight:600,fontSize:'0.875rem',marginTop:'1rem',marginBottom:'0.5rem'}}>Likely Complaints</h4>
-            {result.complaints.map((c) => <div key={`cmp-${c.slice(0,20)}`} style={{fontSize:'0.8125rem',color:'var(--color-warning-light)',marginBottom:'0.25rem'}}>⚠ {c}</div>)}
+            {(result.complaints || []).map((c) => <div key={`cmp-${c.slice(0,20)}`} style={{fontSize:'0.8125rem',color:'var(--color-warning-light)',marginBottom:'0.25rem'}}>⚠ {c}</div>)}
             <div style={{...styles.recommendCard,marginTop:'1rem'}}>
               <Sparkles size={16} style={{color:'var(--color-accent-light)'}} />
               <span>{result.recommendation}</span>

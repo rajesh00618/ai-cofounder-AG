@@ -1,7 +1,7 @@
 import { getDb } from '../db/database.js';
 import { v4 as uuidv4 } from 'uuid';
 
-const VALID_NODE_TYPES = new Set(['idea', 'task', 'customer', 'document', 'milestone', 'revenue', 'goal', 'project']);
+const VALID_NODE_TYPES = new Set(['idea', 'task', 'customer', 'document', 'milestone', 'revenue', 'goal', 'project', 'research', 'briefing', 'trend', 'competitor', 'market', 'opportunity']);
 const VALID_RELATIONSHIPS = new Set(['related_to', 'depends_on', 'part_of', 'influences', 'blocks', 'enables', 'contradicts']);
 
 export const addMemoryNode = async (userId, founderId, type, label, metadata = {}) => {
@@ -80,7 +80,8 @@ export const addMemoryEdge = async (userId, sourceNodeId, targetNodeId, relation
   return id;
 };
 
-const detectCycle = async (supabase, userId, fromNodeId, toNodeId, visited = new Set()) => {
+const detectCycle = async (supabase, userId, fromNodeId, toNodeId, visited = new Set(), depth = 0) => {
+  if (depth > 50) return false;
   if (fromNodeId === toNodeId) return true;
   if (visited.has(fromNodeId)) return false;
   visited.add(fromNodeId);
@@ -92,7 +93,7 @@ const detectCycle = async (supabase, userId, fromNodeId, toNodeId, visited = new
     .eq('source_node_id', fromNodeId);
 
   for (const edge of (edges || [])) {
-    if (await detectCycle(supabase, userId, edge.target_node_id, toNodeId, visited)) {
+    if (await detectCycle(supabase, userId, edge.target_node_id, toNodeId, visited, depth + 1)) {
       return true;
     }
   }

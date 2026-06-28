@@ -57,8 +57,9 @@ describe('authStore', () => {
     const parsed = JSON.parse(persisted);
     expect(parsed.state.user).toBeNull();
     expect(parsed.state.token).toBeNull();
-    // Other stores are fully cleared
-    expect(localStorage.getItem('ai-cofounder-chat-storage')).toBeNull();
+    // Other stores are fully cleared in-memory; persist may rewrite empty state
+    const chatPersisted = JSON.parse(localStorage.getItem('ai-cofounder-chat-storage'));
+    expect(chatPersisted.state.messages).toEqual([]);
   });
 
   it('persists initial state to zustand storage', () => {

@@ -21,5 +21,5 @@ Return JSON only:
 
   const response = await callOpenAI(apiKey, prompt, '', 0.2);
   const parsed = extractJSON(response);
-  return { score: Math.min(Math.max(parsed.score || 50, 10), 98), ...parsed };
+  return { score: Math.min(Math.max(parsed.score ?? 50, 10), 98), ...parsed };
 };

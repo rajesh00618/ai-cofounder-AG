@@ -27,9 +27,10 @@ const ScoreCard = React.memo(function ScoreCard({ label, value, icon: Icon, colo
 });
 
 export default function CommandCenter({ onNavigate }) {
-  const { profile, dnaScores } = useFounderStore(
-    useShallow(s => ({ profile: s.profile, dnaScores: s.dnaScores || {} }))
+  const { profile, dnaScores: rawDnaScores } = useFounderStore(
+    useShallow(s => ({ profile: s.profile, dnaScores: s.dnaScores }))
   );
+  const dnaScores = rawDnaScores || {};
   const { businessHealth, startupScore, currentStage, blueprint } = useBusinessStore(
     useShallow(s => ({ businessHealth: s.businessHealth, startupScore: s.startupScore, currentStage: s.currentStage, blueprint: s.blueprint }))
   );
@@ -48,16 +49,18 @@ export default function CommandCenter({ onNavigate }) {
   const overallHealth = calculateOverallScore(businessHealth);
 
   const ctxRef = useRef('');
+  const reqIdRef = useRef(0);
   useEffect(() => {
     const ctxKey = JSON.stringify({ businessHealth, startupScore, profile, blueprint, currentStage, dnaScores, tasks: tasks?.length });
     if (ctxRef.current === ctxKey) return;
     ctxRef.current = ctxKey;
+    const reqId = ++reqIdRef.current;
     setLoading(true);
     const ctx = { businessHealth, startupScore, profile, blueprint, currentStage, dnaScores, tasks };
     Promise.all([
-      api.getMission(ctx).then(r => { setMission(r.mission); setEstimatedTime(r.estimatedTime || ''); }).catch(() => setApiError('Failed to load mission data')),
-      api.getHealth(ctx).then(r => setRecommendation(r.recommendation)).catch(() => setApiError('Failed to load health data'))
-    ]).finally(() => setLoading(false));
+      api.getMission(ctx).then(r => { if (reqIdRef.current === reqId) { setMission(r.mission); setEstimatedTime(r.estimatedTime || ''); } }).catch(() => { if (reqIdRef.current === reqId) setApiError('Failed to load mission data'); }),
+      api.getHealth(ctx).then(r => { if (reqIdRef.current === reqId) setRecommendation(r.recommendation); }).catch(() => { if (reqIdRef.current === reqId) setApiError('Failed to load health data'); })
+    ]).finally(() => { if (reqIdRef.current === reqId) setLoading(false); });
   }, [businessHealth, startupScore, profile, blueprint, tasks, currentStage, dnaScores]);
 
   return (

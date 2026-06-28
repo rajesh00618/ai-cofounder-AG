@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Settings, Key, Save, CheckCircle2, Server, AlertTriangle, Loader2, Smartphone, Lock, Mail, Send } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import { useAuthStore } from '../../store/authStore';
@@ -12,7 +12,7 @@ export default function SettingsPanel() {
   const [serverStatus, setServerStatus] = useState(null);
   const [serverKeyStatus, setServerKeyStatus] = useState(null);
 
-  const [phone, setPhone] = useState(localStorage.getItem('ai-cofounder-whatsapp') || '');
+  const [phone, setPhone] = useState(() => { try { return localStorage.getItem('ai-cofounder-whatsapp') || ''; } catch { return ''; } });
   const [phoneSaved, setPhoneSaved] = useState(false);
 
   const [resetEmail, setResetEmail] = useState('');
@@ -25,16 +25,18 @@ export default function SettingsPanel() {
   const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
-    fetch(`${API_BASE}/health`)
+    const controller = new AbortController();
+    fetch(`${API_BASE}/health`, { signal: controller.signal })
       .then(r => r.json())
-      .then(data => setServerStatus(data.apiKeyConfigured ? 'configured' : 'no-key'))
-      .catch(() => setServerStatus('offline'));
+      .then(data => { if (!controller.signal.aborted) setServerStatus(data.apiKeyConfigured ? 'configured' : 'no-key'); })
+      .catch(() => { if (!controller.signal.aborted) setServerStatus('offline'); });
 
     if (user) {
       api.getApiKeyStatus()
-        .then(data => setServerKeyStatus(data.hasApiKey))
-        .catch(() => setServerKeyStatus(false));
+        .then(data => { if (!controller.signal.aborted) setServerKeyStatus(data.hasApiKey); })
+        .catch(() => { if (!controller.signal.aborted) setServerKeyStatus(false); });
     }
+    return () => controller.abort();
   }, [user]);
 
   const handleSaveKey = async () => {
@@ -82,7 +84,8 @@ export default function SettingsPanel() {
     }
     setPasswordError('');
     try {
-      const token = localStorage.getItem('ai-cofounder-reset-token');
+      let token = null;
+      try { token = localStorage.getItem('ai-cofounder-reset-token'); } catch {}
       if (user?.email && token) {
         await api.resetPassword(token, user.email, newPassword);
         setPasswordChanged(true);

@@ -4,7 +4,7 @@ import { generateId } from '../utils/helpers';
 
 export const useBusinessStore = create(
   persist(
-    (set, _get) => ({
+    (set) => ({
   blueprint: null,
   businessHealth: {
     idea: 0, validation: 0, product: 0, marketing: 0, sales: 0, finance: 0
@@ -19,7 +19,7 @@ export const useBusinessStore = create(
 
   setBlueprint: (bp) => set({ blueprint: bp, businessError: null }),
   updateBlueprint: (field, value) => set(s => ({
-    blueprint: { ...s.blueprint, [field]: value }
+    blueprint: { ...(s.blueprint || {}), [field]: value }
   })),
   setBusinessHealth: (health) => set({ businessHealth: health }),
   updateHealthScore: (cat, val) => set(s => ({

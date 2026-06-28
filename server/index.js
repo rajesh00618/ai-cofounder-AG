@@ -8,8 +8,8 @@ import { getDb } from './db/database.js';
 import apiRoutes from './routes/api.js';
 import authRoutes from './routes/auth.js';
 import { logger, requestLogger } from './services/logger.js';
-import { startReminderScheduler, registerWhatsAppPhone } from './services/reminders.js';
-import { startBackgroundResearch } from './services/backgroundResearch.js';
+import { startReminderScheduler, stopReminderScheduler, registerWhatsAppPhone } from './services/reminders.js';
+import { startBackgroundResearch, stopBackgroundResearch } from './services/backgroundResearch.js';
 import { globalErrorHandler } from './services/errors.js';
 import { requireJwt } from './routes/auth.js';
 import { createServer } from 'http';
@@ -187,6 +187,8 @@ initDb().then(startServer).catch(err => {
 // Graceful shutdown
 const gracefulShutdown = (signal) => {
   logger.info(`[Server] Received ${signal}, shutting down gracefully...`);
+  stopBackgroundResearch();
+  stopReminderScheduler();
   server.close(() => {
     logger.info('[Server] HTTP server closed');
     process.exit(0);
@@ -197,5 +199,5 @@ const gracefulShutdown = (signal) => {
   }, 10000).unref();
 };
 
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.once('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.once('SIGINT', () => gracefulShutdown('SIGINT'));

@@ -40,7 +40,7 @@ const requireApiKey = (req, res, next) => {
   next();
 };
 
-const pick = (body, ...keys) => { for (const k of keys) { if (body[k] !== undefined && body[k] !== null && body[k] !== '') return body[k]; } return undefined; };
+const pick = (body, ...keys) => { for (const k of keys) { if (body[k] !== undefined && body[k] !== null) return body[k]; } return undefined; };
 
 const PROTOTYPE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
@@ -88,13 +88,13 @@ router.post('/chat', requireApiKey, requireBody('message'), async (req, res) => 
 
 router.post('/chat/stream', requireApiKey, requireBody('message'), async (req, res) => {
   const abortController = new AbortController();
-
-  req.on('close', () => {
+  const onClose = () => {
     abortController.abort();
     if (!res.writableEnded) {
       res.end();
     }
-  });
+  };
+  req.on('close', onClose);
 
   try {
     const { message, context } = req.body;
@@ -110,12 +110,13 @@ router.post('/chat/stream', requireApiKey, requireBody('message'), async (req, r
       const safeToken = sanitizeOutput(token);
       const safeFull = sanitizeOutput(fullText);
       res.write(`data: ${JSON.stringify({ token: safeToken, fullText: safeFull })}\n\n`);
-    }, 0.7);
+    }, 0.7, 4096, abortController.signal);
 
     if (!res.writableEnded) {
       res.write(`data: ${JSON.stringify({ done: true, fullText: full })}\n\n`);
       res.end();
     }
+    req.removeListener('close', onClose);
   } catch (error) {
     if (abortController.signal.aborted) return;
     logger.error(`[Chat Stream] ${error.message}`);
@@ -123,6 +124,7 @@ router.post('/chat/stream', requireApiKey, requireBody('message'), async (req, r
       res.write(`data: ${JSON.stringify({ error: 'Stream processing failed' })}\n\n`);
       res.end();
     }
+    req.removeListener('close', onClose);
   }
 });
 
@@ -241,7 +243,10 @@ router.post('/research', requireApiKey, async (req, res) => {
     const context = { blueprint: req.body.blueprint, businessHealth: req.body.businessHealth, startupScore: req.body.startupScore, profile: req.body.profile, currentStage: req.body.stage || req.body.currentStage };
     const filter = pick(req.body, 'filter') || 'all';
     const items = await getResearch(req.apiKey, context);
-    res.json(Array.isArray(items) ? items.filter(i => filter === 'all' || i.category === filter || i.type === filter) : items);
+    if (!Array.isArray(items)) {
+      return res.status(502).json({ error: 'Research returned unexpected format' });
+    }
+    res.json(items.filter(i => filter === 'all' || i.category === filter || i.type === filter));
   } catch (error) {
     sendError(res, error);
   }
@@ -495,7 +500,7 @@ router.post('/business/blueprint', requireJwt, requireApiKey, requireBody('answe
   }
 });
 
-router.get('/business/blueprint', requireJwt, async (req, res) => {
+router.get('/business/blueprint', requireJwt, requireApiKey, async (req, res) => {
   const cached = getCachedBlueprint(req.userId);
   if (cached) return res.json(cached);
   res.status(404).json({ error: 'No blueprint found for this user' });

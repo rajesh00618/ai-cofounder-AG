@@ -16,7 +16,7 @@ const isProd = process.env.NODE_ENV === 'production';
  * @param {string} [fallback] - Optional default message
  * @returns {{ status: number, message: string }}
  */
-const ENV_VAR_PATTERN = /(?:NVIDIA_API_KEY|JWT_SECRET|SUPABASE_SERVICE_KEY|TWILIO_AUTH_TOKEN|TWILIO_ACCOUNT_SID)[^'"\s]*/gi;
+const ENV_VAR_PATTERN = /(?:NVIDIA_API_KEY|JWT_SECRET|SUPABASE_[A-Z_]+|TWILIO_[A-Z_]+|sk-[a-zA-Z0-9]{10,}|nvapi-[a-zA-Z0-9]{10,}|x-api-key)[^'"\s]*/gi;
 
 const stripSensitiveData = (text) => {
   return text.replace(ENV_VAR_PATTERN, '[REDACTED]');

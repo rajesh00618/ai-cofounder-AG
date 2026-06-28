@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { Lock, CheckCircle2, AlertTriangle, Loader2, ArrowLeft } from 'lucide-react';
 import { api } from '../utils/api';
@@ -7,13 +7,24 @@ export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token');
-  const email = decodeURIComponent(searchParams.get('email') || '');
+  let email = '';
+  try {
+    email = decodeURIComponent(searchParams.get('email') || '');
+  } catch {
+    email = searchParams.get('email') || '';
+  }
 
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (!success) return;
+    const id = setTimeout(() => navigate('/auth'), 3000);
+    return () => clearTimeout(id);
+  }, [success, navigate]);
 
   const handleReset = async () => {
     if (!password || password.length < 6) {
@@ -29,7 +40,6 @@ export default function ResetPasswordPage() {
     try {
       await api.resetPassword(token, email, password);
       setSuccess(true);
-      setTimeout(() => navigate('/auth'), 3000);
     } catch (err) {
       setError(err.message);
     }

@@ -344,7 +344,7 @@ export default function GoalPage() {
             <ScoreRadar scores={reality.scores} />
             <div style={styles.riskSection}>
               <h4 style={styles.riskTitle}><AlertTriangle size={16} style={{color:'var(--color-warning)'}} /> Main Risks</h4>
-              {reality.risks.map((r) => (
+              {(reality.risks || []).map((r) => (
                 <div key={`rr-${r.slice(0,20)}`} style={styles.riskItem}>• {r}</div>
               ))}
             </div>
@@ -368,7 +368,7 @@ export default function GoalPage() {
             </div>
             <p style={styles.negText}>Your current goal has a low success probability. I'm not going to sugarcoat it — here are better alternatives:</p>
             <div style={styles.altGrid}>
-              <button type="button" style={{...styles.altCard, ...(selectedAlt === 'current' ? styles.altSelected : {}), borderColor:'rgba(239,68,68,0.3)'}} onClick={() => handleSelectAlternative('current')} aria-pressed={selectedAlt === 'current'}>
+                <button type="button" style={{...styles.altCard, ...(selectedAlt === negotiation.current ? styles.altSelected : {}), borderColor:'rgba(239,68,68,0.3)'}} onClick={() => handleSelectAlternative(negotiation.current)} aria-pressed={selectedAlt === negotiation.current}>
                 <div style={styles.altHeader}>
                   <span style={styles.altLabel}>Current Goal</span>
                   <span className="badge badge-danger">HIGH RISK</span>
@@ -376,8 +376,8 @@ export default function GoalPage() {
                 <div style={styles.altGoal}>{negotiation.current.label}</div>
                 <div style={styles.altProb}>Success: {negotiation.current.probability}</div>
               </button>
-              {negotiation.alternatives.map((alt, i) => (
-                <button type="button" key={`alt-${alt.label?.slice(0,15) || i}`} style={{...styles.altCard, ...(selectedAlt === `alt${i}` ? styles.altSelected : {})}} onClick={() => handleSelectAlternative(`alt${i}`)} aria-pressed={selectedAlt === `alt${i}`}>
+              {(negotiation.alternatives || []).map((alt, i) => (
+                <button type="button" key={`alt-${alt.label?.slice(0,15) || i}`} style={{...styles.altCard, ...(selectedAlt === alt ? styles.altSelected : {})}} onClick={() => handleSelectAlternative(alt)} aria-pressed={selectedAlt === alt}>
                   <div style={styles.altHeader}>
                     <span style={styles.altLabel}>Alternative {String.fromCharCode(65 + i)}</span>
                     <span className={`badge ${alt.risk === 'Low' ? 'badge-success' : 'badge-warning'}`}>{alt.risk} RISK</span>

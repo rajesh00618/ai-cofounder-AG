@@ -4,7 +4,7 @@ import { generateId } from '../utils/helpers';
 
 export const useChatStore = create(
   persist(
-    (set, _get) => ({
+    (set) => ({
   messages: [],
   isThinking: false,
   thinkingStep: '',
@@ -26,7 +26,6 @@ export const useChatStore = create(
     const MAX_MESSAGES = 500;
     return {
       messages: newMessages.length > MAX_MESSAGES ? newMessages.slice(-MAX_MESSAGES) : newMessages,
-      chatError: null,
     };
   }),
 
@@ -35,6 +34,7 @@ export const useChatStore = create(
   })),
 
   setChatError: (error) => set({ chatError: error }),
+  dismissChatError: () => set({ chatError: null }),
 
   setThinking: (val) => set({ isThinking: val }),
   setThinkingStep: (step) => set({ thinkingStep: step }),

@@ -30,7 +30,7 @@ export default function BusinessPlanningPage() {
   const [phase, setPhase] = useState('questions');
   const [answers, setAnswers] = useState({});
   const [currentQ, setCurrentQ] = useState(0);
-  const [_generating, setGenerating] = useState(false);
+  const [, setGenerating] = useState(false);
   const [genStep, setGenStep] = useState(0);
   const [blueprint, setBp] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -70,7 +70,7 @@ export default function BusinessPlanningPage() {
     a.href = url;
     a.download = `blueprint-${blueprint.id || 'export'}.txt`;
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 500);
   };
 
   const handleAnswer = (id, val) => {
@@ -100,11 +100,12 @@ export default function BusinessPlanningPage() {
       setBp(bp);
       setBlueprint(bp);
 
-      const [scores, { tasks }] = await Promise.all([
+      const results = await Promise.allSettled([
         api.generateBlueprintScores(answers, bp, profile),
         api.generateBlueprintTasks(answers, bp)
       ]);
-
+      const scores = results[0].status === 'fulfilled' ? results[0].value : null;
+      const tasks = results[1].status === 'fulfilled' ? results[1].value?.tasks : [];
       if (scores?.businessHealth && scores?.startupScore) {
         setBusinessHealth(scores.businessHealth);
         setStartupScore(scores.startupScore);
@@ -115,6 +116,9 @@ export default function BusinessPlanningPage() {
       }
     } catch (e) {
       setBpError('AI Generation failed: ' + e.message);
+      setGenerating(false);
+      setPhase('questions');
+      return;
     }
     setGenerating(false);
     setPhase('blueprint');
@@ -228,7 +232,7 @@ export default function BusinessPlanningPage() {
                     onChange={e => setBp(prev => ({ ...prev, successMetrics: e.target.value.split('\n').filter(Boolean) }))}
                   />
                 ) : (
-                  blueprint.successMetrics.map((m) => (
+                  (blueprint.successMetrics || []).map((m) => (
                     <div key={`bpm-${m.slice(0,20)}`} style={styles.metric}>✓ {m}</div>
                   ))
                 )}

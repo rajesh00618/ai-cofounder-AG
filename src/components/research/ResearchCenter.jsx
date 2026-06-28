@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useFounderStore } from '../../store/founderStore';
 import { useBusinessStore } from '../../store/businessStore';
 import { Search, Globe, Sparkles, Lightbulb, Loader2 } from 'lucide-react';
@@ -14,8 +14,10 @@ export default function ResearchCenter() {
   const [briefing, setBriefing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
     const loadData = async () => {
       const ctx = { blueprint, profile, stage: currentStage, businessHealth };
       try {
@@ -24,17 +26,19 @@ export default function ResearchCenter() {
           api.getOpportunities(ctx),
           api.getMorningBriefing(ctx),
         ]);
+        if (!mountedRef.current) return;
         if (research.status === 'fulfilled') setResearchData(research.value);
         if (opps.status === 'fulfilled') setOpportunities(opps.value);
         if (brief.status === 'fulfilled') setBriefing(brief.value);
         const errs = [research, opps, brief].filter(r => r.status === 'rejected').map(r => r.reason.message).join('; ');
         if (errs) setError(errs);
       } catch (e) {
-        setError(e.message);
+        if (mountedRef.current) setError(e.message);
       }
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     };
     loadData();
+    return () => { mountedRef.current = false; };
   }, [profile, blueprint, businessHealth, currentStage]);
 
   const typeColor = { competitor: 'var(--color-warning)', market: 'var(--color-info)', opportunity: 'var(--color-success)', trend: 'var(--color-accent)' };

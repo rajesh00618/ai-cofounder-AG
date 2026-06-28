@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Zap, CheckCircle2, Loader2, Clock, AlertTriangle } from 'lucide-react';
 import { delay } from '../../utils/helpers';
 import { api } from '../../utils/api';
@@ -18,6 +18,9 @@ export default function ExecutionMode() {
   const [stepOutputs, setStepOutputs] = useState([]);
   const [completed, setCompleted] = useState(false);
   const [error, setError] = useState(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => { return () => { mountedRef.current = false; }; }, []);
 
   const handleExecute = async () => {
     if (!task.trim()) return;
@@ -29,23 +32,27 @@ export default function ExecutionMode() {
 
     try {
       const executionPlan = await api.getExecutionPlan(task);
+      if (!mountedRef.current) return;
       if (!executionPlan?.plan?.steps || !Array.isArray(executionPlan.plan.steps)) {
         throw new Error('AI returned an incomplete execution plan. Try a more specific task.');
       }
       setPlan(executionPlan);
 
       for (let i = 0; i < executionPlan.plan.steps.length; i++) {
+        if (!mountedRef.current) return;
         setCurrentStep(i);
         await delay(800 + Math.random() * 600);
+        if (!mountedRef.current) return;
         const result = await api.executeStep(i + 1, task);
+        if (!mountedRef.current) return;
         setStepOutputs(prev => [...prev, { step: i + 1, output: result?.output || 'Step completed (no detailed output)' }]);
       }
 
-      setCompleted(true);
+      if (mountedRef.current) setCompleted(true);
     } catch (err) {
-      setError(err.message);
+      if (mountedRef.current) setError(err.message);
     }
-    setActive(false);
+    if (mountedRef.current) setActive(false);
   };
 
     return (

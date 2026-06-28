@@ -6,9 +6,10 @@ import { useBusinessStore } from '../../store/businessStore';
 import { useShallow } from 'zustand/react/shallow';
 
 export default function InvestorMode() {
-  const { profile, dnaScores } = useFounderStore(
-    useShallow(s => ({ profile: s.profile, dnaScores: s.dnaScores || {} }))
+  const { profile, dnaScores: rawDnaScores } = useFounderStore(
+    useShallow(s => ({ profile: s.profile, dnaScores: s.dnaScores }))
   );
+  const dnaScores = rawDnaScores || {};
   const { blueprint, businessHealth, startupScore } = useBusinessStore(
     useShallow(s => ({ blueprint: s.blueprint, businessHealth: s.businessHealth, startupScore: s.startupScore }))
   );

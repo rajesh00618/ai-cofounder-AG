@@ -5,7 +5,7 @@ const getApiKey = () => {
     const stored = JSON.parse(localStorage.getItem('ai-cofounder-app-storage'));
     if (stored && stored.state && stored.state.apiKey) return stored.state.apiKey;
   } catch {}
-  return '';
+  return null;
 };
 
 const getToken = () => {
@@ -26,15 +26,20 @@ const getHeaders = () => {
 };
 
 const API_TIMEOUT = 60000;
+const STREAM_TIMEOUT = 60000;
 
 const apiPost = async (path, body) => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
   try {
+    let serializedBody;
+    try { serializedBody = JSON.stringify(body); } catch {
+      throw new Error('Failed to serialize request data');
+    }
     const res = await fetch(`${API_BASE}${path}`, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify(body),
+      body: serializedBody,
       signal: controller.signal,
     });
     if (!res.ok) {
@@ -48,6 +53,11 @@ const apiPost = async (path, body) => {
       throw new Error(friendly);
     }
     return res.json();
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('Request timed out. Please check your connection and try again.');
+    }
+    throw err;
   } finally {
     clearTimeout(timeoutId);
   }
@@ -67,11 +77,16 @@ const apiGet = async (path) => {
       const friendly = res.status === 401 && serverMsg.includes('API key') ? 'AI service is not configured. Add an API key in Settings.'
         : res.status === 401 ? (serverMsg || 'Session expired. Please sign in again.')
         : res.status === 429 ? 'Too many requests. Please wait a moment.'
-        : res.status >= 500 ? 'Our AI service is temporarily unavailable.'
+        : res.status >= 500 ? 'Our AI service is temporarily unavailable. Please try again.'
         : serverMsg || 'Something went wrong';
       throw new Error(friendly);
     }
     return res.json();
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('Request timed out. Please check your connection and try again.');
+    }
+    throw err;
   } finally {
     clearTimeout(timeoutId);
   }
@@ -88,6 +103,7 @@ export const api = {
   // Streaming Chat
   chatStream: (message, context, onToken, onDone, onError) => {
     const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), STREAM_TIMEOUT);
     const headers = getHeaders();
 
     fetch(`${API_BASE}/chat/stream`, {
@@ -105,11 +121,12 @@ export const api = {
       const decoder = new TextDecoder();
       let buffer = '';
       let streamDone = false;
+      let accumulatedText = '';
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) {
-          if (onDone && !streamDone) onDone(buffer || '');
+          if (onDone && !streamDone) onDone(accumulatedText || buffer || '');
           break;
         }
         buffer += decoder.decode(value, { stream: true });
@@ -119,18 +136,34 @@ export const api = {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
-              if (data.error) { onError?.(data.error); return; }
-              if (data.done) { streamDone = true; onDone?.(data.fullText); return; }
+              if (data.error) {
+                await reader.cancel();
+                onError?.(data.error);
+                return;
+              }
+              if (data.done) {
+                streamDone = true;
+                await reader.cancel();
+                onDone?.(data.fullText);
+                return;
+              }
+              accumulatedText = data.fullText || accumulatedText + data.token;
               onToken?.(data.token, data.fullText);
-            } catch {}
+            } catch (e) {
+              console.warn('chatStream: failed to parse SSE data line', line.slice(6), e);
+            }
           }
         }
       }
     }).catch(err => {
+      clearTimeout(timeoutId);
       if (err.name !== 'AbortError') onError?.(err.message);
     });
 
-    return () => controller.abort();
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
   },
 
   // Existing endpoints
@@ -146,9 +179,9 @@ export const api = {
   getResearch: (context = {}, filter = 'all') => apiPost('/research', { ...context, filter }),
   getOpportunities: (context = {}) => apiPost('/research/opportunities', { ...context }),
   getMorningBriefing: (context = {}) => apiPost('/research/briefing', { ...context }),
-  getMemoryNodes: (founderId, limit = 100, offset = 0) => apiGet(`/memory/nodes/${founderId}?limit=${limit}&offset=${offset}`),
-  getMemoryTimeline: (founderId, limit = 200, offset = 0) => apiGet(`/memory/timeline/${founderId}?limit=${limit}&offset=${offset}`),
-  getMemoryGraph: (founderId, limit = 100, offset = 0) => apiGet(`/memory/graph/${founderId}?limit=${limit}&offset=${offset}`),
+  getMemoryNodes: (founderId, limit = 100, offset = 0) => apiGet(`/memory/nodes/${encodeURIComponent(founderId)}?limit=${encodeURIComponent(limit)}&offset=${encodeURIComponent(offset)}`),
+  getMemoryTimeline: (founderId, limit = 200, offset = 0) => apiGet(`/memory/timeline/${encodeURIComponent(founderId)}?limit=${encodeURIComponent(limit)}&offset=${encodeURIComponent(offset)}`),
+  getMemoryGraph: (founderId, limit = 100, offset = 0) => apiGet(`/memory/graph/${encodeURIComponent(founderId)}?limit=${encodeURIComponent(limit)}&offset=${encodeURIComponent(offset)}`),
   addMemoryNode: (founderId, type, label, metadata) => apiPost('/memory/nodes', { founderId, type, label, metadata }),
   addMemoryEdge: (sourceNodeId, targetNodeId, relationship) => apiPost('/memory/edges', { sourceNodeId, targetNodeId, relationship }),
   getExecutionPlan: (task) => apiPost('/execution/plan', { task }),

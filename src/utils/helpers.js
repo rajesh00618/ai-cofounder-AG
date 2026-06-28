@@ -2,16 +2,25 @@ import { v4 as uuidv4 } from 'uuid';
 
 export const generateId = () => uuidv4();
 
-export const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+export const delay = (ms) => {
+  if (typeof ms !== 'number' || ms < 0) return Promise.reject(new Error('delay: ms must be a non-negative number'));
+  return new Promise(resolve => setTimeout(resolve, ms));
+};
 
 export const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('en-US', {
+  if (date == null) return '';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', {
     month: 'short', day: 'numeric', year: 'numeric'
   });
 };
 
 export const formatTime = (date) => {
-  return new Date(date).toLocaleTimeString('en-US', {
+  if (date == null) return '';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString('en-US', {
     hour: '2-digit', minute: '2-digit'
   });
 };
@@ -31,16 +40,24 @@ export const getScoreLabel = (score) => {
   return 'Critical';
 };
 
-export const clamp = (val, min, max) => Math.min(Math.max(val, min), max);
+export const clamp = (val, min, max) => {
+  if (min > max) [min, max] = [max, min];
+  return Math.min(Math.max(val, min), max);
+};
 
-export const randomBetween = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+export const randomBetween = (min, max) => {
+  if (min > max) [min, max] = [max, min];
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+};
 
 export const truncateText = (text, maxLength = 100) => {
+  if (text == null) return '';
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength) + '...';
 };
 
 export const calculateOverallScore = (scores) => {
+  if (scores == null || typeof scores !== 'object') return 0;
   const values = Object.values(scores).filter(v => typeof v === 'number');
   if (values.length === 0) return 0;
   return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
