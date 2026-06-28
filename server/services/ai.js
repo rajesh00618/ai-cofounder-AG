@@ -132,7 +132,7 @@ export const callOpenAI = async (apiKey, systemPrompt, userPrompt, temperature =
         max_tokens: maxTokens,
       });
       resetModelFailures(config.model);
-      return completion.choices[0].message.content;
+      return completion.choices?.[0]?.message?.content ?? '';
     } catch (err) {
       lastError = err;
       recordModelFailure(config.model);
@@ -209,7 +209,10 @@ export const extractJSON = (text) => {
   }
 };
 
-export const sanitizeForPrompt = sanitizeUserInput;
+export const sanitizeForPrompt = (input) => {
+  if (input === undefined || input === null) return '';
+  return sanitizeUserInput(input);
+};
 
 /**
  * Sanitize AI output before sending to client.

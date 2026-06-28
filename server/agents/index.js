@@ -4,3 +4,7 @@ export { getCMOAdvice } from './cmo.js';
 export { getSalesAdvice } from './sales.js';
 export { getFinanceAdvice } from './finance.js';
 export { getResearchAdvice } from './research.js';
+export { getLegalAdvice } from './legal.js';
+export { getDesignerAdvice } from './designer.js';
+export { getDeveloperAdvice } from './developer.js';
+export { getPlannerAdvice } from './planner.js';

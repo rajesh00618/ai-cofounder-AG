@@ -81,7 +81,8 @@ describe('sanitizeForPrompt', () => {
   it('handles non-string input', () => {
     expect(sanitizeForPrompt({ key: 'value' })).toContain('key');
     expect(sanitizeForPrompt(42)).toBe('42');
-    expect(sanitizeForPrompt(null)).toBe('null');
+    expect(sanitizeForPrompt(null)).toBe('');
+    expect(sanitizeForPrompt(undefined)).toBe('');
   });
 });
 

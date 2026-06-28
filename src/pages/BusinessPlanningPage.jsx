@@ -114,7 +114,6 @@ export default function BusinessPlanningPage() {
       }
     } catch (e) {
       setBpError('AI Generation failed: ' + e.message);
-      console.error(e);
     }
     setGenerating(false);
     setPhase('blueprint');

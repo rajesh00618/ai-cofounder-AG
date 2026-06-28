@@ -1,3 +1,5 @@
+import { logger } from './logger.js';
+
 const TIMEOUT = 8000;
 const MAX_RESULTS = 6;
 
@@ -53,11 +55,11 @@ export const searchWeb = async (query) => {
     try {
       const results = await provider.search(query);
       if (results.length > 0) {
-        console.log(`[Search] ${provider.name} returned ${results.length} results for "${query.slice(0, 50)}"`);
+        logger.info(`[Search] ${provider.name} returned ${results.length} results for "${query.slice(0, 50)}"`);
         return results;
       }
     } catch (err) {
-      console.warn(`[Search] ${provider.name} failed: ${err.message}`);
+      logger.warn(`[Search] ${provider.name} failed: ${err.message}`);
     }
   }
   return [];

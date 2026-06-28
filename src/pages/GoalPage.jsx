@@ -182,7 +182,6 @@ export default function GoalPage() {
           setPhase(PHASES.REALITY);
         }
       } catch (error) {
-        console.error(error);
         setPageError('API Error: ' + error.message + ' — your answers are saved. Try again from the goal. ');
         setPhase(PHASES.CLARIFYING);
       }

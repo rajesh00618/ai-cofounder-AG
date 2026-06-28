@@ -1,6 +1,6 @@
 import express from 'express';
 
-import { callOpenAI, callOpenAIStream, PROMPTS, extractJSON, sanitizeOutput } from '../services/ai.js';
+import { callOpenAI, callOpenAIStream, PROMPTS, extractJSON, sanitizeOutput, sanitizeForPrompt } from '../services/ai.js';
 import { evaluateGoal, calculateRealityScore } from '../engines/reality.js';
 import { negotiateGoal } from '../engines/negotiation.js';
 import { runDecisionSimulation, runCompanySimulation, simulateCustomerReaction } from '../engines/simulation.js';
@@ -13,11 +13,12 @@ import { generateRoadmap, generateStageGuidance } from '../engines/roadmap.js';
 import { analyzeDNA, generateAdaptations } from '../engines/dna.js';
 import { generateMission, generateHealthAnalysis } from '../engines/mission.js';
 import { generateReviewNote, suggestTasks } from '../engines/review.js';
-import { getCEOAdvice, getCTOAdvice, getCMOAdvice, getSalesAdvice, getFinanceAdvice, getResearchAdvice } from '../agents/index.js';
+import { getCEOAdvice, getCTOAdvice, getCMOAdvice, getSalesAdvice, getFinanceAdvice, getResearchAdvice, getLegalAdvice, getDesignerAdvice, getDeveloperAdvice, getPlannerAdvice } from '../agents/index.js';
 import { evaluateAsInvestor, chatAsInvestor } from '../engines/investor.js';
 import { generateWeeklyReview } from '../engines/weekly.js';
 import { requireJwt } from './auth.js';
 import { sendError } from '../services/errors.js';
+import { logger } from '../services/logger.js';
 import { getApiKey } from '../apiKeyCache.js';
 
 const router = express.Router();
@@ -97,6 +98,7 @@ router.post('/chat/stream', requireApiKey, requireBody('message'), async (req, r
     res.write(`data: ${JSON.stringify({ done: true, fullText: full })}\n\n`);
     res.end();
   } catch (error) {
+    logger.error(`[Chat Stream] ${error.message}`);
     res.write(`data: ${JSON.stringify({ error: 'Stream processing failed' })}\n\n`);
     res.end();
   }
@@ -105,7 +107,7 @@ router.post('/chat/stream', requireApiKey, requireBody('message'), async (req, r
 router.post('/chat/agent', requireApiKey, requireBody('message', 'agent'), async (req, res) => {
   try {
     const { message, context, agent } = req.body;
-    const agents = { ceo: getCEOAdvice, cto: getCTOAdvice, cmo: getCMOAdvice, sales: getSalesAdvice, finance: getFinanceAdvice, research: getResearchAdvice };
+    const agents = { ceo: getCEOAdvice, cto: getCTOAdvice, cmo: getCMOAdvice, sales: getSalesAdvice, finance: getFinanceAdvice, research: getResearchAdvice, legal: getLegalAdvice, designer: getDesignerAdvice, developer: getDeveloperAdvice, planner: getPlannerAdvice };
     const agentFn = agents[agent] || getCEOAdvice;
     const response = sanitizeOutput(await agentFn(req.apiKey, context || {}, message));
     const confidence = response?.length > 100 ? 85 : response?.length > 50 ? 75 : 65;
@@ -181,9 +183,9 @@ router.post('/simulate/customer', requireApiKey, requireBody('product'), async (
 router.post('/board', requireApiKey, requireBody('question'), async (req, res) => {
   try {
     const { question } = req.body;
-    const response = await callOpenAI(req.apiKey, PROMPTS.BOARD_MEETING, `Debate this topic: ${question}`, 0.8);
+    const sanitizedQuestion = sanitizeContext({ q: question }).q;
+    const response = await callOpenAI(req.apiKey, PROMPTS.BOARD_MEETING, `Debate this topic: ${sanitizedQuestion}`, 0.8);
     const parsed = extractJSON(response);
-    // Validate parsed structure before returning
     if (!parsed || !parsed.responses || !Array.isArray(parsed.responses)) {
       return res.status(502).json({ error: 'AI returned malformed board meeting response' });
     }
@@ -196,9 +198,10 @@ router.post('/board', requireApiKey, requireBody('question'), async (req, res) =
 router.post('/board/chat', requireApiKey, requireBody('messages'), async (req, res) => {
   try {
     const { messages } = req.body;
-    const formatted = messages.map(m =>
-      `${m.role === 'user' ? 'Founder' : m.name || 'Board'}: ${m.content}`
-    ).join('\n\n');
+    const formatted = messages.map(m => {
+      const safeContent = typeof m.content === 'string' ? sanitizeForPrompt(m.content.slice(0, 5000)) : '';
+      return `${m.role === 'user' ? 'Founder' : m.name || 'Board'}: ${safeContent}`;
+    }).join('\n\n');
     const prompt = `Here is the board discussion so far:\n\n${formatted}\n\nBoard members, continue the debate responding to the latest points raised.`;
     const response = await callOpenAI(req.apiKey, PROMPTS.BOARD_MEETING, prompt, 0.8);
     const parsed = extractJSON(response);
@@ -366,8 +369,8 @@ router.post('/memory/nodes', requireJwt, requireBody('founderId', 'type', 'label
 
 router.get('/memory/nodes/:founderId', requireJwt, async (req, res) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit) || 100, 500);
-    const offset = parseInt(req.query.offset) || 0;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 100, 500);
+    const offset = parseInt(req.query.offset, 10) || 0;
     const nodes = await getMemoryNodes(req.userId, req.params.founderId, limit, offset);
     res.json(nodes);
   } catch (error) {
@@ -377,8 +380,8 @@ router.get('/memory/nodes/:founderId', requireJwt, async (req, res) => {
 
 router.get('/memory/timeline/:founderId', requireJwt, async (req, res) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit) || 200, 500);
-    const offset = parseInt(req.query.offset) || 0;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 200, 500);
+    const offset = parseInt(req.query.offset, 10) || 0;
     const timeline = await getMemoryTimeline(req.userId, req.params.founderId, limit, offset);
     res.json(timeline);
   } catch (error) {
@@ -398,10 +401,40 @@ router.post('/memory/edges', requireJwt, requireBody('sourceNodeId', 'targetNode
 
 router.get('/memory/graph/:founderId', requireJwt, async (req, res) => {
   try {
-    const limit = Math.min(parseInt(req.query.limit) || 100, 500);
-    const offset = parseInt(req.query.offset) || 0;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 100, 500);
+    const offset = parseInt(req.query.offset, 10) || 0;
     const graph = await getMemoryGraph(req.userId, req.params.founderId, limit, offset);
     res.json(graph);
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
+router.delete('/memory/nodes/:nodeId', requireJwt, async (req, res) => {
+  try {
+    const supabase = (await import('../db/database.js')).getDb();
+    if (!supabase) return res.status(503).json({ error: 'Database not available' });
+    const { error } = await supabase.from('memory_nodes')
+      .delete()
+      .eq('id', req.params.nodeId)
+      .eq('user_id', req.userId);
+    if (error) throw error;
+    res.json({ message: 'Memory node deleted' });
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
+router.delete('/memory/edges/:edgeId', requireJwt, async (req, res) => {
+  try {
+    const supabase = (await import('../db/database.js')).getDb();
+    if (!supabase) return res.status(503).json({ error: 'Database not available' });
+    const { error } = await supabase.from('memory_edges')
+      .delete()
+      .eq('id', req.params.edgeId)
+      .eq('user_id', req.userId);
+    if (error) throw error;
+    res.json({ message: 'Memory edge deleted' });
   } catch (error) {
     sendError(res, error);
   }
@@ -410,6 +443,14 @@ router.get('/memory/graph/:founderId', requireJwt, async (req, res) => {
 // --- BUSINESS BLUEPRINT ---
 const _blueprintCache = new Map();
 const BLUEPRINT_TTL = 3600000;
+const BLUEPRINT_MAX_ENTRIES = 500;
+
+const evictBlueprints = () => {
+  if (_blueprintCache.size <= BLUEPRINT_MAX_ENTRIES) return;
+  const entries = [..._blueprintCache.entries()].sort((a, b) => a[1].ts - b[1].ts);
+  const toRemove = entries.slice(0, _blueprintCache.size - BLUEPRINT_MAX_ENTRIES);
+  for (const [key] of toRemove) _blueprintCache.delete(key);
+};
 
 const getCachedBlueprint = (userId) => {
   const entry = _blueprintCache.get(userId);
@@ -426,6 +467,7 @@ router.post('/business/blueprint', requireJwt, requireApiKey, requireBody('answe
     const { answers, profile } = req.body;
     const result = await generateBlueprint(req.apiKey, answers, profile);
     _blueprintCache.set(req.userId, { data: result, ts: Date.now() });
+    evictBlueprints();
     res.json(result);
   } catch (error) {
     sendError(res, error);
@@ -438,7 +480,7 @@ router.get('/business/blueprint', requireJwt, async (req, res) => {
   res.status(404).json({ error: 'No blueprint found for this user' });
 });
 
-router.post('/business/blueprint/tasks', requireApiKey, requireBody('answers'), async (req, res) => {
+router.post('/business/blueprint/tasks', requireJwt, requireApiKey, requireBody('answers'), async (req, res) => {
   try {
     const { answers, blueprint } = req.body;
     const tasks = await generateBlueprintTasks(req.apiKey, answers, blueprint);
@@ -448,7 +490,7 @@ router.post('/business/blueprint/tasks', requireApiKey, requireBody('answers'), 
   }
 });
 
-router.post('/business/blueprint/scores', requireApiKey, requireBody('answers'), async (req, res) => {
+router.post('/business/blueprint/scores', requireJwt, requireApiKey, requireBody('answers'), async (req, res) => {
   try {
     const { answers, blueprint, profile } = req.body;
     const scores = await generateScores(req.apiKey, answers, blueprint, profile);

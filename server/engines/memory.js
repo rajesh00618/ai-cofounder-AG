@@ -1,7 +1,11 @@
 import { getDb } from '../db/database.js';
 import { v4 as uuidv4 } from 'uuid';
 
+const VALID_NODE_TYPES = new Set(['idea', 'task', 'customer', 'document', 'milestone', 'revenue', 'goal', 'project']);
+const VALID_RELATIONSHIPS = new Set(['related_to', 'depends_on', 'part_of', 'influences', 'blocks', 'enables', 'contradicts']);
+
 export const addMemoryNode = async (userId, founderId, type, label, metadata = {}) => {
+  if (!VALID_NODE_TYPES.has(type)) throw new Error(`Invalid node type: ${type}. Valid types: ${[...VALID_NODE_TYPES].join(', ')}`);
   const supabase = getDb();
   if (!supabase) return null;
   const id = uuidv4();
@@ -45,6 +49,8 @@ export const getMemoryTimeline = async (userId, founderId, limit = 200, offset =
 };
 
 export const addMemoryEdge = async (userId, sourceNodeId, targetNodeId, relationship) => {
+  if (sourceNodeId === targetNodeId) throw new Error('Self-loops are not allowed');
+  if (!VALID_RELATIONSHIPS.has(relationship)) throw new Error(`Invalid relationship: ${relationship}. Valid: ${[...VALID_RELATIONSHIPS].join(', ')}`);
   const supabase = getDb();
   if (!supabase) return null;
 
@@ -54,6 +60,12 @@ export const addMemoryEdge = async (userId, sourceNodeId, targetNodeId, relation
 
   const { data: targetNode } = await supabase.from('memory_nodes').select('user_id').eq('id', targetNodeId).maybeSingle();
   if (!targetNode || targetNode.user_id !== userId) throw new Error('Target node not found or access denied');
+
+  // Check for duplicate edges
+  const { data: existing } = await supabase.from('memory_edges')
+    .select('id').eq('user_id', userId).eq('source_node_id', sourceNodeId)
+    .eq('target_node_id', targetNodeId).eq('relationship', relationship).maybeSingle();
+  if (existing) throw new Error('Edge already exists');
 
   const id = uuidv4();
   const { error } = await supabase.from('memory_edges').insert({
@@ -87,16 +99,12 @@ export const getMemoryGraph = async (userId, founderId, limit = 100, offset = 0)
     .in('source_node_id', nodeIds);
   if (sourceError) throw sourceError;
 
-  const { data: targetEdges, error: targetError } = await supabase
-    .from('memory_edges')
-    .select('*')
-    .eq('user_id', userId)
-    .in('target_node_id', nodeIds);
-  if (targetError) throw targetError;
-
+  const nodeIdSet = new Set(nodeIds);
   const edgeMap = new Map();
-  for (const e of [...(sourceEdges || []), ...(targetEdges || [])]) {
-    edgeMap.set(e.id, e);
+  for (const e of (sourceEdges || [])) {
+    if (nodeIdSet.has(e.source_node_id) && nodeIdSet.has(e.target_node_id)) {
+      edgeMap.set(e.id, e);
+    }
   }
 
   return {

@@ -40,6 +40,9 @@ router.post('/register', async (req, res) => {
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Name, email, and password are required' });
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
     if (password.length < 8) {
       return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
@@ -82,7 +85,7 @@ router.post('/login', async (req, res) => {
     const supabase = getDb();
     if (!supabase) return res.status(500).json({ error: 'Database not configured' });
 
-    const { data: user, error: selectError } = await supabase.from('users').select('*').eq('email', email).maybeSingle();
+    const { data: user, error: selectError } = await supabase.from('users').select('id, name, email, password_hash').eq('email', email).maybeSingle();
     if (selectError) throw selectError;
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password' });

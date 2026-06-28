@@ -8,6 +8,19 @@ The world's first Startup Operating System. Not just an AI chatbot — an **AI C
 
 ## What's New
 
+### v2.0 — Final MNC-Grade Polish & Complete Audit
+- **🔍 15+ AI sub-agents** ran full end-to-end audits: architecture, security, frontend, backend, prompts, cloud, QA, product, UX, design system, config, test coverage
+- **🛡️ 10 security fixes**: investor/chat output sanitization, auth login query narrowed, email validation on register, nginx security headers (COOP/CORP/XSS/Referrer/Permissions), stronger SSL ciphers, server_tokens off
+- **🧹 6 files removed**: stale audit reports, orphaned ChatPanel component + test, unused assets, stale logs
+- **⚙️ 8 config fixes**: .gitignore coverage/playwright dirs, docker-compose resource limits + port mapping, .env.example cleaned, oxlint rules expanded, nginx header inheritance fixed
+- **🤖 4 new AI agents**: Legal, Designer, Developer, Planner — full 10-agent council
+- **📱 Sidebar grouped**: 17 flat items → 4 collapsible sections (Core, Strategy, AI Tools, Personal)
+- **📊 Analytics labeled**: projected metrics clearly marked with info banner
+- **🔬 Background research enabled by default**
+- **⚡ Performance**: React.memo on leaf components, CommandCenter API call debouncing
+- **🧹 Zero console.log/error/warn** in production code (backend + frontend)
+- **🧪 283 tests passing** (48 files), 0 lint errors, build 236KB gzip
+
 ### v1.9 — MNC-Grade Quality & Production Hardening
 - **🛡️ 8 AI sub-agents** audited architecture, security, frontend, backend, prompts, cloud, QA, product, and MLOps
 - **🔒 36 fixes** applied across security, bugs, accessibility, performance, and infrastructure
@@ -472,13 +485,13 @@ Continuous AI Loop (memory, research, review, replan)
 | Category | Files | Tests |
 |----------|-------|-------|
 | **Store Tests** | 6 | 51 |
-| **Component Tests** | 20 | 72 |
+| **Component Tests** | 19 | 69 |
 | **Engine Tests** | 12 | 98 |
 | **Route Tests** | 2 | 21 |
 | **Service Tests** | 5 | 24 |
 | **Utility Tests** | 1 | 19 |
 | **E2E Tests** | 3 | 10 |
-| **Total** | **49 files** | **286 tests** |
+| **Total** | **48 files** | **283 tests** |
 
 ---
 

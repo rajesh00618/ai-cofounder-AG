@@ -2,18 +2,19 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import jwt from 'jsonwebtoken';
 import 'dotenv/config';
 import { initDb } from './db/schema.js';
+import { getDb } from './db/database.js';
 import apiRoutes from './routes/api.js';
 import authRoutes from './routes/auth.js';
 import { logger, requestLogger } from './services/logger.js';
 import { startReminderScheduler, registerWhatsAppPhone } from './services/reminders.js';
 import { startBackgroundResearch } from './services/backgroundResearch.js';
 import { globalErrorHandler } from './services/errors.js';
+import { requireJwt } from './routes/auth.js';
 
 const validateEnv = () => {
-  const required = ['JWT_SECRET'];
+  const required = ['JWT_SECRET', 'NVIDIA_API_KEY'];
   const missing = required.filter(key => !process.env[key]);
   if (missing.length > 0) {
     logger.error(`Missing required environment variables: ${missing.join(', ')}`);
@@ -51,21 +52,6 @@ app.use('/api/auth', authLimiter);
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api', apiRoutes);
-
-// JWT verification middleware for protected routes
-const requireJwt = (req, res, next) => {
-  const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
-  try {
-    const decoded = jwt.verify(auth.split(' ')[1], process.env.JWT_SECRET);
-    req.userId = decoded.userId;
-    next();
-  } catch {
-    res.status(401).json({ error: 'Invalid token' });
-  }
-};
 
 // WhatsApp phone registration (requires authentication)
 app.post('/api/reminders/register', requireJwt, (req, res) => {

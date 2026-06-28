@@ -11,7 +11,7 @@ export const getLatestBriefing = (userId) => {
 };
 
 const runResearchCycle = async () => {
-  if (process.env.BACKGROUND_RESEARCH_ENABLED !== 'true') {
+  if (process.env.BACKGROUND_RESEARCH_ENABLED === 'false') {
     logger.debug('[BackgroundResearch] Disabled via env');
     return;
   }

@@ -1,7 +1,7 @@
 # AI Co-Founder — Complete Feature Directory
 
-> **Version:** 1.9.0 | **Stack:** React 19 + Express 5 + Supabase + OpenAI/NVIDIA
-> **Tests:** 286 (49 files) | **Lint:** 0 errors | **Build:** 236 KB (code-split)
+> **Version:** 2.0.0 | **Stack:** React 19 + Express 5 + Supabase + OpenAI/NVIDIA
+> **Tests:** 283 (48 files) | **Lint:** 0 errors | **Build:** 236 KB (code-split)
 > **Positioning:** Most AI tools answer questions. This AI builds companies.
 
 ---
@@ -1015,4 +1015,4 @@ const MODELS = [
 | `services/__tests__/reminders.test.js` | Reminder scheduler | 2 |
 | `services/__tests__/search.test.js` | Web search fallback | 1 |
 | `utils/helpers.test.js` | Utility functions | 19 |
-| **Total** | **49 files** | **286 tests** |
+| **Total** | **48 files** | **283 tests** |

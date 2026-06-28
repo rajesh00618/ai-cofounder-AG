@@ -1,7 +1,8 @@
-version: '3.8'
 services:
   app:
     build: .
+    ports:
+      - "3001:3001"
     environment:
       - NODE_ENV=production
       - PORT=3001
@@ -11,4 +12,10 @@ services:
       - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
       - AI_MODEL=${AI_MODEL:-meta/llama-4-maverick-17b-128e-instruct}
       - AI_BASE_URL=${AI_BASE_URL:-https://integrate.api.nvidia.com/v1}
+      - BACKGROUND_RESEARCH_ENABLED=${BACKGROUND_RESEARCH_ENABLED:-true}
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
     restart: unless-stopped

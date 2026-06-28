@@ -6,7 +6,7 @@ function createChain(finalResult = { data: [], error: null }) {
     eq: vi.fn(() => chain),
     order: vi.fn(() => chain),
     range: vi.fn(() => thenable),
-    in: vi.fn(() => thenable),
+    in: vi.fn(() => chain),
     maybeSingle: vi.fn(() => thenable),
     insert: vi.fn(() => thenable),
     select: vi.fn(() => chain),
@@ -61,8 +61,13 @@ describe('memory engine', () => {
 
   it('addMemoryEdge stores with correct fields', async () => {
     const validResult = Promise.resolve({ data: { id: 'n1', user_id: 'user-1' }, error: null });
+    const noDuplicate = Promise.resolve({ data: null, error: null });
     const chain = createChain();
-    chain.maybeSingle = vi.fn(() => validResult);
+    let callCount = 0;
+    chain.maybeSingle = vi.fn(() => {
+      callCount++;
+      return callCount <= 2 ? validResult : noDuplicate;
+    });
     chain.insert = vi.fn(() => Promise.resolve({ error: null }));
     mockFrom.mockReturnValue(chain);
 

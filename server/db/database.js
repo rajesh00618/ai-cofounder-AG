@@ -7,13 +7,11 @@ export const getDb = () => {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
   if (!supabaseUrl || !supabaseKey) {
-    console.warn('[DB] SUPABASE_URL or SUPABASE_SERVICE_KEY not set');
     return null;
   }
   client = createClient(supabaseUrl, supabaseKey, {
     auth: { persistSession: false },
   });
-  console.log('[DB] Connected to Supabase');
   return client;
 };
 

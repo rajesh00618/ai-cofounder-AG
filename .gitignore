@@ -1,5 +1,7 @@
 # Env
 .env
+.env.*
+!.env.example
 
 # Database
 *.sqlite
@@ -22,11 +24,14 @@ dist
 dist-ssr
 *.local
 
+# Test artifacts
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
 # opencode
 .opencode/
-
-# Audit artifacts
-graph-audit-report.json
 
 # Editor directories and files
 .vscode/*

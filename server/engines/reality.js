@@ -1,7 +1,7 @@
-import { callOpenAI, PROMPTS, extractJSON } from '../services/ai.js';
+import { callOpenAI, PROMPTS, extractJSON, sanitizeForPrompt } from '../services/ai.js';
 
 export const evaluateGoal = async (apiKey, goal) => {
-  const prompt = `Evaluate this goal: ${JSON.stringify(goal)}`;
+  const prompt = `Evaluate this goal: ${sanitizeForPrompt(JSON.stringify(goal))}`;
   const response = await callOpenAI(apiKey, PROMPTS.REALITY_ENGINE, prompt, 0.2);
   return extractJSON(response);
 };

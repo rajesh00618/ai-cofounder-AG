@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useFounderStore } from '../../store/founderStore';
 import { useBusinessStore } from '../../store/businessStore';
 import { useTaskStore } from '../../store/taskStore';
@@ -8,7 +8,7 @@ import { STARTUP_STAGES } from '../../utils/constants';
 import { Sparkles, Target, AlertTriangle, TrendingUp, CheckSquare, Brain, Zap, ArrowRight, BarChart3, Activity, Loader2 } from 'lucide-react';
 import { api } from '../../utils/api';
 
-function ScoreCard({ label, value, icon: Icon, color }) {
+const ScoreCard = React.memo(function ScoreCard({ label, value, icon: Icon, color }) {
   return (
     <div style={styles.scoreCard}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -24,7 +24,7 @@ function ScoreCard({ label, value, icon: Icon, color }) {
       </div>
     </div>
   );
-}
+});
 
 export default function CommandCenter({ onNavigate }) {
   const { profile, dnaScores } = useFounderStore(
@@ -46,7 +46,11 @@ export default function CommandCenter({ onNavigate }) {
   const totalTasks = tasks.length;
   const overallHealth = calculateOverallScore(businessHealth);
 
+  const ctxRef = useRef('');
   useEffect(() => {
+    const ctxKey = JSON.stringify({ businessHealth, startupScore, profile, blueprint, currentStage, dnaScores, tasks: tasks?.length });
+    if (ctxRef.current === ctxKey) return;
+    ctxRef.current = ctxKey;
     setLoading(true);
     const ctx = { businessHealth, startupScore, profile, blueprint, currentStage, dnaScores, tasks };
     Promise.all([

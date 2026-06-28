@@ -33,7 +33,7 @@ function MetricTooltip({ explanation }) {
   );
 }
 
-function MetricCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel, explanation }) {
+const MetricCard = React.memo(function MetricCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel, explanation }) {
   return (
     <div style={styles.metricCard}>
       <div style={styles.metricHeader}>
@@ -49,7 +49,7 @@ function MetricCard({ title, value, subtitle, icon: Icon, color, trend, trendLab
           <span style={{
             ...styles.trendBadge,
             color: trend >= 0 ? 'var(--color-success)' : 'var(--color-danger)',
-            background: trend >= 0 ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+            background: trend >= 0 ? 'var(--color-success-subtle)' : 'var(--color-danger-subtle)',
           }}>
             {trend >= 0 ? <ArrowUp size={10} /> : <ArrowDown size={10} />}
             {Math.abs(trend)}%
@@ -60,7 +60,7 @@ function MetricCard({ title, value, subtitle, icon: Icon, color, trend, trendLab
       {trendLabel && <span style={styles.trendLabel}>{trendLabel}</span>}
     </div>
   );
-}
+});
 
 function AIInsight({ insights }) {
   return (
@@ -155,8 +155,12 @@ export default function AnalyticsDashboard() {
           <p style={styles.subtitle}>Key metrics your AI co-founder tracks for you</p>
         </div>
         <div style={styles.headerRight}>
-          <span className="badge badge-accent"><Activity size={10} /> Live</span>
+          <span className="badge badge-warning"><Activity size={10} /> Projected</span>
         </div>
+      </div>
+
+      <div style={{ padding: '0.75rem 1rem', background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.12)', borderRadius: '10px', marginBottom: '1.5rem', fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
+        These are projected metrics based on your business health scores. They will update with real data as you connect analytics and payment providers.
       </div>
 
       <div style={styles.grid}>

@@ -1,4 +1,4 @@
-import { callOpenAI, extractJSON } from '../services/ai.js';
+import { callOpenAI, extractJSON, sanitizeOutput } from '../services/ai.js';
 
 const INVESTOR_PROMPT = `You are a skeptical, experienced VC investor evaluating a startup. 
 Your job is to find weaknesses, not validate. Be harsh but fair.
@@ -36,5 +36,5 @@ Be direct and critical — your job is to stress-test their thinking before they
 export const chatAsInvestor = async (apiKey, context, message) => {
   const prompt = `Business Context:\n${JSON.stringify(context || {})}\n\nFounder: ${JSON.stringify(message)}\n\nRespond as a skeptical VC investor.`;
   const response = await callOpenAI(apiKey, INVESTOR_CHAT_PROMPT, prompt, 0.5);
-  return response;
+  return sanitizeOutput(response);
 };

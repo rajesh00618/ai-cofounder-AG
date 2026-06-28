@@ -6,6 +6,8 @@
  * generic message while the full error is logged server-side.
  */
 
+import { logger } from './logger.js';
+
 const isProd = process.env.NODE_ENV === 'production';
 
 /**
@@ -50,11 +52,10 @@ export const sanitizeError = (err, fallback = 'Something went wrong. Please try 
  */
 export const sendError = (res, err, fallback) => {
   const { status, message } = sanitizeError(err, fallback);
-  // Always log the real error server-side.
   if (status >= 500) {
-    console.error(`[API] ${status} error:`, err);
+    logger.error(`[API] ${status} error:`, err);
   } else {
-    console.warn(`[API] ${status}:`, err?.message || err);
+    logger.warn(`[API] ${status}:`, err?.message || err);
   }
   res.status(status).json({ error: message });
 };

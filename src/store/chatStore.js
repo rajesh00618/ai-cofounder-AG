@@ -15,13 +15,15 @@ export const useChatStore = create(
   investorModeActive: false,
   customerSimActive: false,
 
-  addMessage: (msg) => set(s => ({
-    messages: [...s.messages, {
+  addMessage: (msg) => set(s => {
+    const newMessages = [...s.messages, {
       id: generateId(),
       timestamp: new Date().toISOString(),
       ...msg
-    }]
-  })),
+    }];
+    const MAX_MESSAGES = 500;
+    return { messages: newMessages.length > MAX_MESSAGES ? newMessages.slice(-MAX_MESSAGES) : newMessages };
+  }),
 
   updateMessage: (id, updates) => set(s => ({
     messages: s.messages.map(m => m.id === id ? { ...m, ...updates } : m)
