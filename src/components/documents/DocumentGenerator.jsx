@@ -71,7 +71,7 @@ export default function DocumentGenerator() {
               {generated.has(doc.id) ? (
                 <div style={{ display: 'flex', gap: '0.5rem', flexDirection: 'column', width: '100%' }}>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button className="btn btn-success btn-sm" onClick={() => { setNotification('Document generated — scroll to view'); setTimeout(() => setNotification(''), 3000); }}><CheckCircle2 size={14} /> Generated</button>
+                    <button className="btn btn-success btn-sm" onClick={() => { setNotification('Document generated — scroll to view'); }}><CheckCircle2 size={14} /> Generated</button>
                     <button className="btn btn-secondary btn-sm" onClick={() => {
                       const blob = new Blob([docContent[doc.id]], { type: 'text/markdown' });
                       const url = URL.createObjectURL(blob);

@@ -165,7 +165,7 @@ export default function BusinessPlanningPage() {
             </div>
             <div style={styles.genList}>
               {BLUEPRINT_SECTIONS.map((s, i) => (
-                <div key={i} style={{...styles.genItem, opacity: i <= genStep ? 1 : 0.3}}>
+                <div key={`bp-gen-${s}`} style={{...styles.genItem, opacity: i <= genStep ? 1 : 0.3}}>
                   {i < genStep ? <CheckCircle2 size={14} style={{color:'var(--color-success)'}} /> :
                    i === genStep ? <Loader2 size={14} style={{color:'var(--color-accent-light)',animation:'spin 1s linear infinite'}} /> :
                    <div style={{width:14,height:14,borderRadius:'50%',border:'1px solid var(--color-text-muted)'}} />}
@@ -190,27 +190,28 @@ export default function BusinessPlanningPage() {
             </div>
             <div style={styles.bpSections}>
               {[
-                { title: 'Executive Summary', content: blueprint.executiveSummary },
-                { title: 'Problem', content: blueprint.problem },
-                { title: 'Solution & USP', content: blueprint.solution },
-                { title: 'Target Customer', content: blueprint.targetCustomer },
-                { title: 'Market Size', content: blueprint.marketSize },
-                { title: 'Competitors', content: blueprint.competitors },
-                { title: 'Revenue Model', content: blueprint.revenueModel },
-                { title: 'Go-to-Market', content: blueprint.gtmPlan },
-                { title: 'Validation Plan', content: blueprint.validationPlan },
-                { title: 'MVP Plan', content: blueprint.mvpPlan },
-              ].map((sec, i) => (
-                <div key={i} style={styles.bpSection}>
+                { title: 'Executive Summary', field: 'executiveSummary', content: blueprint.executiveSummary },
+                { title: 'Problem', field: 'problem', content: blueprint.problem },
+                { title: 'Solution & USP', field: 'solution', content: blueprint.solution },
+                { title: 'Unique Selling Proposition', field: 'usp', content: blueprint.usp },
+                { title: 'Target Customer', field: 'targetCustomer', content: blueprint.targetCustomer },
+                { title: 'Market Size', field: 'marketSize', content: blueprint.marketSize },
+                { title: 'Competitors & SWOT', field: 'competitors', content: blueprint.competitors },
+                { title: 'Revenue Model', field: 'revenueModel', content: blueprint.revenueModel },
+                { title: 'Risk Analysis', content: (blueprint.risks || []).join('\n') },
+                { title: 'Financial Estimate', content: blueprint.financials ? `Monthly Burn: ${blueprint.financials.monthlyBurn || ''}\nBreakeven: ${blueprint.financials.breakeven || ''}\nProjected MRR: ${blueprint.financials.projectedMRR || ''}` : '' },
+                { title: 'Go-to-Market', field: 'gtmPlan', content: blueprint.gtmPlan },
+                { title: 'Validation Plan', field: 'validationPlan', content: blueprint.validationPlan },
+                { title: 'MVP Plan', field: 'mvpPlan', content: blueprint.mvpPlan },
+                { title: 'Roadmap', content: blueprint.roadmap ? `Q1: ${blueprint.roadmap.q1 || ''}\nQ2: ${blueprint.roadmap.q2 || ''}\nQ3: ${blueprint.roadmap.q3 || ''}\nQ4: ${blueprint.roadmap.q4 || ''}` : '' },
+              ].map((sec) => (
+                <div key={`bp-sec-${sec.title}`} style={styles.bpSection}>
                   <h4 style={styles.bpSectionTitle}>{sec.title}</h4>
-                  {editing ? (
+                  {editing && sec.field ? (
                     <textarea
                       style={{...styles.bpSectionContent, ...styles.editTextarea}}
                       value={sec.content || ''}
-                      onChange={e => {
-                        const fieldMap = { 'Executive Summary': 'executiveSummary', 'Problem': 'problem', 'Solution & USP': 'solution', 'Target Customer': 'targetCustomer', 'Market Size': 'marketSize', 'Competitors': 'competitors', 'Revenue Model': 'revenueModel', 'Go-to-Market': 'gtmPlan', 'Validation Plan': 'validationPlan', 'MVP Plan': 'mvpPlan' };
-                        setBp(prev => ({ ...prev, [fieldMap[sec.title]]: e.target.value }));
-                      }}
+                      onChange={e => setBp(prev => ({ ...prev, [sec.field]: e.target.value }))}
                     />
                   ) : (
                     <p style={styles.bpSectionContent}>{sec.content}</p>
@@ -226,8 +227,8 @@ export default function BusinessPlanningPage() {
                     onChange={e => setBp(prev => ({ ...prev, successMetrics: e.target.value.split('\n').filter(Boolean) }))}
                   />
                 ) : (
-                  blueprint.successMetrics.map((m, i) => (
-                    <div key={i} style={styles.metric}>✓ {m}</div>
+                  blueprint.successMetrics.map((m) => (
+                    <div key={`bpm-${m.slice(0,20)}`} style={styles.metric}>✓ {m}</div>
                   ))
                 )}
               </div>

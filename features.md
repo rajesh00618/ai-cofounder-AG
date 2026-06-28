@@ -1,7 +1,7 @@
 # AI Co-Founder — Complete Feature Directory
 
 > **Version:** 2.1.0 | **Stack:** React 19 + Express 5 + Supabase + OpenAI/NVIDIA
-> **Tests:** 274 (47 files) | **Lint:** 0 errors | **Build:** 236 KB (code-split)
+> **Tests:** 331 (47 files) | **Lint:** 0 errors | **Build:** 236 KB (code-split)
 > **Positioning:** Most AI tools answer questions. This AI builds companies.
 
 ---
@@ -147,10 +147,14 @@ Simulates a board of directors meeting with 6 AI personas who debate, challenge,
 |-------|------|-------------|------|
 | **CEO** | `agents/ceo.js` | 0.7 | Execution-focused, direct, challenges assumptions |
 | **CTO** | `agents/cto.js` | 0.5 | Technical architecture, feasibility, build vs buy |
-| **CMO** | `agents/cmo.js` | 0.6 | Market positioning, growth, brand, go-to-market |
-| **Sales** | `agents/sales.js` | 0.7 | Revenue strategy, pipeline, pricing |
+| **CMO** | `agents/cmo.js` | 0.5 | Market positioning, growth, brand, go-to-market |
+| **Sales** | `agents/sales.js` | 0.5 | Revenue strategy, pipeline, pricing |
 | **Finance** | `agents/finance.js` | 0.3 | Burn rate, unit economics, fundraising |
-| **Research** | `agents/research.js` | 0.6 | Market data, trends, competitive analysis |
+| **Research** | `agents/research.js` | 0.3 | Deep research, competitive analysis |
+| **Legal** | `agents/legal.js` | 0.3 | Contracts, IP, compliance |
+| **Designer** | `agents/designer.js` | 0.5 | UX/UI, accessibility, branding |
+| **Developer** | `agents/developer.js` | 0.4 | Coding, architecture, DevOps |
+| **Planner** | `agents/planner.js` | 0.3 | Task breakdown, sprint planning |
 
 ### Board Meeting Features
 - **Single agent chat** — Pick any agent for 1-on-1 advice
@@ -532,13 +536,13 @@ Graph-based knowledge persistence system that stores startup artifacts as nodes 
 ### Edge Types
 | Type | Description |
 |------|-------------|
+| `related_to` | General relationship |
 | `depends_on` | Task A depends on Task B |
-| `triggers` | Event triggers another |
-| `relates_to` | General relationship |
-| `inspired_by` | Creativity source |
+| `part_of` | Part of a larger entity |
+| `influences` | Influences another entity |
 | `blocks` | One node blocks another |
-| `implements` | Implementation relationship |
-| `references` | Reference connection |
+| `enables` | Enables another node |
+| `contradicts` | Contradicts another node |
 
 ### Visualization
 - **Force-directed layout** — Custom physics simulation with repulsion and attraction forces
@@ -800,7 +804,7 @@ User settings panel for API key configuration, account management, and applicati
 2. Uses startup-specific language, not generic consultant-speak
 3. Remembers everything about the founder and startup
 4. Adapts tone to founder's experience level and DNA profile
-5. Maintains 6 distinct persona voices (CEO/CTO/CMO/Sales/Finance/Research)
+5. Maintains 10 distinct persona voices (CEO/CTO/CMO/Sales/Finance/Research/Legal/Designer/Developer/Planner)
 6. Keeps responses under 200 words unless deeper analysis requested
 7. Uses markdown formatting consistently
 
@@ -808,10 +812,10 @@ User settings panel for API key configuration, account management, and applicati
 - System prompts stored in `PROMPTS` object with 12+ keys
 - Each persona has its own base prompt
 - User messages are sanitized, truncated to 10K chars, and context-enriched
-- Temperature varies per agent: CEO (0.7), CTO (0.5), CMO (0.6), Sales (0.7), Finance (0.3), Research (0.6)
+- Temperature varies per agent: CEO (0.7), CTO (0.5), CMO (0.5), Sales (0.5), Finance (0.3), Research (0.3), Legal (0.3), Designer (0.5), Developer (0.4), Planner (0.3)
 
 ### Prompt Injection Protection
-- **12 injection pattern regexes** — matched text is REDACTED from input (not just logged)
+- **22 injection pattern regexes** — matched text is REDACTED from input (not just logged)
 - Strips null bytes and control characters
 - Max input length: 10,000 characters
 - Recursive JSON.stringify for non-string inputs
@@ -861,7 +865,7 @@ const MODELS = [
 1. Type coercion (non-strings → JSON.stringify)
 2. Null byte and control character removal
 3. Truncation to 10,000 chars
-4. **Pattern matching against 12 injection regexes — matched text REDACTED with `[REDACTED]`**
+4. **Pattern matching against 22 injection regexes — matched text REDACTED with `[REDACTED]`**
 5. Warning logged via structured logger
 6. System boundary suffix appended to system prompt
 7. Pass-through to AI model
@@ -957,7 +961,7 @@ const MODELS = [
 | POST | `/failure/prediction` | Failure prediction | API key |
 | POST | `/auth/api-key` | Store API key server-side | JWT |
 | GET | `/auth/api-key` | Check API key status | JWT |
-| POST | `/reminders/register` | WhatsApp registration | None |
+| POST | `/reminders/register` | WhatsApp registration | JWT |
 
 ---
 
@@ -1015,4 +1019,4 @@ const MODELS = [
 | `services/__tests__/reminders.test.js` | Reminder scheduler | 2 |
 | `services/__tests__/search.test.js` | Web search fallback | 1 |
 | `utils/helpers.test.js` | Utility functions | 19 |
-| **Total** | **47 files** | **274 tests** |
+| **Total** | **47 files** | **331 tests** |

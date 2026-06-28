@@ -20,6 +20,7 @@ import { requireJwt } from './auth.js';
 import { sendError } from '../services/errors.js';
 import { logger } from '../services/logger.js';
 import { getApiKey } from '../apiKeyCache.js';
+import { getDb } from '../db/database.js';
 
 const router = express.Router();
 
@@ -41,14 +42,20 @@ const requireApiKey = (req, res, next) => {
 
 const pick = (body, ...keys) => { for (const k of keys) { if (body[k] !== undefined && body[k] !== null && body[k] !== '') return body[k]; } return undefined; };
 
-const sanitizeContext = (obj) => {
+const PROTOTYPE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+const sanitizeContext = (obj, depth = 0) => {
   if (!obj || typeof obj !== 'object') return obj;
+  if (depth > 10) return {};
+  if (Array.isArray(obj)) return obj.map(v => sanitizeContext(v, depth + 1));
   const sanitized = {};
   for (const [key, value] of Object.entries(obj)) {
+    if (PROTOTYPE_KEYS.has(key)) continue;
     if (typeof value === 'string') {
-      sanitized[key] = value.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').slice(0, 5000);
+      // eslint-disable-next-line no-control-regex
+      sanitized[key] = value.replace(/[\x00-\x1F\x7F]/g, '').slice(0, 5000);
     } else if (typeof value === 'object' && value !== null) {
-      sanitized[key] = sanitizeContext(value);
+      sanitized[key] = sanitizeContext(value, depth + 1);
     } else {
       sanitized[key] = value;
     }
@@ -71,7 +78,7 @@ router.post('/chat', requireApiKey, requireBody('message'), async (req, res) => 
   try {
     const { message, context } = req.body;
     const sanitizedContext = sanitizeContext(context);
-    const prompt = `Context:\n${JSON.stringify(sanitizedContext || {})}\n\nUser: ${JSON.stringify(message)}`;
+    const prompt = `Context:\n${JSON.stringify(sanitizedContext || {})}\n\nUser: ${sanitizeForPrompt(JSON.stringify(message))}`;
     const response = sanitizeOutput(await callOpenAI(req.apiKey, PROMPTS.CEO, prompt, 0.7));
     res.json({ content: response });
   } catch (error) {
@@ -80,10 +87,19 @@ router.post('/chat', requireApiKey, requireBody('message'), async (req, res) => 
 });
 
 router.post('/chat/stream', requireApiKey, requireBody('message'), async (req, res) => {
+  const abortController = new AbortController();
+
+  req.on('close', () => {
+    abortController.abort();
+    if (!res.writableEnded) {
+      res.end();
+    }
+  });
+
   try {
     const { message, context } = req.body;
     const sanitizedContext = sanitizeContext(context);
-    const prompt = `Context:\n${JSON.stringify(sanitizedContext || {})}\n\nUser: ${JSON.stringify(message)}`;
+    const prompt = `Context:\n${JSON.stringify(sanitizedContext || {})}\n\nUser: ${sanitizeForPrompt(JSON.stringify(message))}`;
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -91,15 +107,22 @@ router.post('/chat/stream', requireApiKey, requireBody('message'), async (req, r
     res.setHeader('X-Accel-Buffering', 'no');
 
     const full = await callOpenAIStream(req.apiKey, PROMPTS.CEO, prompt, (token, fullText) => {
-      res.write(`data: ${JSON.stringify({ token, fullText })}\n\n`);
+      const safeToken = sanitizeOutput(token);
+      const safeFull = sanitizeOutput(fullText);
+      res.write(`data: ${JSON.stringify({ token: safeToken, fullText: safeFull })}\n\n`);
     }, 0.7);
 
-    res.write(`data: ${JSON.stringify({ done: true, fullText: full })}\n\n`);
-    res.end();
+    if (!res.writableEnded) {
+      res.write(`data: ${JSON.stringify({ done: true, fullText: full })}\n\n`);
+      res.end();
+    }
   } catch (error) {
+    if (abortController.signal.aborted) return;
     logger.error(`[Chat Stream] ${error.message}`);
-    res.write(`data: ${JSON.stringify({ error: 'Stream processing failed' })}\n\n`);
-    res.end();
+    if (!res.writableEnded) {
+      res.write(`data: ${JSON.stringify({ error: 'Stream processing failed' })}\n\n`);
+      res.end();
+    }
   }
 });
 
@@ -215,9 +238,9 @@ router.post('/board/chat', requireApiKey, requireBody('messages'), async (req, r
 // --- RESEARCH ---
 router.post('/research', requireApiKey, async (req, res) => {
   try {
-    const context = pick(req.body, 'context', 'blueprint', 'businessHealth', 'startupScore');
+    const context = { blueprint: req.body.blueprint, businessHealth: req.body.businessHealth, startupScore: req.body.startupScore, profile: req.body.profile, currentStage: req.body.stage || req.body.currentStage };
     const filter = pick(req.body, 'filter') || 'all';
-    const items = await getResearch(req.apiKey, context || {});
+    const items = await getResearch(req.apiKey, context);
     res.json(Array.isArray(items) ? items.filter(i => filter === 'all' || i.category === filter || i.type === filter) : items);
   } catch (error) {
     sendError(res, error);
@@ -226,8 +249,8 @@ router.post('/research', requireApiKey, async (req, res) => {
 
 router.post('/research/opportunities', requireApiKey, async (req, res) => {
   try {
-    const context = pick(req.body, 'context', 'blueprint', 'businessHealth');
-    const opportunities = await getOpportunities(req.apiKey, context || {});
+    const context = { blueprint: req.body.blueprint, businessHealth: req.body.businessHealth, profile: req.body.profile, currentStage: req.body.stage || req.body.currentStage };
+    const opportunities = await getOpportunities(req.apiKey, context);
     res.json(opportunities);
   } catch (error) {
     sendError(res, error);
@@ -237,8 +260,8 @@ router.post('/research/opportunities', requireApiKey, async (req, res) => {
 router.post('/research/briefing', requireApiKey, async (req, res) => {
   try {
     const profile = pick(req.body, 'profile') || {};
-    const context = pick(req.body, 'context', 'blueprint', 'businessHealth');
-    const briefing = await getMorningBriefing(req.apiKey, profile, context || { currentStage: pick(req.body, 'stage', 'currentStage') });
+    const context = { blueprint: req.body.blueprint, businessHealth: req.body.businessHealth, currentStage: req.body.stage || req.body.currentStage };
+    const briefing = await getMorningBriefing(req.apiKey, profile, context);
     res.json(briefing);
   } catch (error) {
     sendError(res, error);
@@ -310,7 +333,7 @@ router.post('/command/mission', requireApiKey, async (req, res) => {
     const tasks = pick(req.body, 'tasks') || [];
     const dnaScores = pick(req.body, 'dnaScores') || {};
     const mission = await generateMission(req.apiKey, context, tasks, dnaScores);
-    res.json({ mission: mission.mission || mission.recommendation || JSON.stringify(mission) });
+    res.json(mission);
   } catch (error) {
     sendError(res, error);
   }
@@ -410,7 +433,7 @@ router.get('/memory/graph/:founderId', requireJwt, async (req, res) => {
 
 router.delete('/memory/nodes/:nodeId', requireJwt, async (req, res) => {
   try {
-    const supabase = (await import('../db/database.js')).getDb();
+    const supabase = getDb();
     if (!supabase) return res.status(503).json({ error: 'Database not available' });
     const { error } = await supabase.from('memory_nodes')
       .delete()
@@ -425,7 +448,7 @@ router.delete('/memory/nodes/:nodeId', requireJwt, async (req, res) => {
 
 router.delete('/memory/edges/:edgeId', requireJwt, async (req, res) => {
   try {
-    const supabase = (await import('../db/database.js')).getDb();
+    const supabase = getDb();
     if (!supabase) return res.status(503).json({ error: 'Database not available' });
     const { error } = await supabase.from('memory_edges')
       .delete()
@@ -558,7 +581,7 @@ router.post('/review/weekly', requireApiKey, async (req, res) => {
 // --- FAILURE PREDICTION ---
 router.post('/failure/prediction', requireApiKey, async (req, res) => {
   try {
-    const context = req.body || {};
+    const context = sanitizeContext(req.body || {});
     const prompt = `Business context: ${JSON.stringify(context)}`;
 
     const systemPrompt = `You are a startup failure prediction engine. Analyze the provided business context and predict failure probability and key risks.

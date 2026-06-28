@@ -78,47 +78,48 @@ export const startReminderScheduler = () => {
     const hours = now.getHours();
     const minutes = now.getMinutes();
 
-    if (hours === 9 && minutes === 0) {
-      logger.info('[Reminders] Morning reminder time');
+    const sendRemindersForUsers = async (isMorning) => {
       try {
         const { getDb } = await import('../db/database.js');
         const supabase = getDb();
-        if (supabase) {
-          const { data: users } = await supabase.from('users').select('id, name, email').limit(50);
-          for (const user of users || []) {
-            const { data: tasks } = await supabase
-              .from('tasks').select('title, status')
-              .eq('user_id', user.id)
-              .eq('status', 'todo')
-              .limit(5);
-            const phone = getPhoneForEmail(user.email);
-            if (phone) await sendMorningReminder(phone, user.name, tasks);
+        if (!supabase) return;
+        const { data: users } = await supabase.from('users').select('id, name, email').limit(50);
+        if (!users?.length) return;
+
+        const userIds = users.map(u => u.id);
+        const tasksRes = await supabase
+          .from('tasks').select('user_id, title, status')
+          .in('user_id', userIds);
+        const tasksByUser = {};
+        for (const t of (tasksRes.data || [])) {
+          if (!tasksByUser[t.user_id]) tasksByUser[t.user_id] = [];
+          tasksByUser[t.user_id].push(t);
+        }
+
+        for (const user of users) {
+          const userTasks = (tasksByUser[user.id] || []).slice(0, 10);
+          const phone = getPhoneForEmail(user.email);
+          if (phone) {
+            if (isMorning) {
+              await sendMorningReminder(phone, user.name, userTasks.filter(t => t.status === 'todo'));
+            } else {
+              await sendEveningReminder(phone, user.name, userTasks);
+            }
           }
         }
       } catch (err) {
-        logger.error(`[Reminders] Morning batch failed: ${err.message}`);
+        logger.error(`[Reminders] Batch failed: ${err.message}`);
       }
+    };
+
+    if (hours === 9 && minutes === 0) {
+      logger.info('[Reminders] Morning reminder time');
+      sendRemindersForUsers(true);
     }
 
     if (hours === 18 && minutes === 0) {
       logger.info('[Reminders] Evening reminder time');
-      try {
-        const { getDb } = await import('../db/database.js');
-        const supabase = getDb();
-        if (supabase) {
-          const { data: users } = await supabase.from('users').select('id, name, email').limit(50);
-          for (const user of users || []) {
-            const { data: tasks } = await supabase
-              .from('tasks').select('title, status')
-              .eq('user_id', user.id)
-              .limit(10);
-            const phone = getPhoneForEmail(user.email);
-            if (phone) await sendEveningReminder(phone, user.name, tasks);
-          }
-        }
-      } catch (err) {
-        logger.error(`[Reminders] Evening batch failed: ${err.message}`);
-      }
+      sendRemindersForUsers(false);
     }
   };
 

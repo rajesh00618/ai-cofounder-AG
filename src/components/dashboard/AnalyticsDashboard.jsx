@@ -50,8 +50,8 @@ function AIInsight({ insights }) {
         AI Insights
       </h3>
       <div style={styles.insightContent}>
-        {insights.map((insight, i) => (
-          <div key={i} style={styles.insightRow}>
+        {insights.map((insight) => (
+          <div key={`ins-${insight.slice(0,20)}`} style={styles.insightRow}>
             <span style={styles.insightBullet} />
             <span style={styles.insightText}>{insight}</span>
           </div>
@@ -67,7 +67,7 @@ export default function AnalyticsDashboard() {
   );
 
   const overallHealth = calculateOverallScore(businessHealth);
-  const avgStartupScore = calculateOverallScore(startupScore);
+  const _avgStartupScore = calculateOverallScore(startupScore);
 
   const ideaScore = businessHealth.idea || 0;
   const validationScore = businessHealth.validation || 0;
@@ -78,7 +78,7 @@ export default function AnalyticsDashboard() {
 
   const executionScore = startupScore.execution || 0;
   const customerScore = startupScore.customers || 0;
-  const aiConfidence = startupScore.aiConfidence || 50;
+  const _aiConfidence = startupScore.aiConfidence || 50;
 
   const insights = [];
 

@@ -42,8 +42,8 @@ export default function BusinessBlueprint() {
         </div>
       </div>
       <div style={styles.sections}>
-        {sections.map((sec, i) => (
-          <div key={i} style={styles.section}>
+        {sections.map((sec) => (
+          <div key={sec.key} style={styles.section}>
             <h4 style={styles.sectionTitle}>{sec.title}</h4>
             {editing ? (
               <textarea
@@ -58,14 +58,14 @@ export default function BusinessBlueprint() {
         ))}
         <div style={styles.section}>
           <h4 style={styles.sectionTitle}>Success Metrics</h4>
-          {blueprint.successMetrics?.map((m, i) => (
-            <div key={i} style={{color:'var(--color-success-light)',fontSize:'0.875rem',marginBottom:'0.375rem'}}>✓ {m}</div>
+          {blueprint.successMetrics?.map((m) => (
+            <div key={`sm-${m.slice(0,20)}`} style={{color:'var(--color-success-light)',fontSize:'0.875rem',marginBottom:'0.375rem'}}>✓ {m}</div>
           ))}
         </div>
         <div style={styles.section}>
           <h4 style={styles.sectionTitle}>Risk Analysis</h4>
-          {blueprint.risks?.map((r, i) => (
-            <div key={i} style={{color:'var(--color-warning-light)',fontSize:'0.875rem',marginBottom:'0.375rem'}}>⚠ {r}</div>
+          {blueprint.risks?.map((r) => (
+            <div key={`risk-${r.slice(0,20)}`} style={{color:'var(--color-warning-light)',fontSize:'0.875rem',marginBottom:'0.375rem'}}>⚠ {r}</div>
           ))}
         </div>
       </div>

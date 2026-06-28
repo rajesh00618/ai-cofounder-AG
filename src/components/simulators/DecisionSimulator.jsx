@@ -123,8 +123,8 @@ export default function DecisionSimulator() {
 
       {result && !result.isCompanySim && tab === 'decision' && (
         <div className="page-enter">
-          {result.scenarios.map((s, i) => (
-            <div key={i} style={{...styles.scenarioCard, borderLeftColor:getScoreColor(s.success)}}>
+          {result.scenarios.map((s) => (
+            <div key={`sc-${s.label}`} style={{...styles.scenarioCard, borderLeftColor:getScoreColor(s.success)}}>
               <div style={styles.scenarioHeader}>
                 <span style={{fontWeight:600}}>{s.label}</span>
                 <span className={`badge ${s.risk==='High'?'badge-danger':s.risk==='Medium'?'badge-warning':'badge-success'}`}>{s.risk} Risk</span>
@@ -151,14 +151,14 @@ export default function DecisionSimulator() {
             <h3 style={{fontWeight:600,marginBottom:'1rem'}}>Simulation Results — {result.virtualCustomers} Virtual Customers</h3>
             <div style={styles.metricGrid}>
               {[{l:'Conversion',v:result.conversion},{l:'Projected Revenue',v:result.projectedRevenue},{l:'Retention',v:result.retention}].map(m => (
-                <div key={m.l} style={styles.metricCard}>
+                <div key={`met-${m.l}`} style={styles.metricCard}>
                   <div style={{fontSize:'0.6875rem',color:'var(--color-text-muted)',textTransform:'uppercase'}}>{m.l}</div>
                   <div style={{fontSize:'1.5rem',fontWeight:700,color:'var(--color-accent-light)'}}>{m.v}</div>
                 </div>
               ))}
             </div>
             <h4 style={{fontWeight:600,fontSize:'0.875rem',marginTop:'1rem',marginBottom:'0.5rem'}}>Likely Complaints</h4>
-            {result.complaints.map((c,i) => <div key={i} style={{fontSize:'0.8125rem',color:'var(--color-warning-light)',marginBottom:'0.25rem'}}>⚠ {c}</div>)}
+            {result.complaints.map((c) => <div key={`cmp-${c.slice(0,20)}`} style={{fontSize:'0.8125rem',color:'var(--color-warning-light)',marginBottom:'0.25rem'}}>⚠ {c}</div>)}
             <div style={{...styles.recommendCard,marginTop:'1rem'}}>
               <Sparkles size={16} style={{color:'var(--color-accent-light)'}} />
               <span>{result.recommendation}</span>
@@ -184,8 +184,8 @@ export default function DecisionSimulator() {
             {customerResult.objections && customerResult.objections.length > 0 && (
               <>
                 <h4 style={{fontWeight:600,fontSize:'0.875rem',marginBottom:'0.5rem',marginTop:'1rem'}}>Likely Objections</h4>
-                {customerResult.objections.map((o,i) => (
-                  <div key={i} style={{display:'flex',alignItems:'center',gap:'0.5rem',fontSize:'0.8125rem',color:'var(--color-warning-light)',marginBottom:'0.375rem'}}>
+                {customerResult.objections.map((o) => (
+                  <div key={`obj-${o.slice(0,20)}`} style={{display:'flex',alignItems:'center',gap:'0.5rem',fontSize:'0.8125rem',color:'var(--color-warning-light)',marginBottom:'0.375rem'}}>
                     <AlertTriangle size={12} /> {o}
                   </div>
                 ))}
@@ -212,8 +212,8 @@ export default function DecisionSimulator() {
                 </div>
               </div>
               <h4 style={{fontWeight:600,marginBottom:'0.75rem'}}>Your startup currently has an elevated failure risk because:</h4>
-              {(failureData.topRisks || []).map((r, i) => (
-                <div key={i} style={{display:'flex',alignItems:'center',gap:'0.5rem',marginBottom:'0.5rem',fontSize:'0.875rem',color:'var(--color-text-secondary)'}}>
+              {(failureData.topRisks || []).map((r) => (
+                <div key={`risk-${r.risk?.slice(0,20) || Math.random()}`} style={{display:'flex',alignItems:'center',gap:'0.5rem',marginBottom:'0.5rem',fontSize:'0.875rem',color:'var(--color-text-secondary)'}}>
                   <AlertTriangle size={14} style={{color:'var(--color-danger)'}} /> {r.risk}
                 </div>
               ))}

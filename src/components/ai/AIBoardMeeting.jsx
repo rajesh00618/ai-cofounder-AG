@@ -2,9 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Users, Sparkles, Send, Trash2 } from 'lucide-react';
 import { api } from '../../utils/api';
 
-const INITIAL_DISCUSSION = [
-  { role: 'assistant', name: 'Board', content: 'Present your strategic question to the board and we will debate it from every angle.' }
-];
+const INITIAL_MSG = { id: 'board-initial', role: 'assistant', name: 'Board', content: 'Present your strategic question to the board and we will debate it from every angle.' };
+const INITIAL_DISCUSSION = [INITIAL_MSG];
 
 export default function AIBoardMeeting() {
   const [messages, setMessages] = useState(INITIAL_DISCUSSION);
@@ -17,7 +16,7 @@ export default function AIBoardMeeting() {
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
-    const userMsg = { role: 'user', content: input.trim() };
+    const userMsg = { id: `user-${Date.now()}`, role: 'user', content: input.trim() };
     setInput('');
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
@@ -27,10 +26,10 @@ export default function AIBoardMeeting() {
       const data = await api.boardChat(history);
       for (const resp of data.responses) {
         await new Promise(r => setTimeout(r, 400));
-        setMessages(prev => [...prev, { role: 'assistant', name: resp.agent, icon: resp.icon, color: resp.color, content: resp.position }]);
+        setMessages(prev => [...prev, { id: `resp-${Date.now()}-${Math.random()}`, role: 'assistant', name: resp.agent, icon: resp.icon, color: resp.color, content: resp.position }]);
       }
     } catch (err) {
-      setMessages(prev => [...prev, { role: 'assistant', name: 'Board', icon: '⚠️', color: '#ef4444', content: `Error: ${err.message}` }]);
+      setMessages(prev => [...prev, { id: `err-${Date.now()}`, role: 'assistant', name: 'Board', icon: '⚠️', color: '#ef4444', content: `Error: ${err.message}` }]);
     } finally {
       setLoading(false);
       setDebating(false);
@@ -61,13 +60,13 @@ export default function AIBoardMeeting() {
 
       {/* Messages */}
       <div className="board-chat-panel" style={styles.chatArea}>
-        {messages.map((msg, i) => (
+        {messages.map((msg) => (
           msg.role === 'user' ? (
-            <div key={i} style={styles.userRow}>
+            <div key={msg.id} style={styles.userRow}>
               <div style={styles.userBubble}>{msg.content}</div>
             </div>
           ) : (
-            <div key={i} style={{...styles.respCard, borderLeftColor: msg.color || 'var(--color-accent)'}} className="page-enter">
+            <div key={msg.id} style={{...styles.respCard, borderLeftColor: msg.color || 'var(--color-accent)'}} className="page-enter">
               <div style={styles.respHeader}>
                 <span style={{fontSize:'1.25rem'}}>{msg.icon || '🧑‍💼'}</span>
                 <span style={{fontWeight:600, fontSize:'0.875rem'}}>{msg.name}</span>
@@ -99,7 +98,7 @@ export default function AIBoardMeeting() {
           style={styles.input}
           disabled={loading}
         />
-        <button className="btn btn-primary" onClick={sendMessage} disabled={loading || !input.trim()} style={styles.sendBtn}>
+        <button className="btn btn-primary" onClick={sendMessage} disabled={loading || !input.trim()} style={styles.sendBtn} aria-label="Send message">
           {loading ? <Sparkles size={16} /> : <Send size={16} />}
         </button>
       </div>

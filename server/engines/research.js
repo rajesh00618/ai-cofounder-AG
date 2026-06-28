@@ -1,4 +1,4 @@
-import { callOpenAI, extractJSON } from '../services/ai.js';
+import { callOpenAI, extractJSON, sanitizeForPrompt } from '../services/ai.js';
 import { searchWebBatch } from '../services/search.js';
 import { logger } from '../services/logger.js';
 
@@ -22,7 +22,7 @@ export const getResearch = async (apiKey, businessContext) => {
     logger.warn(`[Research] Web search failed: ${err.message}`);
   }
 
-  const userPrompt = `Business context:\n${JSON.stringify(businessContext || {})}\n\nReal web search results:\n${JSON.stringify(searchResults)}\n\nGenerate 6 research items mixing real data from search results with AI analysis. Include actual source names where available.`;
+  const userPrompt = `Business context:\n${sanitizeForPrompt(JSON.stringify(businessContext || {}))}\n\nReal web search results:\n${sanitizeForPrompt(JSON.stringify(searchResults))}\n\nGenerate 6 research items mixing real data from search results with AI analysis. Include actual source names where available.`;
   const response = await callOpenAI(apiKey, RESEARCH_PROMPT, userPrompt, 0.3);
   return extractJSON(response);
 };
@@ -45,7 +45,7 @@ export const getOpportunities = async (apiKey, businessContext) => {
     logger.warn(`[Research] Opportunity search failed: ${err.message}`);
   }
 
-  const userPrompt = `Business context:\n${JSON.stringify(businessContext || {})}\n\nReal web results:\n${JSON.stringify(searchResults)}\n\nIdentify 4 real opportunities based on actual search results.`;
+  const userPrompt = `Business context:\n${sanitizeForPrompt(JSON.stringify(businessContext || {}))}\n\nReal web results:\n${sanitizeForPrompt(JSON.stringify(searchResults))}\n\nIdentify 4 real opportunities based on actual search results.`;
   const response = await callOpenAI(apiKey, OPPORTUNITY_PROMPT, userPrompt, 0.3);
   return extractJSON(response);
 };
@@ -65,7 +65,7 @@ export const getMorningBriefing = async (apiKey, profile, businessContext) => {
     logger.warn(`[Research] Briefing search failed: ${err.message}`);
   }
 
-  const userPrompt = `Founder: ${profile?.name || 'Founder'}\nStage: ${businessContext?.currentStage}\n\nToday's real news:\n${JSON.stringify(searchResults)}\n\nGenerate a morning briefing incorporating real news.`;
+  const userPrompt = `Founder: ${sanitizeForPrompt(profile?.name || 'Founder')}\nStage: ${sanitizeForPrompt(businessContext?.currentStage || '')}\n\nToday's real news:\n${sanitizeForPrompt(JSON.stringify(searchResults))}\n\nGenerate a morning briefing incorporating real news.`;
   const response = await callOpenAI(apiKey, BRIEFING_PROMPT, userPrompt, 0.4);
   return extractJSON(response);
 };

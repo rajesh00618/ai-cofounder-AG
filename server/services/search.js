@@ -65,11 +65,16 @@ export const searchWeb = async (query) => {
   return [];
 };
 
-export const searchWebBatch = async (queries) => {
+export const searchWebBatch = async (queries, concurrency = 2) => {
   const allResults = {};
-  for (const q of queries) {
-    allResults[q] = await searchWeb(q);
-    await new Promise(r => setTimeout(r, 1000));
-  }
+  const queue = [...queries];
+  const run = async () => {
+    while (queue.length > 0) {
+      const q = queue.shift();
+      allResults[q] = await searchWeb(q);
+    }
+  };
+  const workers = Array.from({ length: Math.min(concurrency, queries.length) }, () => run());
+  await Promise.all(workers);
   return allResults;
 };

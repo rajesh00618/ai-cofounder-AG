@@ -19,7 +19,7 @@ export default function InvestorMode() {
   const [result, setResult] = useState(null);
 
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: "Hi, I'm your AI investor. Ask me anything about your startup, pitch, or fundraising strategy." }
+    { id: 'investor-init', role: 'assistant', content: "Hi, I'm your AI investor. Ask me anything about your startup, pitch, or fundraising strategy." }
   ]);
   const [input, setInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
@@ -51,15 +51,15 @@ export default function InvestorMode() {
 
   const sendChat = async () => {
     if (!input.trim() || chatLoading) return;
-    const userMsg = { role: 'user', content: input.trim() };
+    const userMsg = { id: `inv-user-${Date.now()}`, role: 'user', content: input.trim() };
     setInput('');
     setMessages(prev => [...prev, userMsg]);
     setChatLoading(true);
     try {
       const data = await api.investorChat(input.trim(), buildContext());
-      setMessages(prev => [...prev, { role: 'assistant', content: data.content }]);
+      setMessages(prev => [...prev, { id: `inv-ai-${Date.now()}`, role: 'assistant', content: data.content }]);
     } catch (err) {
-      setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${err.message}` }]);
+      setMessages(prev => [...prev, { id: `inv-err-${Date.now()}`, role: 'assistant', content: `Error: ${err.message}` }]);
     } finally {
       setChatLoading(false);
     }
@@ -165,27 +165,25 @@ export default function InvestorMode() {
                 <div style={styles.section}>
                   <h4 style={styles.sectionTitle}><ThumbsUp size={16} style={{ color: 'var(--color-success)' }} /> Strengths</h4>
                   <ul style={styles.list}>
-                    {result.strengths.map((s, i) => <li key={i} style={styles.listItem}>{s}</li>)}
+                    {result.strengths.map((s) => <li key={`str-${s.slice(0,20)}`} style={styles.listItem}>{s}</li>)}
                   </ul>
                 </div>
               )}
 
-              {/* Weaknesses */}
               {result.weaknesses && result.weaknesses.length > 0 && (
                 <div style={styles.section}>
                   <h4 style={styles.sectionTitle}><ThumbsDown size={16} style={{ color: 'var(--color-danger)' }} /> Weaknesses</h4>
                   <ul style={styles.list}>
-                    {result.weaknesses.map((w, i) => <li key={i} style={styles.listItem}>{w}</li>)}
+                    {result.weaknesses.map((w) => <li key={`weak-${w.slice(0,20)}`} style={styles.listItem}>{w}</li>)}
                   </ul>
                 </div>
               )}
 
-              {/* Hard Questions */}
               {result.hardQuestions && result.hardQuestions.length > 0 && (
                 <div style={{ ...styles.section, background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.1)', borderRadius: '12px', padding: '1rem 1.25rem' }}>
                   <h4 style={{ ...styles.sectionTitle, marginBottom: '0.75rem' }}><HelpCircle size={16} style={{ color: 'var(--color-warning)' }} /> Hard Questions You'll Face</h4>
                   <ul style={styles.list}>
-                    {result.hardQuestions.map((q, i) => <li key={i} style={styles.listItem}>{q}</li>)}
+                    {result.hardQuestions.map((q) => <li key={`hq-${q.slice(0,20)}`} style={styles.listItem}>{q}</li>)}
                   </ul>
                 </div>
               )}
@@ -208,13 +206,13 @@ export default function InvestorMode() {
         <div style={styles.chatPanel}>
           {/* Messages */}
           <div style={styles.chatArea}>
-            {messages.map((msg, i) => (
+            {messages.map((msg) => (
               msg.role === 'user' ? (
-                <div key={i} style={styles.userRow}>
+                <div key={msg.id} style={styles.userRow}>
                   <div style={styles.userBubble}>{msg.content}</div>
                 </div>
               ) : (
-                <div key={i} style={styles.investorMsg}>
+                <div key={msg.id} style={styles.investorMsg}>
                   <div style={styles.investorHeader}>
                     <DollarSign size={16} style={{ color: 'var(--color-accent-light)' }} />
                     <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>Investor</span>

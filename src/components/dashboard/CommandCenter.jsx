@@ -161,11 +161,11 @@ export default function CommandCenter({ onNavigate }) {
           <div style={styles.panel}>
             <h3 style={styles.panelTitle}><TrendingUp size={16} style={{ color: 'var(--color-warning)' }} /> Current Stage</h3>
             <div style={styles.stageRow}>
-              {STARTUP_STAGES.map((stage, i) => (
+              {STARTUP_STAGES.map((stage) => (
                 <div key={stage.id} style={{
                   ...styles.stageItem,
                   ...(stage.id === currentStage ? styles.stageActive : {}),
-                  opacity: STARTUP_STAGES.findIndex(s => s.id === currentStage) >= i ? 1 : 0.3
+                  opacity: STARTUP_STAGES.findIndex(s => s.id === currentStage) >= STARTUP_STAGES.findIndex(s => s.id === stage.id) ? 1 : 0.3
                 }}>
                   <span style={styles.stageEmoji}>{stage.icon}</span>
                   <span style={styles.stageLabel}>{stage.label}</span>

@@ -10,6 +10,7 @@ beforeEach(() => {
     settingsOpen: false,
     apiKey: '',
     notifications: [],
+    appError: null,
   });
 });
 
@@ -20,6 +21,7 @@ describe('appStore', () => {
     expect(state.sidebarOpen).toBe(true);
     expect(state.sidebarCollapsed).toBe(false);
     expect(state.apiKey).toBe('');
+    expect(state.appError).toBeNull();
   });
 
   it('sets current page', () => {
@@ -51,6 +53,11 @@ describe('appStore', () => {
     expect(useAppStore.getState().apiKey).toBe('sk-test-key');
   });
 
+  it('sets app error', () => {
+    useAppStore.getState().setAppError('Something went wrong');
+    expect(useAppStore.getState().appError).toBe('Something went wrong');
+  });
+
   it('adds and clears notifications', () => {
     useAppStore.getState().addNotification({ type: 'info', message: 'Test notification' });
     expect(useAppStore.getState().notifications).toHaveLength(1);
@@ -60,5 +67,27 @@ describe('appStore', () => {
     const nid = useAppStore.getState().notifications[0].id;
     useAppStore.getState().clearNotification(nid);
     expect(useAppStore.getState().notifications).toHaveLength(0);
+  });
+
+  it('resets to initial state', () => {
+    useAppStore.getState().setPage('dashboard');
+    useAppStore.getState().setApiKey('sk-test-key');
+    useAppStore.getState().addNotification({ message: 'Test' });
+    useAppStore.getState().resetApp();
+    const state = useAppStore.getState();
+    expect(state.currentPage).toBe('landing');
+    expect(state.apiKey).toBe('');
+    expect(state.notifications).toEqual([]);
+    expect(state.appError).toBeNull();
+  });
+
+  it('partializes persisted state (includes apiKey)', () => {
+    useAppStore.getState().setApiKey('sk-secret-key');
+    useAppStore.getState().setPage('dashboard');
+    const raw = localStorage.getItem('ai-cofounder-app-storage');
+    expect(raw).not.toBeNull();
+    const parsed = JSON.parse(raw);
+    expect(parsed.state.currentPage).toBe('dashboard');
+    expect(parsed.state.apiKey).toBe('sk-secret-key');
   });
 });

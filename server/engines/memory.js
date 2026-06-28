@@ -67,6 +67,10 @@ export const addMemoryEdge = async (userId, sourceNodeId, targetNodeId, relation
     .eq('target_node_id', targetNodeId).eq('relationship', relationship).maybeSingle();
   if (existing) throw new Error('Edge already exists');
 
+  // Cycle detection: BFS from targetNodeId to see if we can reach sourceNodeId
+  const wouldCreateCycle = await detectCycle(supabase, userId, targetNodeId, sourceNodeId);
+  if (wouldCreateCycle) throw new Error('Adding this edge would create a cycle');
+
   const id = uuidv4();
   const { error } = await supabase.from('memory_edges').insert({
     id, user_id: userId, source_node_id: sourceNodeId,
@@ -74,6 +78,25 @@ export const addMemoryEdge = async (userId, sourceNodeId, targetNodeId, relation
   });
   if (error) throw error;
   return id;
+};
+
+const detectCycle = async (supabase, userId, fromNodeId, toNodeId, visited = new Set()) => {
+  if (fromNodeId === toNodeId) return true;
+  if (visited.has(fromNodeId)) return false;
+  visited.add(fromNodeId);
+
+  const { data: edges } = await supabase
+    .from('memory_edges')
+    .select('target_node_id')
+    .eq('user_id', userId)
+    .eq('source_node_id', fromNodeId);
+
+  for (const edge of (edges || [])) {
+    if (await detectCycle(supabase, userId, edge.target_node_id, toNodeId, visited)) {
+      return true;
+    }
+  }
+  return false;
 };
 
 export const getMemoryGraph = async (userId, founderId, limit = 100, offset = 0) => {
@@ -92,16 +115,24 @@ export const getMemoryGraph = async (userId, founderId, limit = 100, offset = 0)
   const nodeIds = (nodes || []).map(n => n.id);
   if (nodeIds.length === 0) return { nodes: [], edges: [] };
 
-  const { data: sourceEdges, error: sourceError } = await supabase
+  // Fetch edges where EITHER source OR target is in the node set
+  const nodeIdSet = new Set(nodeIds);
+  const { data: edgesFromSource, error: sourceError } = await supabase
     .from('memory_edges')
     .select('*')
     .eq('user_id', userId)
     .in('source_node_id', nodeIds);
   if (sourceError) throw sourceError;
 
-  const nodeIdSet = new Set(nodeIds);
+  const { data: edgesFromTarget, error: targetError } = await supabase
+    .from('memory_edges')
+    .select('*')
+    .eq('user_id', userId)
+    .in('target_node_id', nodeIds);
+  if (targetError) throw targetError;
+
   const edgeMap = new Map();
-  for (const e of (sourceEdges || [])) {
+  for (const e of [...(edgesFromSource || []), ...(edgesFromTarget || [])]) {
     if (nodeIdSet.has(e.source_node_id) && nodeIdSet.has(e.target_node_id)) {
       edgeMap.set(e.id, e);
     }

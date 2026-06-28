@@ -1,21 +1,53 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      cache_from:
+        - ghcr.io/${REPOSITORY:-ai-cofounder}/app:latest
     ports:
       - "3001:3001"
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - NVIDIA_API_KEY=${NVIDIA_API_KEY}
-      - JWT_SECRET=${JWT_SECRET}
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - NVIDIA_API_KEY=${NVIDIA_API_KEY:?error}
+      - JWT_SECRET=${JWT_SECRET:?error}
+      - SUPABASE_URL=${SUPABASE_URL:?error}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY:?error}
       - AI_MODEL=${AI_MODEL:-meta/llama-4-maverick-17b-128e-instruct}
       - AI_BASE_URL=${AI_BASE_URL:-https://integrate.api.nvidia.com/v1}
       - BACKGROUND_RESEARCH_ENABLED=${BACKGROUND_RESEARCH_ENABLED:-true}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=64M
+      - /app/server/logs:noexec,nosuid,size=32M
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 15s
+      retries: 3
     deploy:
       resources:
         limits:
           cpus: '1.0'
           memory: 512M
+          pids: 100
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    labels:
+      - "app=ai-cofounder"
+      - "environment=production"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped

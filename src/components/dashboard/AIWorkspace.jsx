@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Fragment } from 'react';
 import { useFounderStore } from '../../store/founderStore';
 import { useChatStore } from '../../store/chatStore';
 import { useBusinessStore } from '../../store/businessStore';
@@ -19,9 +19,9 @@ const PANELS = [
 function ThinkBubble({ steps, current }) {
   return (
     <div style={tb.wrap}>
-      {steps.map((s, i) => (
-        <div key={i} style={{...tb.step, opacity: i <= current ? 1 : 0.3, color: i < current ? 'var(--color-success-light)' : i === current ? 'var(--color-accent-light)' : 'var(--color-text-muted)'}}>
-          {i < current ? <CheckCircle2 size={12} /> : i === current ? <Loader2 size={12} style={{animation:'spin 1s linear infinite'}} /> : <div style={{width:12,height:12}} />}
+      {steps.map((s) => (
+        <div key={s} style={{...tb.step, opacity: steps.indexOf(s) <= current ? 1 : 0.3, color: steps.indexOf(s) < current ? 'var(--color-success-light)' : steps.indexOf(s) === current ? 'var(--color-accent-light)' : 'var(--color-text-muted)'}}>
+          {steps.indexOf(s) < current ? <CheckCircle2 size={12} /> : steps.indexOf(s) === current ? <Loader2 size={12} style={{animation:'spin 1s linear infinite'}} /> : <div style={{width:12,height:12}} />}
           <span>{s}</span>
         </div>
       ))}
@@ -117,7 +117,7 @@ export default function AIWorkspace() {
               </p>
               <div style={styles.quickActions}>
                 {['What should I do next?','Analyze my competitors','Help me with pricing','Review my strategy'].map(q => (
-                  <button key={q} style={styles.quickBtn} onClick={() => { setInput(q); }}>
+                  <button key={`qa-${q}`} style={styles.quickBtn} onClick={() => { setInput(q); }}>
                     {q}
                   </button>
                 ))}
@@ -137,15 +137,15 @@ export default function AIWorkspace() {
                     {new Date(msg.timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}
                   </span>
                 </div>
-                <div style={styles.msgText}>{msg.content.split('\n').map((line, i) => {
-                  if (line.startsWith('**') && line.endsWith('**')) return <strong key={i} style={{display:'block',marginTop:'0.5rem'}}>{line.replace(/\*\*/g,'')}</strong>;
+                <div style={styles.msgText}>{msg.content.split('\n').map((line) => {
+                  if (line.startsWith('**') && line.endsWith('**')) return <strong key={`bold-${line}`} style={{display:'block',marginTop:'0.5rem'}}>{line.replace(/\*\*/g,'')}</strong>;
                   if (line.startsWith('**')) {
                     const parts = line.split('**');
-                    return <p key={i} style={{margin:'0.25rem 0'}}>{parts.map((p,j) => j%2===1 ? <strong key={j}>{p}</strong> : p)}</p>;
+                    return <p key={`pbold-${line.slice(0,20)}`} style={{margin:'0.25rem 0'}}>{parts.map((p, j) => j%2===1 ? <strong key={`seg-${p.slice(0,5)}`}>{p}</strong> : <Fragment key={`sg-${p.slice(0,5)}`}>{p}</Fragment>)}</p>;
                   }
-                  if (line.match(/^\d\./)) return <p key={i} style={{margin:'0.25rem 0',paddingLeft:'0.5rem'}}>{line}</p>;
-                  if (line.startsWith('⚠️') || line.startsWith('🎯') || line.startsWith('📊') || line.startsWith('📋') || line.startsWith('🏗️') || line.startsWith('🧠') || line.startsWith('👥') || line.startsWith('💡')) return <p key={i} style={{margin:'0.25rem 0'}}>{line}</p>;
-                  return line ? <p key={i} style={{margin:'0.25rem 0'}}>{line}</p> : <br key={i} />;
+                  if (line.match(/^\d\./)) return <p key={`enum-${line}`} style={{margin:'0.25rem 0',paddingLeft:'0.5rem'}}>{line}</p>;
+                  if (line.startsWith('⚠️') || line.startsWith('🎯') || line.startsWith('📊') || line.startsWith('📋') || line.startsWith('🏗️') || line.startsWith('🧠') || line.startsWith('👥') || line.startsWith('💡')) return <p key={`icon-${line.slice(0,30)}`} style={{margin:'0.25rem 0'}}>{line}</p>;
+                  return line ? <p key={`text-${line.slice(0,20)}`} style={{margin:'0.25rem 0'}}>{line}</p> : <br key={`br-${Math.random()}`} />;
                 })}</div>
                 {msg.confidence && (
                   <div style={styles.confidenceBar}>
@@ -177,7 +177,7 @@ export default function AIWorkspace() {
             style={styles.input}
             disabled={isThinking}
           />
-          <button className="btn btn-primary" onClick={handleSend} disabled={!input.trim() || isThinking}>
+          <button className="btn btn-primary" onClick={handleSend} disabled={!input.trim() || isThinking} aria-label="Send message">
             <Send size={16} />
           </button>
         </div>
@@ -201,7 +201,7 @@ export default function AIWorkspace() {
               {blueprint ? (
                 <>
                   {[{l:'Customer',v:blueprint.targetCustomer},{l:'Problem',v:blueprint.problem},{l:'Solution',v:blueprint.solution},{l:'Pricing',v:blueprint.revenueModel},{l:'Market',v:blueprint.marketSize}].map(item => (
-                    <div key={item.l} style={styles.fieldCard}>
+                    <div key={`fld-${item.l}`} style={styles.fieldCard}>
                       <div style={styles.fieldLabel}>{item.l}</div>
                       <div style={styles.fieldValue}>{item.v}</div>
                     </div>

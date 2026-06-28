@@ -1,4 +1,4 @@
-import { callOpenAI, extractJSON } from '../services/ai.js';
+import { callOpenAI, extractJSON, sanitizeForPrompt } from '../services/ai.js';
 
 const PROMPT = `You are an AI document generator for startups. Given a document type and business context, generate professional content.
 Return JSON: { title, content (full document body with markdown formatting), sections: [{ heading, body }] }
@@ -14,7 +14,7 @@ Available document types:
 - competitor-analysis: Competitive analysis report`;
 
 export const generateDocument = async (apiKey, docType, businessContext) => {
-  const userPrompt = `Generate a "${docType}" document for:\n${JSON.stringify(businessContext || {})}`;
+  const userPrompt = `Generate a "${sanitizeForPrompt(docType)}" document for:\n${sanitizeForPrompt(JSON.stringify(businessContext || {}))}`;
   const response = await callOpenAI(apiKey, PROMPT, userPrompt, 0.3);
   return extractJSON(response);
 };

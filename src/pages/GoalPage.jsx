@@ -45,17 +45,17 @@ function ScoreRadar({ scores }) {
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{display:'block',margin:'0 auto'}}>
       {[20,40,60,80,100].map(v => {
-        const pts = dims.map((_, i) => getPoint(i, v));
-        return <polygon key={v} points={pts.map(p=>`${p.x},${p.y}`).join(' ')} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />;
+        const pts = dims.map((d) => getPoint(dims.indexOf(d), v));
+        return <polygon key={`sg-${v}`} points={pts.map(p=>`${p.x},${p.y}`).join(' ')} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />;
       })}
-      {dims.map((_, i) => {
-        const end = getPoint(i, 100);
-        return <line key={i} x1={cx} y1={cy} x2={end.x} y2={end.y} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />;
+      {dims.map((d) => {
+        const end = getPoint(dims.indexOf(d), 100);
+        return <line key={`sl-${d}`} x1={cx} y1={cy} x2={end.x} y2={end.y} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />;
       })}
       <polygon points={polygon} fill="rgba(99,102,241,0.15)" stroke="var(--color-accent)" strokeWidth="2" />
-      {dims.map((d, i) => {
-        const lp = getPoint(i, 120);
-        return <text key={i} x={lp.x} y={lp.y} fill="var(--color-text-tertiary)" fontSize="8" textAnchor="middle" dominantBaseline="middle">{d.split(' ')[0]}</text>;
+      {dims.map((d) => {
+        const lp = getPoint(dims.indexOf(d), 120);
+        return <text key={`st-${d}`} x={lp.x} y={lp.y} fill="var(--color-text-tertiary)" fontSize="8" textAnchor="middle" dominantBaseline="middle">{d.split(' ')[0]}</text>;
       })}
     </svg>
   );
@@ -182,7 +182,7 @@ export default function GoalPage() {
           setPhase(PHASES.REALITY);
         }
       } catch (error) {
-        setPageError('API Error: ' + error.message + ' — your answers are saved. Try again from the goal. ');
+        setPageError('API Error: ' + error.message + ' — your answers are saved. Try again from the goal.');
         setPhase(PHASES.CLARIFYING);
       }
       setThinking(false);
@@ -294,9 +294,9 @@ export default function GoalPage() {
               </div>
             ) : (
               <div style={styles.clarOptions}>
-                {clarQuestions[clarStep]?.opts.map((opt, i) => (
-                  <button key={i} onClick={() => handleClarAnswer(clarQuestions[clarStep].id, opt)}
-                    style={{...styles.clarBtn, animationDelay:`${i*60}ms`}} className="page-enter">
+                {clarQuestions[clarStep]?.opts.map((opt) => (
+                  <button key={`opt-${opt.slice(0,15)}`} onClick={() => handleClarAnswer(clarQuestions[clarStep].id, opt)}
+                    style={{...styles.clarBtn, animationDelay:`${clarQuestions[clarStep]?.opts.indexOf(opt)*60}ms`}} className="page-enter">
                     {opt}
                   </button>
                 ))}
@@ -307,7 +307,7 @@ export default function GoalPage() {
               </div>
             )}
             {clarStep === 0 && (
-              <button className="btn btn-ghost" onClick={() => { setPhase(PHASES.GOAL_INPUT); setGoalText(lastGoalInput || goalText); setPageError(''); }} style={{marginTop:'1rem'}}>
+              <button className="btn btn-ghost" onClick={() => { setPhase(PHASES.GOAL_INPUT); setGoalText(lastGoalInput || goalText); setPageError(''); setClarCustomMode(false); setClarCustomInput(''); setClarAnswers({}); setClarStep(0); }} style={{marginTop:'1rem'}}>
                 <ArrowLeft size={14} /> Back to goal
               </button>
             )}
@@ -344,8 +344,8 @@ export default function GoalPage() {
             <ScoreRadar scores={reality.scores} />
             <div style={styles.riskSection}>
               <h4 style={styles.riskTitle}><AlertTriangle size={16} style={{color:'var(--color-warning)'}} /> Main Risks</h4>
-              {reality.risks.map((r, i) => (
-                <div key={i} style={styles.riskItem}>• {r}</div>
+              {reality.risks.map((r) => (
+                <div key={`rr-${r.slice(0,20)}`} style={styles.riskItem}>• {r}</div>
               ))}
             </div>
             <div style={styles.recommendation}>
@@ -368,23 +368,23 @@ export default function GoalPage() {
             </div>
             <p style={styles.negText}>Your current goal has a low success probability. I'm not going to sugarcoat it — here are better alternatives:</p>
             <div style={styles.altGrid}>
-              <div style={{...styles.altCard, ...(selectedAlt === 'current' ? styles.altSelected : {}), borderColor:'rgba(239,68,68,0.3)'}} onClick={() => handleSelectAlternative('current')} role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSelectAlternative('current'); } }}>
+              <button type="button" style={{...styles.altCard, ...(selectedAlt === 'current' ? styles.altSelected : {}), borderColor:'rgba(239,68,68,0.3)'}} onClick={() => handleSelectAlternative('current')} aria-pressed={selectedAlt === 'current'}>
                 <div style={styles.altHeader}>
                   <span style={styles.altLabel}>Current Goal</span>
                   <span className="badge badge-danger">HIGH RISK</span>
                 </div>
                 <div style={styles.altGoal}>{negotiation.current.label}</div>
                 <div style={styles.altProb}>Success: {negotiation.current.probability}</div>
-              </div>
+              </button>
               {negotiation.alternatives.map((alt, i) => (
-                <div key={i} style={{...styles.altCard, ...(selectedAlt === `alt${i}` ? styles.altSelected : {})}} onClick={() => handleSelectAlternative(`alt${i}`)} role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSelectAlternative(`alt${i}`); } }}>
+                <button type="button" key={`alt-${alt.label?.slice(0,15) || i}`} style={{...styles.altCard, ...(selectedAlt === `alt${i}` ? styles.altSelected : {})}} onClick={() => handleSelectAlternative(`alt${i}`)} aria-pressed={selectedAlt === `alt${i}`}>
                   <div style={styles.altHeader}>
                     <span style={styles.altLabel}>Alternative {String.fromCharCode(65 + i)}</span>
                     <span className={`badge ${alt.risk === 'Low' ? 'badge-success' : 'badge-warning'}`}>{alt.risk} RISK</span>
                   </div>
                   <div style={styles.altGoal}>{alt.label}</div>
                   <div style={{...styles.altProb, color:'var(--color-success-light)'}}>Success: {alt.probability}</div>
-                </div>
+                </button>
               ))}
             </div>
             <p style={styles.negNote}>You make the final decision. I'm here to inform, not override.</p>

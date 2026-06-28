@@ -1,4 +1,4 @@
-import { callOpenAI, extractJSON } from '../services/ai.js';
+import { callOpenAI, extractJSON, sanitizeForPrompt } from '../services/ai.js';
 
 /**
  * @deprecated Remote code execution has been disabled for security.
@@ -22,7 +22,7 @@ Return JSON: {
     "steps": [{ "id": 1, "label": "Step name", "duration": "estimated duration like 30s", "type": "generate|shell|review" }]
   }
 }`;
-  const userPrompt = `Task: ${JSON.stringify(task)}`;
+  const userPrompt = `Task: ${sanitizeForPrompt(JSON.stringify(task))}`;
   const response = await callOpenAI(apiKey, prompt, userPrompt, 0.3);
   return extractJSON(response);
 };
@@ -41,7 +41,7 @@ DO NOT execute any code. Return JSON:
   ],
   "instructions": "How to use/run this (describe, do not execute)"
 }`;
-    const userPrompt = `Task: ${JSON.stringify(task)}`;
+    const userPrompt = `Task: ${sanitizeForPrompt(JSON.stringify(task))}`;
     const response = await callOpenAI(apiKey, prompt, userPrompt, 0.3);
     const gen = extractJSON(response);
 

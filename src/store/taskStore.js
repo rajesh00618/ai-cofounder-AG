@@ -8,6 +8,7 @@ export const useTaskStore = create(
   tasks: [],
   sprints: [],
   currentSprintId: null,
+  taskError: null,
 
   addTask: (task) => set(s => ({
     tasks: [...s.tasks, {
@@ -36,6 +37,8 @@ export const useTaskStore = create(
 
   deleteTask: (id) => set(s => ({ tasks: s.tasks.filter(t => t.id !== id) })),
 
+  setTaskError: (error) => set({ taskError: error }),
+
   createSprint: (sprint) => {
     const id = generateId();
     set(s => ({
@@ -56,6 +59,13 @@ export const useTaskStore = create(
 
   getTasksByStatus: (status) => get().tasks.filter(t => t.status === status),
   getTasksBySprint: (sprintId) => get().tasks.filter(t => t.sprintId === sprintId),
+
+  resetTasks: () => set({
+    tasks: [],
+    sprints: [],
+    currentSprintId: null,
+    taskError: null,
+  }),
     }),
     {
       name: 'ai-cofounder-task-storage',

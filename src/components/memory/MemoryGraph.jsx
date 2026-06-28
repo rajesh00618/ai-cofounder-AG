@@ -9,7 +9,9 @@ const NODE_COLORS = {
   goal: '#8b5cf6', project: '#06b6d4'
 };
 
-const EDGE_TYPES = ['depends_on', 'triggers', 'relates_to', 'inspired_by', 'blocks', 'implements', 'references'];
+const EDGE_TYPES = ['related_to', 'depends_on', 'part_of', 'influences', 'blocks', 'enables', 'contradicts'];
+
+const GRAPH_SIZE_WARNING = 80;
 
 const forceLayout = (nodes, edges, width, height) => {
   const positions = nodes.map(() => ({
@@ -21,9 +23,12 @@ const forceLayout = (nodes, edges, width, height) => {
   const REPULSION = 5000;
   const ATTRACTION = 0.005;
   const DAMPING = 0.85;
-  const ITERATIONS = 50;
+  const MAX_ITERATIONS = nodes.length > 100 ? 25 : 50;
+  const MIN_ENERGY = 5;
 
-  for (let iter = 0; iter < ITERATIONS; iter++) {
+  for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
+    let totalEnergy = 0;
+
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
         let dx = positions[j].x - positions[i].x;
@@ -55,7 +60,10 @@ const forceLayout = (nodes, edges, width, height) => {
       p.y += p.vy;
       p.x = Math.max(40, Math.min(width - 40, p.x));
       p.y = Math.max(40, Math.min(height - 40, p.y));
+      totalEnergy += Math.abs(p.vx) + Math.abs(p.vy);
     }
+
+    if (totalEnergy < MIN_ENERGY) break;
   }
 
   return positions;
@@ -63,8 +71,8 @@ const forceLayout = (nodes, edges, width, height) => {
 
 const relationshipLabel = (rel) => {
   const labels = {
-    depends_on: 'depends on', triggers: 'triggers', relates_to: 'relates to',
-    inspired_by: 'inspired by', blocks: 'blocks', implements: 'implements', references: 'references',
+    related_to: 'related to', depends_on: 'depends on', part_of: 'part of',
+    influences: 'influences', blocks: 'blocks', enables: 'enables', contradicts: 'contradicts',
   };
   return labels[rel] || rel;
 };
@@ -77,7 +85,10 @@ export default function MemoryGraph() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newNode, setNewNode] = useState({ type: 'idea', label: '', metadata: '' });
   const [showEdgeModal, setShowEdgeModal] = useState(false);
-  const [newEdge, setNewEdge] = useState({ sourceId: '', targetId: '', relationship: 'relates_to' });
+  const [newEdge, setNewEdge] = useState({ sourceId: '', targetId: '', relationship: 'related_to' });
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const PAGE_LIMIT = 100;
   const svgRef = useRef(null);
   const [svgWidth, setSvgWidth] = useState(700);
 
@@ -92,11 +103,30 @@ export default function MemoryGraph() {
     return () => window.removeEventListener('resize', resize);
   }, []);
 
-  const loadGraph = useCallback(async () => {
+  useEffect(() => {
+    if (!showAddModal && !showEdgeModal) return;
+    const handler = (e) => {
+      if (e.key === 'Escape') {
+        setShowAddModal(false);
+        setShowEdgeModal(false);
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [showAddModal, showEdgeModal]);
+
+  const loadGraph = useCallback(async (loadOffset = 0, append = false) => {
     try {
       if (profile?.id) {
-        const data = await api.getMemoryGraph(profile.id);
-        if (data && data.nodes) setGraph(data);
+        const data = await api.getMemoryGraph(profile.id, PAGE_LIMIT, loadOffset);
+        if (data && data.nodes) {
+          setGraph(prev => append ? {
+            nodes: [...prev.nodes, ...data.nodes],
+            edges: [...prev.edges, ...data.edges],
+          } : data);
+          setHasMore(data.nodes.length >= PAGE_LIMIT);
+          setOffset(loadOffset);
+        }
       }
     } catch (err) {
       setMemError('Could not load memory graph: ' + err.message);
@@ -105,6 +135,10 @@ export default function MemoryGraph() {
   }, [profile]);
 
   useEffect(() => { loadGraph(); }, [loadGraph]);
+
+  const loadMore = useCallback(() => {
+    loadGraph(offset + PAGE_LIMIT, true);
+  }, [loadGraph, offset]);
 
   const handleAddNode = async () => {
     if (!newNode.label.trim() || !profile?.id) return;
@@ -122,7 +156,7 @@ export default function MemoryGraph() {
     if (!newEdge.sourceId || !newEdge.targetId) return;
     try {
       await api.addMemoryEdge(newEdge.sourceId, newEdge.targetId, newEdge.relationship);
-      setNewEdge({ sourceId: '', targetId: '', relationship: 'relates_to' });
+      setNewEdge({ sourceId: '', targetId: '', relationship: 'related_to' });
       setShowEdgeModal(false);
       await loadGraph();
     } catch (err) {
@@ -171,13 +205,19 @@ export default function MemoryGraph() {
         </div>
       ) : (
         <>
+          {nodes.length > GRAPH_SIZE_WARNING && (
+            <div style={{ padding: '0.5rem 1rem', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: '10px', fontSize: '0.75rem', color: '#f59e0b', marginBottom: '1rem' }}>
+              Large graph detected ({nodes.length} nodes). Rendering may be slower. Consider filtering by type.
+            </div>
+          )}
           <div style={styles.graphCard}>
             <svg ref={svgRef} width="100%" height={SVG_H} viewBox={`0 0 ${SVG_W} ${SVG_H}`} style={{ display: 'block' }}>
-              {usedPairs.map(({ pair: [fromIdx, toIdx], edge }, edgeIdx) => {
+              {usedPairs.map(({ pair: [fromIdx, toIdx], edge }) => {
                 const a = positions[fromIdx], b = positions[toIdx];
                 const midX = (a.x + b.x) / 2, midY = (a.y + b.y) / 2;
+                const edgeKey = `${edge?.source_node_id || fromIdx}-${edge?.target_node_id || toIdx}`;
                 return (
-                  <g key={`edge-${fromIdx}-${toIdx}-${edgeIdx}`}>
+                  <g key={`ed-${edgeKey}`}>
                     <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="rgba(255,255,255,0.12)" strokeWidth="1.5" />
                     <text x={midX} y={midY - 8} fill="rgba(255,255,255,0.25)" fontSize="7" textAnchor="middle">
                       {relationshipLabel(edge?.relationship)}
@@ -238,12 +278,18 @@ export default function MemoryGraph() {
               );
             })}
           </div>
+
+          {hasMore && (
+            <button className="btn btn-secondary" onClick={loadMore} style={{ marginTop: '1rem', width: '100%' }}>
+              Load More Nodes
+            </button>
+          )}
         </>
       )}
 
       {showAddModal && (
-        <div style={styles.overlay} onClick={() => setShowAddModal(false)} onKeyDown={e => e.key === 'Escape' && setShowAddModal(false)}>
-          <div style={styles.modal} onClick={e => e.stopPropagation()} onKeyDown={e => e.key === 'Escape' && setShowAddModal(false)}>
+        <div style={styles.overlay} onClick={() => setShowAddModal(false)}>
+          <div style={styles.modal} onClick={e => e.stopPropagation()}>
             <h3 style={{ marginBottom: '1rem' }}>Add Memory Node</h3>
             <select value={newNode.type} onChange={e => setNewNode(p => ({ ...p, type: e.target.value }))} style={styles.input}>
               {Object.keys(NODE_COLORS).map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
@@ -259,8 +305,8 @@ export default function MemoryGraph() {
       )}
 
       {showEdgeModal && (
-        <div style={styles.overlay} onClick={() => setShowEdgeModal(false)} onKeyDown={e => e.key === 'Escape' && setShowEdgeModal(false)}>
-          <div style={styles.modal} onClick={e => e.stopPropagation()} onKeyDown={e => e.key === 'Escape' && setShowEdgeModal(false)}>
+        <div style={styles.overlay} onClick={() => setShowEdgeModal(false)}>
+          <div style={styles.modal} onClick={e => e.stopPropagation()}>
             <h3 style={{ marginBottom: '1rem' }}>Add Edge Connection</h3>
             <select value={newEdge.sourceId} onChange={e => setNewEdge(p => ({ ...p, sourceId: e.target.value }))} style={styles.input}>
               <option value="">Select source node...</option>

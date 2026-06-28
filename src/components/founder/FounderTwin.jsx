@@ -20,7 +20,11 @@ export default function FounderTwin() {
       setAnalyzing(true);
       api.analyzeDNA(useFounderStore.getState().profile)
         .then(res => {
-          if (res.dnaScores) useFounderStore.getState().updateDnaScore && Object.entries(res.dnaScores).forEach(([k, v]) => useFounderStore.setState(s => ({ dnaScores: { ...s.dnaScores, [k]: v } })));
+          if (res.dnaScores) {
+            const updater = useFounderStore.getState().updateDnaScore;
+            if (typeof updater === 'function') updater(res.dnaScores);
+            Object.entries(res.dnaScores).forEach(([k, v]) => useFounderStore.setState(s => ({ dnaScores: { ...s.dnaScores, [k]: v } })));
+          }
           if (res.founderTwin) useFounderStore.setState({ founderTwin: res.founderTwin });
         })
         .catch(() => {})
@@ -66,17 +70,17 @@ export default function FounderTwin() {
             <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', display: 'block' }}>Average Score</span>
           </div>
           <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: 'block', margin: '0 auto' }}>
-            {[20, 40, 60, 80, 100].map(v => { const pts = dims.map((_, i) => getPoint(i, v)); return <polygon key={v} points={pts.map(p => `${p.x},${p.y}`).join(' ')} fill="none" stroke="rgba(255,255,255,0.06)" />; })}
-            {dims.map((_, i) => { const end = getPoint(i, 100); return <line key={i} x1={cx} y1={cy} x2={end.x} y2={end.y} stroke="rgba(255,255,255,0.04)" />; })}
+            {[20, 40, 60, 80, 100].map(v => { const pts = dims.map((d) => getPoint(dims.indexOf(d), v)); return <polygon key={`g${v}`} points={pts.map(p => `${p.x},${p.y}`).join(' ')} fill="none" stroke="rgba(255,255,255,0.06)" />; })}
+            {dims.map((d) => { const end = getPoint(dims.indexOf(d), 100); return <line key={`ax-${d}`} x1={cx} y1={cy} x2={end.x} y2={end.y} stroke="rgba(255,255,255,0.04)" />; })}
             <polygon points={polygon} fill="rgba(99,102,241,0.15)" stroke="var(--color-accent)" strokeWidth="2" />
-            {dims.map((d, i) => { const lp = getPoint(i, 125); return <text key={i} x={lp.x} y={lp.y} fill="var(--color-text-tertiary)" fontSize="8" textAnchor="middle" dominantBaseline="middle">{d.split(' ')[0]}</text>; })}
+            {dims.map((d) => { const lp = getPoint(dims.indexOf(d), 125); return <text key={`lb-${d}`} x={lp.x} y={lp.y} fill="var(--color-text-tertiary)" fontSize="8" textAnchor="middle" dominantBaseline="middle">{d.split(' ')[0]}</text>; })}
           </svg>
         </div>
 
         <div style={styles.card}>
           <h3 style={styles.cardTitle}>Dimension Breakdown</h3>
-          {dims.map(d => (
-            <div key={d} style={styles.scoreRow}>
+            {dims.map(d => (
+            <div key={`dna-${d}`} style={styles.scoreRow}>
               <span style={styles.scoreLabel}>{d}</span>
               <div className="progress-bar" style={{ flex: 1, height: '4px' }}>
                 <div className="progress-bar-fill" style={{ width: `${dnaScores[d]}%`, background: getScoreColor(dnaScores[d]) }} />
@@ -90,14 +94,14 @@ export default function FounderTwin() {
       <div style={styles.twinCard}>
         <h3 style={styles.cardTitle}><Brain size={16} style={{ color: 'var(--color-accent-light)' }} /> Founder Twin Model</h3>
         <div style={styles.twinGrid}>
-          {[{ label: 'Think Style', value: founderTwin.thinkStyle, icon: '\uD83E\uDDE0' },
-          { label: 'Decision Style', value: founderTwin.decideStyle, icon: '\u26A1' },
-          { label: 'Learn Style', value: founderTwin.learnStyle, icon: '\uD83D\uDCDA' },
-          { label: 'Work Pattern', value: founderTwin.workPattern, icon: '\u23F0' },
-          { label: 'Failure Pattern', value: founderTwin.failurePattern, icon: '\u26A0\uFE0F' },
-          { label: 'Recovery', value: founderTwin.recoveryPattern, icon: '\uD83D\uDD04' }
+          {[{ label: 'Think Style', value: founderTwin?.thinkStyle, icon: '\uD83E\uDDE0' },
+          { label: 'Decision Style', value: founderTwin?.decideStyle, icon: '\u26A1' },
+          { label: 'Learn Style', value: founderTwin?.learnStyle, icon: '\uD83D\uDCDA' },
+          { label: 'Work Pattern', value: founderTwin?.workPattern, icon: '\u23F0' },
+          { label: 'Failure Pattern', value: founderTwin?.failurePattern, icon: '\u26A0\uFE0F' },
+          { label: 'Recovery', value: founderTwin?.recoveryPattern, icon: '\uD83D\uDD04' }
           ].map(item => (
-            <div key={item.label} style={styles.twinItem}>
+            <div key={`twin-${item.label}`} style={styles.twinItem}>
               <span style={{ fontSize: '1.25rem' }}>{item.icon}</span>
               <div>
                 <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.label}</div>
@@ -119,8 +123,8 @@ export default function FounderTwin() {
         ) : adaptations.length === 0 ? (
           <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>No specific adaptations needed right now.</p>
         ) : (
-          adaptations.map((a, i) => (
-            <div key={i} style={styles.adaptRow}>
+          adaptations.map((a) => (
+            <div key={`ad-${a.weakness?.slice(0,20) || Math.random()}`} style={styles.adaptRow}>
               <span className="badge badge-warning" style={{ fontSize: '0.5rem', minWidth: '60px', justifyContent: 'center' }}>{a.weakness}</span>
               <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>→ {a.action}</span>
             </div>

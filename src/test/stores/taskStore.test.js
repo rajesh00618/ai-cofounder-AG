@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useTaskStore } from '../../store/taskStore';
 
 beforeEach(() => {
-  useTaskStore.setState({ tasks: [], sprints: [], currentSprintId: null });
+  useTaskStore.setState({ tasks: [], sprints: [], currentSprintId: null, taskError: null });
 });
 
 describe('taskStore', () => {
@@ -11,6 +11,7 @@ describe('taskStore', () => {
     expect(state.tasks).toEqual([]);
     expect(state.sprints).toEqual([]);
     expect(state.currentSprintId).toBeNull();
+    expect(state.taskError).toBeNull();
   });
 
   it('adds a task', () => {
@@ -87,5 +88,21 @@ describe('taskStore', () => {
     useTaskStore.getState().addTask({ title: 'Other sprint task', sprintId: otherSprintId });
     expect(useTaskStore.getState().getTasksBySprint(sprintId)).toHaveLength(1);
     expect(useTaskStore.getState().getTasksBySprint(otherSprintId)).toHaveLength(1);
+  });
+
+  it('sets and clears task error', () => {
+    useTaskStore.getState().setTaskError('Failed to create task');
+    expect(useTaskStore.getState().taskError).toBe('Failed to create task');
+  });
+
+  it('resets task state', () => {
+    useTaskStore.getState().addTask({ title: 'T1' });
+    useTaskStore.getState().createSprint({ goal: 'Sprint 1' });
+    useTaskStore.getState().resetTasks();
+    const state = useTaskStore.getState();
+    expect(state.tasks).toEqual([]);
+    expect(state.sprints).toEqual([]);
+    expect(state.currentSprintId).toBeNull();
+    expect(state.taskError).toBeNull();
   });
 });

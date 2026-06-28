@@ -112,7 +112,7 @@ export default function OnboardingPage() {
               <div style={styles.optionsGrid}>
                 {currentQ.options.map((opt, i) => (
                   <button
-                    key={i}
+                    key={`opt-${opt.slice(0,15)}`}
                     onClick={() => handleSelect(opt)}
                     style={{
                       ...styles.optionBtn,
@@ -146,11 +146,11 @@ export default function OnboardingPage() {
 
         {/* Step dots */}
         <div style={styles.dots}>
-          {ONBOARDING_QUESTIONS.map((_, i) => (
-            <div key={i} style={{
+          {ONBOARDING_QUESTIONS.map((q) => (
+            <div key={`dot-${q.id}`} style={{
               ...styles.dot,
-              background: i < onboardingStep ? 'var(--color-accent)' :
-                          i === onboardingStep ? 'var(--color-accent-light)' :
+              background: (q.id - 1) < onboardingStep ? 'var(--color-accent)' :
+                          (q.id - 1) === onboardingStep ? 'var(--color-accent-light)' :
                           'rgba(255,255,255,0.1)'
             }} />
           ))}

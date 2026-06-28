@@ -77,8 +77,8 @@ export default function TaskEngine() {
         </button>
         {suggestions.length > 0 && (
           <div style={styles.suggestions}>
-            {suggestions.map((s, i) => (
-              <button key={i} className="badge badge-accent" style={{ cursor: 'pointer', fontSize: '0.75rem', padding: '0.25rem 0.75rem' }} onClick={() => addSuggestion(s)}>
+            {suggestions.map((s) => (
+              <button key={`sug-${s.slice(0,20)}`} className="badge badge-accent" style={{ cursor: 'pointer', fontSize: '0.75rem', padding: '0.25rem 0.75rem' }} onClick={() => addSuggestion(s)}>
                 + {s}
               </button>
             ))}

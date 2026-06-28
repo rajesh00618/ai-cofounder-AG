@@ -9,6 +9,7 @@ beforeEach(() => {
     currentStage: 'idea',
     businessAnswers: {},
     documents: [],
+    businessError: null,
   });
 });
 
@@ -18,6 +19,7 @@ describe('businessStore', () => {
     expect(state.blueprint).toBeNull();
     expect(state.currentStage).toBe('idea');
     expect(state.documents).toEqual([]);
+    expect(state.businessError).toBeNull();
   });
 
   it('sets blueprint', () => {
@@ -76,5 +78,21 @@ describe('businessStore', () => {
     const docId = useBusinessStore.getState().documents[0].id;
     useBusinessStore.getState().updateDocument(docId, { title: 'PRD v2' });
     expect(useBusinessStore.getState().documents[0].title).toBe('PRD v2');
+  });
+
+  it('sets and clears business error', () => {
+    useBusinessStore.getState().setBusinessError('Failed to generate blueprint');
+    expect(useBusinessStore.getState().businessError).toBe('Failed to generate blueprint');
+    useBusinessStore.getState().setBlueprint({ problem: 'test' });
+    expect(useBusinessStore.getState().businessError).toBeNull();
+  });
+
+  it('resets business state', () => {
+    useBusinessStore.getState().setBlueprint({ problem: 'test' });
+    useBusinessStore.getState().updateHealthScore('marketing', 90);
+    useBusinessStore.getState().resetBusiness();
+    expect(useBusinessStore.getState().blueprint).toBeNull();
+    expect(useBusinessStore.getState().businessHealth.marketing).toBe(0);
+    expect(useBusinessStore.getState().businessError).toBeNull();
   });
 });

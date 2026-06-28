@@ -1,4 +1,4 @@
-import { callOpenAI, extractJSON } from '../services/ai.js';
+import { callOpenAI, extractJSON, sanitizeForPrompt } from '../services/ai.js';
 
 const BLUEPRINT_PROMPT = `You are a seasoned startup advisor and business strategist. Given a founder's answers about their idea, generate a comprehensive business blueprint in valid JSON only.
 
@@ -22,16 +22,16 @@ Return EXACTLY this JSON structure (no markdown, no code fences):
 }`;
 
 export const generateBlueprint = async (apiKey, answers, founderProfile) => {
-  const userPrompt = `Founder: ${founderProfile?.name || 'Unknown'}
-Experience: ${founderProfile?.experienceLevel || 'First-time'}
-Team: ${founderProfile?.teamStatus || 'Solo'}
-Time: ${founderProfile?.timeAvailable || 'Part-time'}
+  const userPrompt = `Founder: ${sanitizeForPrompt(founderProfile?.name || 'Unknown')}
+Experience: ${sanitizeForPrompt(founderProfile?.experienceLevel || 'First-time')}
+Team: ${sanitizeForPrompt(founderProfile?.teamStatus || 'Solo')}
+Time: ${sanitizeForPrompt(founderProfile?.timeAvailable || 'Part-time')}
 Answers:
-- Target Customer: ${answers[1] || 'Not specified'}
-- Problem: ${answers[2] || 'Not specified'}
-- Current Alternatives: ${answers[3] || 'Not specified'}
-- Pricing: ${answers[4] || 'Not specified'}
-- Advantage: ${answers[5] || 'Not specified'}`;
+- Target Customer: ${sanitizeForPrompt(answers[1] || 'Not specified')}
+- Problem: ${sanitizeForPrompt(answers[2] || 'Not specified')}
+- Current Alternatives: ${sanitizeForPrompt(answers[3] || 'Not specified')}
+- Pricing: ${sanitizeForPrompt(answers[4] || 'Not specified')}
+- Advantage: ${sanitizeForPrompt(answers[5] || 'Not specified')}`;
 
   const response = await callOpenAI(apiKey, BLUEPRINT_PROMPT, userPrompt, 0.3);
   return extractJSON(response);
@@ -44,10 +44,15 @@ Return EXACTLY this JSON array (no markdown, no code fences):
 ]`;
 
 export const generateBlueprintTasks = async (apiKey, answers, blueprint) => {
-  const userPrompt = `Answers:\n${Object.entries(answers || {}).map(([k,v]) => `- ${k}: ${v}`).join('\n')}\n\nBlueprint:\nExecutive Summary: ${blueprint?.executiveSummary || ''}\nProblem: ${blueprint?.problem || ''}\nMVP Plan: ${blueprint?.mvpPlan || ''}\nValidation Plan: ${blueprint?.validationPlan || ''}`;
+  const userPrompt = `Answers:\n${Object.entries(answers || {}).map(([k,v]) => `- ${sanitizeForPrompt(k)}: ${sanitizeForPrompt(String(v))}`).join('\n')}\n\nBlueprint:\nExecutive Summary: ${sanitizeForPrompt(blueprint?.executiveSummary || '')}\nProblem: ${sanitizeForPrompt(blueprint?.problem || '')}\nMVP Plan: ${sanitizeForPrompt(blueprint?.mvpPlan || '')}\nValidation Plan: ${sanitizeForPrompt(blueprint?.validationPlan || '')}`;
 
-  const response = await callOpenAI(apiKey, TASKS_PROMPT, userPrompt, 0.3);
-  const tasks = extractJSON(response);
+  let tasks;
+  try {
+    const response = await callOpenAI(apiKey, TASKS_PROMPT, userPrompt, 0.3);
+    tasks = extractJSON(response);
+  } catch {
+    tasks = [];
+  }
   return Array.isArray(tasks) ? tasks.map(t => ({
     title: t.title,
     priority: t.priority || 'medium',
@@ -65,26 +70,26 @@ Return EXACTLY this JSON (no markdown, no code fences):
 Be realistic and critical — most early startups should score between 20-60. Only exceptional answers get higher.`;
 
 export const generateScores = async (apiKey, answers, blueprint, founderProfile) => {
-  const userPrompt = `Founder: ${founderProfile?.name || 'Unknown'}
-Experience: ${founderProfile?.experienceLevel || 'First-time'}
-Team: ${founderProfile?.teamStatus || 'Solo'}
-Time: ${founderProfile?.timeAvailable || 'Part-time'}
+  const userPrompt = `Founder: ${sanitizeForPrompt(founderProfile?.name || 'Unknown')}
+Experience: ${sanitizeForPrompt(founderProfile?.experienceLevel || 'First-time')}
+Team: ${sanitizeForPrompt(founderProfile?.teamStatus || 'Solo')}
+Time: ${sanitizeForPrompt(founderProfile?.timeAvailable || 'Part-time')}
 
 Answers:
-${Object.entries(answers || {}).map(([k,v]) => `- Q${k}: ${v}`).join('\n')}
+${Object.entries(answers || {}).map(([k,v]) => `- Q${sanitizeForPrompt(String(k))}: ${sanitizeForPrompt(String(v))}`).join('\n')}
 
 Blueprint:
-Executive Summary: ${blueprint?.executiveSummary || ''}
-Problem: ${blueprint?.problem || ''}
-Solution: ${blueprint?.solution || ''}
-Target Customer: ${blueprint?.targetCustomer || ''}
-Market Size: ${blueprint?.marketSize || ''}
-Revenue Model: ${blueprint?.revenueModel || ''}
-GTM Plan: ${blueprint?.gtmPlan || ''}
-Validation Plan: ${blueprint?.validationPlan || ''}
-MVP Plan: ${blueprint?.mvpPlan || ''}
-Risks: ${(blueprint?.risks || []).join(', ')}
-Success Metrics: ${(blueprint?.successMetrics || []).join(', ')}`;
+Executive Summary: ${sanitizeForPrompt(blueprint?.executiveSummary || '')}
+Problem: ${sanitizeForPrompt(blueprint?.problem || '')}
+Solution: ${sanitizeForPrompt(blueprint?.solution || '')}
+Target Customer: ${sanitizeForPrompt(blueprint?.targetCustomer || '')}
+Market Size: ${sanitizeForPrompt(blueprint?.marketSize || '')}
+Revenue Model: ${sanitizeForPrompt(blueprint?.revenueModel || '')}
+GTM Plan: ${sanitizeForPrompt(blueprint?.gtmPlan || '')}
+Validation Plan: ${sanitizeForPrompt(blueprint?.validationPlan || '')}
+MVP Plan: ${sanitizeForPrompt(blueprint?.mvpPlan || '')}
+Risks: ${sanitizeForPrompt((blueprint?.risks || []).join(', '))}
+Success Metrics: ${sanitizeForPrompt((blueprint?.successMetrics || []).join(', '))}`;
 
   const response = await callOpenAI(apiKey, SCORES_PROMPT, userPrompt, 0.3);
   return extractJSON(response);

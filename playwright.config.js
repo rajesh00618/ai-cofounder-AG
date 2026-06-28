@@ -3,17 +3,27 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e',
   timeout: 30000,
-  retries: 1,
+  retries: process.env.CI ? 2 : 1,
+  workers: process.env.CI ? 2 : undefined,
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: process.env.CI ? 'http://app:3001' : 'http://localhost:5173',
     headless: true,
     screenshot: 'only-on-failure',
+    trace: process.env.CI ? 'on-first-retry' : 'off',
   },
-  webServer: [
+  webServer: process.env.CI
+    ? undefined
+    : [
+        {
+          command: 'npm run dev',
+          port: 5173,
+          reuseExistingServer: true,
+        },
+      ],
+  projects: [
     {
-      command: 'npm run dev',
-      port: 5173,
-      reuseExistingServer: true,
+      name: 'chromium',
+      use: { browserName: 'chromium' },
     },
   ],
 });

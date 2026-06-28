@@ -1,6 +1,9 @@
 import { getDb } from './database.js';
 import { logger } from '../services/logger.js';
 
+const VALID_NODE_TYPES = ['idea', 'task', 'customer', 'document', 'milestone', 'revenue', 'goal', 'project'];
+const VALID_RELATIONSHIPS = ['related_to', 'depends_on', 'part_of', 'influences', 'blocks', 'enables', 'contradicts'];
+
 const MIGRATION_TABLE = `
 CREATE TABLE IF NOT EXISTS schema_migrations (
   version INTEGER PRIMARY KEY,
@@ -26,7 +29,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS founders (
   id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id),
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   profile_data TEXT NOT NULL,
   dna_scores TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT NOW()
@@ -34,8 +37,8 @@ CREATE TABLE IF NOT EXISTS founders (
 
 CREATE TABLE IF NOT EXISTS businesses (
   id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id),
-  founder_id TEXT NOT NULL REFERENCES founders(id),
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  founder_id TEXT NOT NULL REFERENCES founders(id) ON DELETE CASCADE,
   blueprint TEXT,
   health_scores TEXT,
   current_stage TEXT,
@@ -44,8 +47,8 @@ CREATE TABLE IF NOT EXISTS businesses (
 
 CREATE TABLE IF NOT EXISTS tasks (
   id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id),
-  business_id TEXT NOT NULL REFERENCES businesses(id),
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  business_id TEXT NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
   sprint_id TEXT,
   title TEXT NOT NULL,
   description TEXT,
@@ -60,9 +63,9 @@ CREATE TABLE IF NOT EXISTS tasks (
 
 CREATE TABLE IF NOT EXISTS memory_nodes (
   id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id),
-  founder_id TEXT NOT NULL REFERENCES founders(id),
-  type TEXT NOT NULL,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  founder_id TEXT NOT NULL REFERENCES founders(id) ON DELETE CASCADE,
+  type TEXT NOT NULL CHECK (type IN (${VALID_NODE_TYPES.map(t => `'${t}'`).join(', ')})),
   label TEXT NOT NULL,
   metadata TEXT,
   created_at TIMESTAMP DEFAULT NOW()
@@ -70,20 +73,63 @@ CREATE TABLE IF NOT EXISTS memory_nodes (
 
 CREATE TABLE IF NOT EXISTS memory_edges (
   id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id),
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   source_node_id TEXT NOT NULL REFERENCES memory_nodes(id) ON DELETE CASCADE,
   target_node_id TEXT NOT NULL REFERENCES memory_nodes(id) ON DELETE CASCADE,
-  relationship TEXT NOT NULL,
+  relationship TEXT NOT NULL CHECK (relationship IN (${VALID_RELATIONSHIPS.map(r => `'${r}'`).join(', ')})),
   created_at TIMESTAMP DEFAULT NOW()
 );
 
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_reset_token ON users(reset_token);
+CREATE INDEX IF NOT EXISTS idx_founders_user ON founders(user_id);
+CREATE INDEX IF NOT EXISTS idx_businesses_user ON businesses(user_id);
+CREATE INDEX IF NOT EXISTS idx_businesses_founder ON businesses(founder_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_user ON tasks(user_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_business ON tasks(business_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+CREATE INDEX IF NOT EXISTS idx_tasks_sprint ON tasks(sprint_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_created ON tasks(created_at);
 CREATE INDEX IF NOT EXISTS idx_memory_edges_source ON memory_edges(source_node_id);
 CREATE INDEX IF NOT EXISTS idx_memory_edges_target ON memory_edges(target_node_id);
 CREATE INDEX IF NOT EXISTS idx_memory_edges_user ON memory_edges(user_id);
 CREATE INDEX IF NOT EXISTS idx_memory_nodes_founder ON memory_nodes(founder_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_memory_nodes_type ON memory_nodes(type);
+CREATE INDEX IF NOT EXISTS idx_memory_nodes_created ON memory_nodes(created_at);
+`,
+    down: `
+DROP TABLE IF EXISTS memory_edges;
+DROP TABLE IF EXISTS memory_nodes;
+DROP TABLE IF EXISTS tasks;
+DROP TABLE IF EXISTS businesses;
+DROP TABLE IF EXISTS founders;
+DROP TABLE IF EXISTS users;
 `,
   },
 ];
+
+const LOCK_KEY = 'schema_migration_lock';
+
+const acquireLock = async (supabase) => {
+  try {
+    const { error } = await supabase.rpc('exec_sql', { query: `
+      INSERT INTO schema_migrations (version, name)
+      VALUES (-1, '${LOCK_KEY}')
+      ON CONFLICT (version) DO NOTHING
+      RETURNING version;
+    `});
+    if (error) return false;
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const releaseLock = async (supabase) => {
+  try {
+    await supabase.rpc('exec_sql', { query: `DELETE FROM schema_migrations WHERE version = -1 AND name = '${LOCK_KEY}';` });
+  } catch {}
+};
 
 export const initDb = async () => {
   logger.info('Initializing database schema...');
@@ -105,28 +151,43 @@ export const initDb = async () => {
       return await legacyInit(supabase);
     }
 
-    const { data: applied } = await supabase
-      .from('schema_migrations')
-      .select('version')
-      .order('version', { ascending: false })
-      .limit(1);
+    const locked = await acquireLock(supabase);
+    if (!locked) {
+      logger.info('Migration lock held by another instance — skipping.');
+      return;
+    }
 
-    const currentVersion = applied?.[0]?.version || 0;
+    try {
+      const { data: applied } = await supabase
+        .from('schema_migrations')
+        .select('version, name')
+        .order('version', { ascending: false })
+        .limit(1);
 
-    for (const migration of migrations) {
-      if (migration.version > currentVersion) {
-        logger.info(`Applying migration ${migration.version}: ${migration.name}`);
-        const { error } = await supabase.rpc('exec_sql', { query: migration.sql });
-        if (error) {
-          logger.error(`Migration ${migration.version} failed: ${error.message}`);
-          throw error;
-        }
-        await supabase.from('schema_migrations').insert({
-          version: migration.version,
-          name: migration.name,
-        });
-        logger.info(`Migration ${migration.version} applied successfully.`);
+      const currentVersion = applied?.[0]?.version || 0;
+      const currentName = applied?.[0]?.name || '';
+
+      if (currentName.startsWith('rollback_')) {
+        logger.warn('Last operation was a rollback — forcing fresh migration.');
       }
+
+      for (const migration of migrations) {
+        if (migration.version > currentVersion) {
+          logger.info(`Applying migration ${migration.version}: ${migration.name}`);
+          const { error } = await supabase.rpc('exec_sql', { query: migration.sql });
+          if (error) {
+            logger.error(`Migration ${migration.version} failed: ${error.message}`);
+            throw error;
+          }
+          await supabase.from('schema_migrations').insert({
+            version: migration.version,
+            name: migration.name,
+          });
+          logger.info(`Migration ${migration.version} applied successfully.`);
+        }
+      }
+    } finally {
+      await releaseLock(supabase);
     }
 
     logger.info('Database schema is up to date.');
@@ -134,6 +195,32 @@ export const initDb = async () => {
     logger.error(`Schema initialization failed: ${error.message}`);
     logger.info('Falling back to legacy init...');
     await legacyInit(supabase);
+  }
+};
+
+export const rollbackMigration = async (targetVersion = 0) => {
+  const supabase = getDb();
+  if (!supabase) {
+    logger.warn('Cannot rollback — Supabase not configured.');
+    return;
+  }
+
+  const { data: applied } = await supabase
+    .from('schema_migrations')
+    .select('version, name')
+    .order('version', { ascending: false });
+
+  const appliedVersions = (applied || []).map(m => m.version).filter(v => v > 0).sort((a, b) => b - a);
+  for (const version of appliedVersions) {
+    if (version <= targetVersion) break;
+    const migration = migrations.find(m => m.version === version);
+    if (migration?.down) {
+      logger.info(`Rolling back migration ${version}: ${migration.name}`);
+      const { error } = await supabase.rpc('exec_sql', { query: migration.down });
+      if (error) throw error;
+      await supabase.from('schema_migrations').delete().eq('version', version);
+      logger.info(`Rollback of ${version} complete.`);
+    }
   }
 };
 

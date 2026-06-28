@@ -15,6 +15,14 @@ export const getApiKey = (userId) => {
   if (Date.now() - entry.ts > TTL_MS) { cache.delete(userId); return null; }
   return entry.key;
 };
-export const setApiKey = (userId, key) => { cache.set(userId, { key, ts: Date.now() }); evict(); };
+export const setApiKey = (userId, key) => {
+  if (cache.size >= MAX_ENTRIES && !cache.has(userId)) {
+    evict();
+  }
+  cache.set(userId, { key, ts: Date.now() });
+};
 export const deleteApiKey = (userId) => cache.delete(userId);
-export const hasApiKey = (userId) => cache.has(userId) && (Date.now() - cache.get(userId).ts <= TTL_MS);
+export const hasApiKey = (userId) => {
+  const entry = cache.get(userId);
+  return !!entry && (Date.now() - entry.ts <= TTL_MS);
+};

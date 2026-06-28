@@ -76,8 +76,8 @@ export default function LandingPage() {
       {/* Stats */}
       <section style={{...styles.statsSection, opacity: visible ? 1 : 0, transition: 'opacity 1s 0.3s'}}>
         <div className="landing-stats-grid" style={styles.statsGrid}>
-          {stats.map((s, i) => (
-            <div key={i} style={styles.statCard}>
+          {stats.map((s) => (
+            <div key={`stat-${s.value}`} style={styles.statCard}>
               <div style={styles.statValue}>{s.value}</div>
               <div style={styles.statLabel}>{s.label}</div>
             </div>
@@ -96,8 +96,8 @@ export default function LandingPage() {
                 <span style={styles.compLabel}>Typical AI Tools</span>
               </div>
               <ul style={styles.compList}>
-                {['Reactive & agreeable', 'Stateless conversations', 'Generic advice', 'Plans without tracking', 'Stops when you close the tab'].map((item, i) => (
-                  <li key={i} style={styles.compItemOld}>✗ {item}</li>
+                {['Reactive & agreeable', 'Stateless conversations', 'Generic advice', 'Plans without tracking', 'Stops when you close the tab'].map((item) => (
+                  <li key={`old-${item.slice(0,10)}`} style={styles.compItemOld}>✗ {item}</li>
                 ))}
               </ul>
             </div>
@@ -107,8 +107,8 @@ export default function LandingPage() {
                 <span style={styles.compLabel}>AI Co-Founder</span>
               </div>
               <ul style={styles.compList}>
-                {['Challenges bad decisions', 'Remembers everything forever', 'Personalized to your DNA', 'Executes & tracks progress', 'Researches while you sleep'].map((item, i) => (
-                  <li key={i} style={styles.compItemNew}>✓ {item}</li>
+                {['Challenges bad decisions', 'Remembers everything forever', 'Personalized to your DNA', 'Executes & tracks progress', 'Researches while you sleep'].map((item) => (
+                  <li key={`new-${item.slice(0,10)}`} style={styles.compItemNew}>✓ {item}</li>
                 ))}
               </ul>
             </div>
@@ -123,7 +123,7 @@ export default function LandingPage() {
           <p style={styles.sectionSubtitle}>Features a competitor cannot fake with a better prompt</p>
           <div className="landing-features-grid" style={styles.featuresGrid}>
             {features.map((f, i) => (
-              <div key={i} className="glass-card" style={{...styles.featureCard, animationDelay: `${i * 100}ms`}}>
+              <div key={`feat-${f.title}`} className="glass-card" style={{...styles.featureCard, animationDelay: `${i * 100}ms`}}>
                 <div style={styles.featureIcon}><f.icon size={24} /></div>
                 <h3 style={styles.featureTitle}>{f.title}</h3>
                 <p style={styles.featureDesc}>{f.desc}</p>
@@ -138,13 +138,13 @@ export default function LandingPage() {
         <div style={styles.sectionInner}>
           <h2 style={styles.sectionTitle}>Your Journey, End-to-End</h2>
           <div className="landing-pipeline" style={styles.pipeline}>
-            {['Idea','Validation','MVP','Launch','Revenue','PMF','Scale'].map((stage, i) => (
-              <React.Fragment key={stage}>
+            {['Idea','Validation','MVP','Launch','Revenue','PMF','Scale'].map((stage) => (
+              <React.Fragment key={`pipe-${stage}`}>
                 <div style={styles.pipelineStage}>
-                  <div style={{...styles.pipelineDot, background: i === 0 ? 'var(--gradient-primary)' : 'var(--color-bg-glass-strong)'}} />
+                  <div style={{...styles.pipelineDot, background: ['Idea','Validation','MVP','Launch','Revenue','PMF','Scale'].indexOf(stage) === 0 ? 'var(--gradient-primary)' : 'var(--color-bg-glass-strong)'}} />
                   <span style={styles.pipelineLabel}>{stage}</span>
                 </div>
-                {i < 6 && <div className="landing-pipeline-line" style={styles.pipelineLine} />}
+                {['Idea','Validation','MVP','Launch','Revenue','PMF','Scale'].indexOf(stage) < 6 && <div className="landing-pipeline-line" style={styles.pipelineLine} />}
               </React.Fragment>
             ))}
           </div>

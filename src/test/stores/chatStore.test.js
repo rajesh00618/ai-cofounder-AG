@@ -12,6 +12,7 @@ beforeEach(() => {
     debateActive: false,
     investorModeActive: false,
     customerSimActive: false,
+    chatError: null,
   });
 });
 
@@ -21,6 +22,7 @@ describe('chatStore', () => {
     expect(state.messages).toEqual([]);
     expect(state.isThinking).toBe(false);
     expect(state.activeAgent).toBe('ceo');
+    expect(state.chatError).toBeNull();
   });
 
   it('adds a message with id and timestamp', () => {
@@ -93,5 +95,24 @@ describe('chatStore', () => {
     expect(useChatStore.getState().messages).toHaveLength(2);
     useChatStore.getState().clearMessages();
     expect(useChatStore.getState().messages).toEqual([]);
+    expect(useChatStore.getState().chatError).toBeNull();
+  });
+
+  it('sets and resets chat error', () => {
+    useChatStore.getState().setChatError('Network error');
+    expect(useChatStore.getState().chatError).toBe('Network error');
+    useChatStore.getState().clearMessages();
+    expect(useChatStore.getState().chatError).toBeNull();
+  });
+
+  it('resets entire chat state', () => {
+    useChatStore.getState().addMessage({ role: 'user', content: 'Hello' });
+    useChatStore.getState().setActiveAgent('cto');
+    useChatStore.getState().setChatError('Error');
+    useChatStore.getState().resetChat();
+    const state = useChatStore.getState();
+    expect(state.messages).toEqual([]);
+    expect(state.activeAgent).toBe('ceo');
+    expect(state.chatError).toBeNull();
   });
 });

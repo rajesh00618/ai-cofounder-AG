@@ -12,6 +12,7 @@ import { startReminderScheduler, registerWhatsAppPhone } from './services/remind
 import { startBackgroundResearch } from './services/backgroundResearch.js';
 import { globalErrorHandler } from './services/errors.js';
 import { requireJwt } from './routes/auth.js';
+import { createServer } from 'http';
 
 const validateEnv = () => {
   const required = ['JWT_SECRET', 'NVIDIA_API_KEY'];
@@ -34,20 +35,71 @@ const PORT = process.env.PORT || 3001;
 // Trust proxy — required for accurate rate limiting behind nginx/reverse proxy
 app.set('trust proxy', 1);
 
+// Validate CORS origin at startup to prevent misconfiguration
+const corsOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
+
 // Middleware
-app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173' }));
-app.use(helmet());
+app.use(cors({
+  origin: corsOrigin,
+  credentials: true,
+}));
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:"],
+      fontSrc: ["'self'"],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      frameSrc: ["'none'"],
+      upgradeInsecureRequests: [],
+    },
+  },
+}));
 app.use(express.json({ limit: '1mb' }));
 
 // Request Logging
 app.use(requestLogger);
 
 // Rate Limiters
-const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, message: { error: 'Too many requests' } });
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { error: 'Too many authentication attempts' } });
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests' },
+});
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many authentication attempts' },
+});
+const streamLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many stream requests' },
+});
 
 app.use(limiter);
 app.use('/api/auth', authLimiter);
+app.use('/api/chat/stream', streamLimiter);
+
+// Global request timeout — prevents long-running requests from hanging
+const REQUEST_TIMEOUT_MS = parseInt(process.env.REQUEST_TIMEOUT_MS, 10) || 120000;
+app.use((req, res, next) => {
+  req.setTimeout(REQUEST_TIMEOUT_MS, () => {
+    if (!res.headersSent) {
+      res.status(408).json({ error: 'Request timeout' });
+    }
+  });
+  next();
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -72,6 +124,7 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     version: process.env.npm_package_version || '1.0.0',
     uptime: process.uptime(),
+    apiKeyConfigured: !!process.env.NVIDIA_API_KEY,
     memory: {
       rss: Math.round(process.memoryUsage().rss / 1024 / 1024) + 'MB',
       heap: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
@@ -116,15 +169,33 @@ app.use((req, res) => {
 app.use(globalErrorHandler);
 
 // Initialize database, then start server
-initDb().then(() => {
-  app.listen(PORT, () => {
+const server = createServer(app);
+
+const startServer = () => {
+  server.listen(PORT, () => {
     logger.info(`API listening on port ${PORT}`);
     startReminderScheduler();
     startBackgroundResearch();
   });
-}).catch(err => {
+};
+
+initDb().then(startServer).catch(err => {
   logger.error(`Database unavailable — starting without persistence: ${err.message}`);
-  app.listen(PORT, () => {
-    logger.info(`API listening on port ${PORT} (no database)`);
-  });
+  startServer();
 });
+
+// Graceful shutdown
+const gracefulShutdown = (signal) => {
+  logger.info(`[Server] Received ${signal}, shutting down gracefully...`);
+  server.close(() => {
+    logger.info('[Server] HTTP server closed');
+    process.exit(0);
+  });
+  setTimeout(() => {
+    logger.error('[Server] Forced shutdown after timeout');
+    process.exit(1);
+  }, 10000).unref();
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

@@ -186,7 +186,7 @@ export default function SettingsPanel() {
       <div style={styles.card}>
         <h3 style={styles.cardTitle}>About</h3>
         <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', lineHeight: 1.8 }}>
-          <strong>AI Co-Founder v1.0</strong> — The world's first Startup Operating System.<br />
+          <strong>AI Co-Founder v2.1</strong> — The world's first Startup Operating System.<br />
           <strong>AI Models:</strong> llama-4-maverick-17b, mistral-large, phi-4 (multi-model fallback)<br />
           <strong>Web Search:</strong> DuckDuckGo + Startpage (real-time)<br />
           <strong>Monitoring:</strong> Structured file logging<br />

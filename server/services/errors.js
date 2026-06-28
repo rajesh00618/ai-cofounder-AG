@@ -16,10 +16,16 @@ const isProd = process.env.NODE_ENV === 'production';
  * @param {string} [fallback] - Optional default message
  * @returns {{ status: number, message: string }}
  */
+const ENV_VAR_PATTERN = /(?:NVIDIA_API_KEY|JWT_SECRET|SUPABASE_SERVICE_KEY|TWILIO_AUTH_TOKEN|TWILIO_ACCOUNT_SID)[^'"\s]*/gi;
+
+const stripSensitiveData = (text) => {
+  return text.replace(ENV_VAR_PATTERN, '[REDACTED]');
+};
+
 export const sanitizeError = (err, fallback = 'Something went wrong. Please try again.') => {
   if (err == null) return { status: 500, message: fallback };
   const error = err || {};
-  const rawMessage = error.message || String(error);
+  const rawMessage = error.message ? stripSensitiveData(error.message) : String(error);
 
   // Classify known error families into safe HTTP statuses + messages.
   let status = 500;

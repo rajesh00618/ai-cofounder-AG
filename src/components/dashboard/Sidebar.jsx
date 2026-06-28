@@ -77,6 +77,14 @@ export default function Sidebar({ activeView, onNavigate }) {
   };
 
   return (
+    <>
+    {isMobile && mobileExpanded && (
+      <div
+        className="sidebar-backdrop"
+        onClick={() => setMobileExpanded(false)}
+        aria-hidden="true"
+      />
+    )}
     <aside style={{...styles.sidebar, width: effectiveCollapsed ? '72px' : '260px'}} className={`dashboard-sidebar${!effectiveCollapsed ? ' expanded' : ''}`}>
       <div style={styles.logoSection}>
         <div style={styles.logoIcon}><Sparkles size={18} /></div>
@@ -130,6 +138,7 @@ export default function Sidebar({ activeView, onNavigate }) {
       )}
 
       <button
+        aria-label="Sign out"
         onClick={() => {
         logout();
         useBusinessStore.setState({ blueprint: null, businessHealth: { idea: 0, validation: 0, product: 0, marketing: 0, sales: 0, finance: 0 }, startupScore: { execution: 0, business: 0, customers: 0, product: 0, cash: 0, aiConfidence: 50 }, currentStage: 'idea', businessAnswers: {}, documents: [] });
@@ -152,6 +161,7 @@ export default function Sidebar({ activeView, onNavigate }) {
         {!effectiveCollapsed && <span>Sign Out</span>}
       </button>
     </aside>
+    </>
   );
 }
 

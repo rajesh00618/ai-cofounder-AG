@@ -168,8 +168,8 @@ export default function WeeklyReview() {
                 <CheckCircle2 size={16} /> Achievements
               </h3>
               <ul style={styles.list}>
-                {review.achievements?.map((item, i) => (
-                  <li key={i} style={styles.listItem}>
+                {review.achievements?.map((item) => (
+                  <li key={`ach-${item.slice(0,20)}`} style={styles.listItem}>
                     <CheckCircle2 size={14} style={{ color: 'var(--color-success)', flexShrink: 0, marginTop: '2px' }} />
                     {item}
                   </li>
@@ -182,8 +182,8 @@ export default function WeeklyReview() {
                 <XCircle size={16} /> Missed Goals
               </h3>
               <ul style={styles.list}>
-                {review.missedGoals?.map((item, i) => (
-                  <li key={i} style={styles.listItem}>
+                {review.missedGoals?.map((item) => (
+                  <li key={`miss-${item.slice(0,20)}`} style={styles.listItem}>
                     <XCircle size={14} style={{ color: 'var(--color-danger)', flexShrink: 0, marginTop: '2px' }} />
                     {item}
                   </li>
@@ -207,8 +207,8 @@ export default function WeeklyReview() {
           <div style={styles.sectionCard}>
             <h3 style={styles.sectionTitle}><Target size={16} style={{ color: 'var(--color-warning)' }} /> Focus Areas</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-              {review.focusAreas?.map((area, i) => (
-                <FocusAreaCard key={i} area={area.area} status={area.status} recommendation={area.recommendation} />
+              {review.focusAreas?.map((area) => (
+                <FocusAreaCard key={`fa-${area.area}`} area={area.area} status={area.status} recommendation={area.recommendation} />
               ))}
             </div>
           </div>

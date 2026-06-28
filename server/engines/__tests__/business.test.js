@@ -92,6 +92,34 @@ describe('generateBlueprintTasks', () => {
     const tasks = await generateBlueprintTasks('test-key', {}, null);
     expect(tasks).toEqual([]);
   });
+
+  it('provides default values for missing task fields', async () => {
+    callOpenAI.mockResolvedValue(JSON.stringify([
+      { title: 'Minimal task' },
+    ]));
+    const tasks = await generateBlueprintTasks('test-key', {}, {});
+    expect(tasks[0].priority).toBe('medium');
+    expect(tasks[0].estimatedTime).toBe('1 hr');
+    expect(tasks[0].aiAssistance).toBe('AI-assisted');
+  });
+
+  it('handles AIAssistance vs aiAssistance casing', async () => {
+    callOpenAI.mockResolvedValue(JSON.stringify([
+      { title: 'Task', priority: 'high', estimatedTime: '2 hrs', AIAssistance: 'AI-powered' },
+    ]));
+    const tasks = await generateBlueprintTasks('test-key', {}, {});
+    expect(tasks[0].aiAssistance).toBe('AI-powered');
+  });
+
+  it('handles empty AI response gracefully', async () => {
+    callOpenAI.mockResolvedValue('');
+    await expect(generateBlueprintTasks('test-key', {}, {})).resolves.toEqual([]);
+  });
+
+  it('handles malformed AI response gracefully', async () => {
+    callOpenAI.mockResolvedValue('not json');
+    await expect(generateBlueprintTasks('test-key', {}, {})).resolves.toEqual([]);
+  });
 });
 
 describe('generateScores', () => {

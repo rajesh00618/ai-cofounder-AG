@@ -38,7 +38,7 @@ export default function ResearchCenter() {
   }, [profile, blueprint, businessHealth, currentStage]);
 
   const typeColor = { competitor: 'var(--color-warning)', market: 'var(--color-info)', opportunity: 'var(--color-success)', trend: 'var(--color-accent)' };
-  const filtered = filter === 'all' ? researchData : (researchData.filter ? researchData.filter(r => r.type === filter || r.category === filter) : []);
+  const filtered = filter === 'all' ? researchData : (Array.isArray(researchData) ? researchData.filter(r => r.type === filter || r.category === filter) : []);
 
   if (loading) return (
     <div style={styles.page} className="page-enter">
@@ -62,7 +62,12 @@ export default function ResearchCenter() {
             <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{briefing.greeting}</div>
             {briefing.findings?.length > 0 && (
               <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
-                {briefing.findings.map((f) => typeof f === 'string' ? f : f.title || f.detail).join('. ')}
+                {briefing.findings.reduce((acc, f, i) => {
+                  const text = typeof f === 'string' ? f : f.title || f.detail;
+                  if (i > 0) acc.push('. ');
+                  acc.push(React.createElement('span', { key: `bf-${text.slice(0,20)}` }, text));
+                  return acc;
+                }, [])}
               </div>
             )}
           </div>
@@ -118,8 +123,8 @@ export default function ResearchCenter() {
           {(!Array.isArray(opportunities) || opportunities.length === 0) && (
             <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}>No opportunities found. Generate your business blueprint first.</p>
           )}
-          {Array.isArray(opportunities) && opportunities.map((opp, idx) => (
-            <div key={idx} style={styles.oppCard}>
+          {Array.isArray(opportunities) && opportunities.map((opp) => (
+            <div key={`opp-${opp.title?.slice(0,20) || Math.random()}`} style={styles.oppCard}>
               <div style={{ flex: 1 }}>
                 <div style={styles.itemTitle}>{opp.title}</div>
                 <div style={styles.itemMeta}>

@@ -50,12 +50,26 @@ const runResearchCycle = async () => {
 
     logger.info(`[BackgroundResearch] Processing ${businesses.length} active businesses`);
 
+    // Clean stale briefing entries (> 7 days old)
+    const STALE_BRIEFING_MS = 7 * 24 * 60 * 60 * 1000;
+    for (const [userId, briefing] of _briefings) {
+      if (Date.now() - new Date(briefing.generatedAt).getTime() > STALE_BRIEFING_MS) {
+        _briefings.delete(userId);
+      }
+    }
+
+    const safeJsonParse = (str, fallback = {}) => {
+      if (!str) return fallback;
+      try { return typeof str === 'string' ? JSON.parse(str) : str; }
+      catch { return fallback; }
+    };
+
     for (const biz of businesses) {
       try {
         const businessContext = {
-          blueprint: typeof biz.blueprint === 'string' ? JSON.parse(biz.blueprint) : biz.blueprint,
+          blueprint: safeJsonParse(biz.blueprint),
           currentStage: biz.current_stage,
-          businessHealth: biz.health_scores ? (typeof biz.health_scores === 'string' ? JSON.parse(biz.health_scores) : biz.health_scores) : {},
+          businessHealth: safeJsonParse(biz.health_scores),
         };
 
         const researchItems = await getResearch(serverKey, businessContext);

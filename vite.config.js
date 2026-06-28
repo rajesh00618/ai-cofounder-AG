@@ -12,6 +12,19 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/react-router')) return 'vendor';
+          if (id.includes('node_modules/lucide-react')) return 'ui';
+          if (id.includes('node_modules/zustand')) return 'state';
+        },
+      },
+    },
+    chunkSizeWarningLimit: 300,
+    sourcemap: false,
+  },
   test: {
     environment: 'jsdom',
     globals: true,

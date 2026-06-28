@@ -191,3 +191,58 @@ input:focus,textarea:focus { border-color:var(--color-border-focus); box-shadow:
 @media (max-width: 768px) {
   .simulator-metrics { grid-template-columns: 1fr !important; }
 }
+
+/* Analytics Dashboard */
+@media (max-width: 768px) {
+  .analytics-grid-3 { grid-template-columns: 1fr !important; }
+}
+
+/* Memory Graph */
+@media (max-width: 768px) {
+  .memory-graph-actions { flex-direction: column !important; }
+  .memory-graph-actions .btn { width: 100% !important; }
+}
+
+/* Sidebar Backdrop */
+.sidebar-backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 40;
+  }
+}
+
+/* Documents Grid */
+@media (max-width: 600px) {
+  .doc-grid { grid-template-columns: 1fr !important; }
+}
+
+/* Tasks */
+@media (max-width: 600px) {
+  .task-filters { flex-wrap: wrap !important; }
+  .task-header { flex-direction: column !important; align-items: flex-start !important; gap: 0.5rem !important; }
+}
+
+/* Tables / Lists on Mobile */
+@media (max-width: 600px) {
+  .responsive-table { display: block !important; overflow-x: auto !important; }
+  .responsive-stack-mobile { flex-direction: column !important; }
+}
+
+/* ===== Reduced Motion ===== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .page-enter { animation: none !important; }
+  .skeleton { animation: none !important; }
+}
