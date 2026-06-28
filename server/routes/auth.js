@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { getDb } from '../db/database.js';
+import { setApiKey as cacheSetApiKey, hasApiKey } from '../apiKeyCache.js';
+import { sendError } from '../services/errors.js';
 
 const generateId = () => crypto.randomUUID();
 
@@ -38,8 +40,8 @@ router.post('/register', async (req, res) => {
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Name, email, and password are required' });
     }
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
 
     const supabase = getDb();
@@ -66,7 +68,7 @@ router.post('/register', async (req, res) => {
     const token = jwt.sign({ userId: id, email }, JWT_SECRET, { expiresIn: '7d' });
     res.status(201).json({ token, user: { id, name, email } });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -95,7 +97,7 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -108,7 +110,7 @@ router.get('/me', requireJwt, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json({ user });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 
@@ -129,9 +131,30 @@ router.post('/forgot-password', async (req, res) => {
 
     await supabase.from('users').update({ reset_token: resetTokenHash, reset_token_expires: expires }).eq('id', user.id);
 
-    res.json({ message: 'If that email exists, a reset link has been sent.', resetToken });
+    res.json({ message: 'If that email exists, a reset link has been sent.' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
+  }
+});
+
+router.post('/api-key', requireJwt, async (req, res) => {
+  try {
+    const { apiKey } = req.body;
+    if (!apiKey || typeof apiKey !== 'string' || !apiKey.trim()) {
+      return res.status(400).json({ error: 'API key is required' });
+    }
+    cacheSetApiKey(req.userId, apiKey.trim());
+    res.json({ message: 'API key stored securely' });
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
+router.get('/api-key', requireJwt, async (req, res) => {
+  try {
+    res.json({ hasApiKey: hasApiKey(req.userId) });
+  } catch (error) {
+    sendError(res, error);
   }
 });
 
@@ -141,8 +164,8 @@ router.post('/reset-password', async (req, res) => {
     if (!token || !email || !password) {
       return res.status(400).json({ error: 'Token, email, and new password are required' });
     }
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
 
     const supabase = getDb();
@@ -177,7 +200,7 @@ router.post('/reset-password', async (req, res) => {
 
     res.json({ message: 'Password has been reset successfully.' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    sendError(res, error);
   }
 });
 

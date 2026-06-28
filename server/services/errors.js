@@ -15,6 +15,7 @@ const isProd = process.env.NODE_ENV === 'production';
  * @returns {{ status: number, message: string }}
  */
 export const sanitizeError = (err, fallback = 'Something went wrong. Please try again.') => {
+  if (err == null) return { status: 500, message: fallback };
   const error = err || {};
   const rawMessage = error.message || String(error);
 

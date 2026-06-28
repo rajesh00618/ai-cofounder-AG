@@ -63,7 +63,7 @@ describe('AuthPage', () => {
     expect(screen.getByText('Welcome back')).toBeInTheDocument();
     expect(screen.getByText('Sign In')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('you@example.com')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('At least 6 characters')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('At least 8 characters')).toBeInTheDocument();
   });
 
   it('toggles to register form', () => {

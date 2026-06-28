@@ -12,7 +12,9 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "npx playwright test"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",
@@ -34,7 +36,9 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@vitejs/plugin-react": "^6.0.2",
+    "@vitest/coverage-v8": "^4.1.9",
     "concurrently": "^10.0.3",
     "jsdom": "^29.1.1",
     "nodemon": "^3.1.14",

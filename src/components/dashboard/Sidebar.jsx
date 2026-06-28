@@ -6,7 +6,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useBusinessStore } from '../../store/businessStore';
 import { useTaskStore } from '../../store/taskStore';
 import { useChatStore } from '../../store/chatStore';
-import { Home, MessageSquare, Briefcase, CheckSquare, Map, Brain, Search, FileText, Users, Beaker, CalendarCheck, Settings, ChevronLeft, ChevronRight, Sparkles, Dna, Zap, Menu, LogOut } from 'lucide-react';
+import { Home, MessageSquare, Briefcase, CheckSquare, Map, Brain, Search, FileText, Users, Beaker, CalendarCheck, Settings, ChevronLeft, ChevronRight, Sparkles, Dna, Zap, Menu, LogOut, BarChart3, DollarSign, Award } from 'lucide-react';
 
 const NAV_ITEMS = [
   { id: 'home', label: 'Command Center', icon: Home },
@@ -19,9 +19,12 @@ const NAV_ITEMS = [
   { id: 'memory', label: 'Memory Graph', icon: Brain },
   { id: 'founder', label: 'Founder DNA', icon: Dna },
   { id: 'board', label: 'AI Board', icon: Users },
+  { id: 'investor', label: 'Investor Mode', icon: DollarSign },
   { id: 'build', label: 'Build Mode', icon: Zap },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'simulator', label: 'Simulator', icon: Beaker },
   { id: 'review', label: 'Daily Review', icon: CalendarCheck },
+  { id: 'weekly-review', label: 'Weekly Review', icon: Award },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
@@ -99,7 +102,7 @@ export default function Sidebar({ activeView, onNavigate }) {
         useBusinessStore.setState({ blueprint: null, businessHealth: { idea: 0, validation: 0, product: 0, marketing: 0, sales: 0, finance: 0 }, startupScore: { execution: 0, business: 0, customers: 0, product: 0, cash: 0, aiConfidence: 50 }, currentStage: 'idea', businessAnswers: {}, documents: [] });
         useTaskStore.setState({ tasks: [], sprints: [], currentSprintId: null });
         useChatStore.setState({ messages: [], isThinking: false, thinkingStep: '', confidence: null, activeAgent: 'ceo', boardMeetingActive: false, debateActive: false, investorModeActive: false, customerSimActive: false });
-        useFounderStore.setState({ profile: null, onboardingComplete: false, goal: '', clarificationAnswers: {}, realityScore: null, negotiationResult: null, founderTwin: null, dnaScores: { decision: 50, execution: 50, consistency: 50, learning: 50, leadership: 50, sales: 50, technical: 50, communication: 50, focus: 50, confidence: 50 } });
+        useFounderStore.setState({ profile: null, onboardingComplete: false, goal: '', clarificationAnswers: {}, realityScore: null, negotiationResult: null, founderTwin: null, dnaScores: { 'Decision-making': 50, 'Execution': 50, 'Consistency': 50, 'Learning': 50, 'Leadership': 50, 'Sales': 50, 'Technical': 50, 'Communication': 50, 'Focus': 50, 'Confidence': 50 } });
         navigate('/');
       }}
         style={{

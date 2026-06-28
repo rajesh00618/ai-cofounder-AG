@@ -1,7 +1,7 @@
 # AI Co-Founder — Complete Feature Directory
 
-> **Version:** 1.8.0 | **Stack:** React 19 + Express 5 + Supabase + OpenAI/NVIDIA
-> **Tests:** 264 (44 files) | **Lint:** 0 errors, 0 warnings | **Build:** 236 KB (code-split)
+> **Version:** 1.9.0 | **Stack:** React 19 + Express 5 + Supabase + OpenAI/NVIDIA
+> **Tests:** 286 (49 files) | **Lint:** 0 errors | **Build:** 236 KB (code-split)
 > **Positioning:** Most AI tools answer questions. This AI builds companies.
 
 ---
@@ -164,13 +164,42 @@ Board meeting responses are streamed via `api.chatStream()` with real-time token
 
 ---
 
-## 4. AI Workspace & Streaming Chat
+## 3A. Investor Mode (Flagship Feature)
 
 | Property | Detail |
 |----------|--------|
-| **File(s)** | `src/components/dashboard/AIWorkspace.jsx`, `src/store/chatStore.js`, `server/services/ai.js` |
+| **File(s)** | `src/components/ai/InvestorMode.jsx`, `server/engines/investor.js`, `server/routes/api.js` |
 | **Phase** | Dashboard view |
-| **Status** | Implemented, tested (AIWorkspace.test.jsx, 12 chatStore tests) |
+| **Status** | Implemented, tested (InvestorMode.test.jsx, investor.test.js) |
+
+### Description
+Switches the AI's persona entirely into a skeptical VC investor evaluating the startup. Two modes:
+1. **Evaluate** — AI analyzes business context and returns verdict (would invest/would not invest/need more data), strengths, weaknesses, hard questions, estimated valuation, pitch rating, failure probability
+2. **Chat** — Conversational mode where the AI roleplays as a skeptical investor
+
+### API Endpoints
+- `POST /api/investor/evaluate` — Full evaluation with context
+- `POST /api/investor/chat` — Conversational investor chat
+
+---
+
+## 3B. Weekly CEO/Board Review
+
+| Property | Detail |
+|----------|--------|
+| **File(s)** | `src/components/review/WeeklyReview.jsx`, `server/engines/weekly.js`, `server/routes/api.js` |
+| **Phase** | Dashboard view |
+| **Status** | Implemented, tested (WeeklyReview.test.jsx, weekly.test.js) |
+
+### Description
+AI-powered weekly performance analysis with board-level insights. Generates: week summary, achievements, missed goals, business health trend, execution score, focus areas with recommendations, next week plan, grade (A-F), and personalized coaching note.
+
+### API Endpoint
+- `POST /api/review/weekly` — Generate comprehensive weekly review
+
+---
+
+## 4. AI Workspace & Streaming Chat
 
 ### Description
 The primary conversational interface with the AI Co-Founder. Features real-time streaming, thinking animation, context-aware responses, and abort controls.
@@ -863,9 +892,12 @@ const MODELS = [
 | `memory` | MemoryGraph | Brain |
 | `founder` | FounderTwin | Dna |
 | `board` | AIBoardMeeting | Users |
+| `investor` | InvestorMode | DollarSign |
 | `build` | ExecutionMode | Zap |
+| `analytics` | AnalyticsDashboard | BarChart3 |
 | `simulator` | DecisionSimulator | Beaker |
 | `review` | DailyReview | CalendarCheck |
+| `weekly-review` | WeeklyReview | Award |
 | `settings` | SettingsPanel | Settings |
 
 ---
@@ -919,6 +951,12 @@ const MODELS = [
 | GET | `/memory/graph/:founderId` | Memory graph | JWT |
 | POST | `/execution/plan` | Execution plan | API key |
 | POST | `/execution/step` | Execute step | API key |
+| POST | `/investor/evaluate` | Investor evaluation | API key |
+| POST | `/investor/chat` | Investor chat | API key |
+| POST | `/review/weekly` | Weekly CEO review | API key |
+| POST | `/failure/prediction` | Failure prediction | API key |
+| POST | `/auth/api-key` | Store API key server-side | JWT |
+| GET | `/auth/api-key` | Check API key status | JWT |
 | POST | `/reminders/register` | WhatsApp registration | None |
 
 ---
@@ -948,6 +986,11 @@ const MODELS = [
 | `components/ResearchCenter.test.jsx` | Research display | 3 |
 | `components/RoadmapView.test.jsx` | Roadmap stages | 3 |
 | `components/SettingsPanel.test.jsx` | Settings UI | 3 |
+| `components/InvestorMode.test.jsx` | Investor evaluation/chat | 4 |
+| `components/WeeklyReview.test.jsx` | Weekly review UI | 3 |
+| `components/AnalyticsDashboard.test.jsx` | Analytics metrics | 3 |
+| `components/ChatPanel.test.jsx` | Reusable chat component | 3 |
+| `components/ProgressBar.test.jsx` | Onboarding progress | 3 |
 | `components/TaskEngine.test.jsx` | Task management | 4 |
 | `engines/reality.test.js` | Reality scoring | 3 |
 | `engines/dna.test.js` | DNA analysis | 4 |
@@ -962,7 +1005,8 @@ const MODELS = [
 | `engines/__tests__/research.test.js` | Research engine | 7 |
 | `engines/__tests__/review.test.js` | Review engine | 7 |
 | `engines/__tests__/roadmap.test.js` | Roadmap engine | 7 |
-| `engines/__tests__/weekly.test.js` | Weekly review engine | 7 |
+| `engines/__tests__/weekly.test.js` | Weekly review engine | 5 |
+| `engines/__tests__/investor.test.js` | Investor mode engine | 7 |
 | `routes/auth.test.js` | Auth endpoints | 8 |
 | `routes/api.test.js` | API integration tests | 13 |
 | `services/ai.test.js` | extractJSON, PROMPTS | 14 |
@@ -971,4 +1015,4 @@ const MODELS = [
 | `services/__tests__/reminders.test.js` | Reminder scheduler | 2 |
 | `services/__tests__/search.test.js` | Web search fallback | 1 |
 | `utils/helpers.test.js` | Utility functions | 19 |
-| **Total** | **44 files** | **264 tests** |
+| **Total** | **49 files** | **286 tests** |

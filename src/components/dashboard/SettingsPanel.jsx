@@ -10,6 +10,7 @@ export default function SettingsPanel() {
   const [key, setKey] = useState(apiKey);
   const [saved, setSaved] = useState(false);
   const [serverStatus, setServerStatus] = useState(null);
+  const [serverKeyStatus, setServerKeyStatus] = useState(null);
 
   const [phone, setPhone] = useState(localStorage.getItem('ai-cofounder-whatsapp') || '');
   const [phoneSaved, setPhoneSaved] = useState(false);
@@ -28,12 +29,29 @@ export default function SettingsPanel() {
       .then(r => r.json())
       .then(data => setServerStatus(data.apiKeyConfigured ? 'configured' : 'no-key'))
       .catch(() => setServerStatus('offline'));
-  }, []);
 
-  const handleSaveKey = () => {
-    setApiKey(key);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    if (user) {
+      api.getApiKeyStatus()
+        .then(data => setServerKeyStatus(data.hasApiKey))
+        .catch(() => setServerKeyStatus(false));
+    }
+  }, [user]);
+
+  const handleSaveKey = async () => {
+    if (!user) {
+      alert('Please sign in to save your API key on the server.');
+      return;
+    }
+    if (!key || !key.trim()) return;
+    try {
+      await api.setApiKey(key.trim());
+      setApiKey(key.trim());
+      setServerKeyStatus(true);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      alert('Failed to save API key: ' + err.message);
+    }
   };
 
   const handleSavePhone = () => {
@@ -54,8 +72,8 @@ export default function SettingsPanel() {
   };
 
   const handleChangePassword = async () => {
-    if (!newPassword || newPassword.length < 6) {
-      setPasswordError('Password must be at least 6 characters');
+    if (!newPassword || newPassword.length < 8) {
+      setPasswordError('Password must be at least 8 characters');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -94,7 +112,13 @@ export default function SettingsPanel() {
             <span style={{ color: 'var(--color-success-light)' }}>Server has an API key configured. AI will work without entering one.</span>
           </div>
         )}
-        {serverStatus === 'no-key' && !apiKey && !key && (
+        {serverStatus === 'no-key' && serverKeyStatus && !key && (
+          <div style={{ ...styles.badge, background: 'rgba(16,185,129,0.05)', borderColor: 'rgba(16,185,129,0.1)' }}>
+            <CheckCircle2 size={14} style={{ color: 'var(--color-success)' }} />
+            <span style={{ color: 'var(--color-success-light)' }}>API key stored securely on the server.</span>
+          </div>
+        )}
+        {serverStatus === 'no-key' && !serverKeyStatus && !apiKey && !key && (
           <div style={{ ...styles.badge, background: 'rgba(239,68,68,0.05)', borderColor: 'rgba(239,68,68,0.1)' }}>
             <AlertTriangle size={14} style={{ color: 'var(--color-danger)' }} />
             <span style={{ color: 'var(--color-danger-light)' }}>No API key configured. Add one below or in the .env file.</span>
@@ -112,7 +136,7 @@ export default function SettingsPanel() {
             {saved ? <><CheckCircle2 size={14} /> Saved</> : <><Save size={14} /> Save</>}
           </button>
         </div>
-        <p style={styles.hint}>Stored locally in your browser. Leave empty to use the server key.</p>
+        <p style={styles.hint}>Stored securely on the server (never in localStorage). <strong style={{color:'var(--color-success)'}}>Security note:</strong> After signing in, your API key is encrypted in memory on the server.</p>
       </div>
 
       <div style={styles.card}>
@@ -148,7 +172,7 @@ export default function SettingsPanel() {
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '1rem' }}>
           <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginBottom: '0.5rem' }}>Change your password (requires reset token from forgot password):</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <input type="password" placeholder="New password (6+ chars)" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={styles.input} />
+            <input type="password" placeholder="New password (8+ chars)" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={styles.input} />
             <input type="password" placeholder="Confirm new password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} style={styles.input} />
             <button className="btn btn-primary btn-sm" onClick={handleChangePassword}>
               <Send size={14} /> Change Password

@@ -14,6 +14,35 @@ const createClient = (apiKey, config) => new OpenAI({
   maxRetries: 1,
 });
 
+const modelFailures = new Map();
+const CIRCUIT_BREAKER_THRESHOLD = 3;
+const CIRCUIT_BREAKER_RESET_MS = 60000;
+
+const isModelHealthy = (model) => {
+  const failures = modelFailures.get(model);
+  if (!failures) return true;
+  if (failures.count >= CIRCUIT_BREAKER_THRESHOLD) {
+    if (Date.now() - failures.lastFailure < CIRCUIT_BREAKER_RESET_MS) return false;
+    modelFailures.delete(model);
+    return true;
+  }
+  return true;
+};
+
+const recordModelFailure = (model) => {
+  const existing = modelFailures.get(model);
+  if (existing) {
+    existing.count++;
+    existing.lastFailure = Date.now();
+  } else {
+    modelFailures.set(model, { count: 1, lastFailure: Date.now() });
+  }
+};
+
+const resetModelFailures = (model) => {
+  modelFailures.delete(model);
+};
+
 /**
  * Sanitize user-provided input to prevent prompt injection attacks.
  * - Strips known jailbreak patterns
@@ -78,7 +107,7 @@ const buildMessages = (systemPrompt, userPrompt) => {
   ];
 };
 
-export const callOpenAI = async (apiKey, systemPrompt, userPrompt, temperature = 0.7) => {
+export const callOpenAI = async (apiKey, systemPrompt, userPrompt, temperature = 0.7, maxTokens = 4096) => {
   if (!apiKey) throw new Error('No API key provided.');
 
   const preferredModel = process.env.AI_MODEL;
@@ -90,23 +119,30 @@ export const callOpenAI = async (apiKey, systemPrompt, userPrompt, temperature =
 
   let lastError;
   for (const config of candidates) {
+    if (!isModelHealthy(config.model)) {
+      logger.warn(`[AI] Model ${config.model} is circuit-broken, skipping...`);
+      continue;
+    }
     try {
       const openai = createClient(apiKey, config);
       const completion = await openai.chat.completions.create({
         model: config.model,
         messages: buildMessages(systemPrompt, userPrompt),
         temperature,
+        max_tokens: maxTokens,
       });
+      resetModelFailures(config.model);
       return completion.choices[0].message.content;
     } catch (err) {
       lastError = err;
-      console.warn(`[AI] Model ${config.model} failed: ${err.message}. Trying next...`);
+      recordModelFailure(config.model);
+      logger.warn(`[AI] Model ${config.model} failed: ${err.message}. Trying next...`);
     }
   }
   throw lastError || new Error('All AI models failed');
 };
 
-export const callOpenAIStream = async (apiKey, systemPrompt, userPrompt, onToken, temperature = 0.7) => {
+export const callOpenAIStream = async (apiKey, systemPrompt, userPrompt, onToken, temperature = 0.7, maxTokens = 4096) => {
   if (!apiKey) throw new Error('No API key provided.');
 
   const preferredModel = process.env.AI_MODEL;
@@ -118,6 +154,10 @@ export const callOpenAIStream = async (apiKey, systemPrompt, userPrompt, onToken
 
   let lastError;
   for (const config of candidates) {
+    if (!isModelHealthy(config.model)) {
+      logger.warn(`[AI] Stream model ${config.model} is circuit-broken, skipping...`);
+      continue;
+    }
     try {
       const openai = createClient(apiKey, config);
       const stream = await openai.chat.completions.create({
@@ -125,6 +165,7 @@ export const callOpenAIStream = async (apiKey, systemPrompt, userPrompt, onToken
         messages: buildMessages(systemPrompt, userPrompt),
         temperature,
         stream: true,
+        max_tokens: maxTokens,
       });
 
       let full = '';
@@ -135,10 +176,12 @@ export const callOpenAIStream = async (apiKey, systemPrompt, userPrompt, onToken
           onToken(text, full);
         }
       }
+      resetModelFailures(config.model);
       return full;
     } catch (err) {
       lastError = err;
-      console.warn(`[AI] Stream model ${config.model} failed: ${err.message}. Trying next...`);
+      recordModelFailure(config.model);
+      logger.warn(`[AI] Stream model ${config.model} failed: ${err.message}. Trying next...`);
     }
   }
   throw lastError || new Error('All AI stream models failed');
@@ -162,11 +205,26 @@ export const extractJSON = (text) => {
     if (arrStart !== -1 && arrEnd > arrStart) {
       return JSON.parse(toParse.slice(arrStart, arrEnd + 1));
     }
-    throw new Error(`Invalid JSON response from AI: ${trimmed.slice(0, 200)}`);
+    throw new Error('Invalid JSON response from AI');
   }
 };
 
 export const sanitizeForPrompt = sanitizeUserInput;
+
+/**
+ * Sanitize AI output before sending to client.
+ * Prevents injection of script tags, sensitive data leakage, and control characters.
+ */
+export const sanitizeOutput = (output) => {
+  if (typeof output !== 'string') return output;
+  let cleaned = output.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '[blocked]');
+  cleaned = cleaned.replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '[blocked]');
+  cleaned = cleaned.replace(/on\w+\s*=\s*["'][^"']*["']/gi, '[blocked]');
+  cleaned = cleaned.replace(/javascript\s*:/gi, '[blocked]');
+  cleaned = cleaned.replace(/file:\/\/\/\S+/gi, '[blocked]');
+  cleaned = cleaned.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  return cleaned;
+};
 
 export const PROMPTS = {
   CEO: `You are the CEO AI Co-Founder. You are highly experienced, direct, and focused on execution. 

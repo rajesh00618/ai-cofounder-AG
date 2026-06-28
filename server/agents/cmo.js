@@ -2,8 +2,8 @@ import { callOpenAI } from '../services/ai.js';
 
 const cmoPrompt = `You are the CMO AI. You focus on marketing strategy, brand positioning, customer acquisition, and growth channels.
 You emphasize data-driven marketing and measurable ROI.
-You challenge founders who haven't defined their target customer or distribution channel.
-Keep responses concise and actionable.`;
+Be a skeptical data-driven advisor — challenge vanity metrics and unfounded growth assumptions.
+Format your responses with clear markdown (bolding, bullet points). Keep it under 200 words.`;
 
 export const getCMOAdvice = async (apiKey, context, message) => {
   const prompt = `Context:\n${JSON.stringify(context)}\n\nUser: ${JSON.stringify(message)}`;

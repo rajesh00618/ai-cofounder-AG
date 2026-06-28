@@ -91,6 +91,7 @@ body { font-family:var(--font-family); font-size:var(--font-size-base); color:va
 a { color:var(--color-accent-light); text-decoration:none; transition:color var(--transition-fast); }
 a:hover { color:var(--color-accent); }
 button { font-family:var(--font-family); cursor:pointer; border:none; outline:none; background:none; color:inherit; }
+button:focus-visible { outline:2px solid var(--color-accent); outline-offset:2px; border-radius:var(--radius-sm); }
 input,textarea,select { font-family:var(--font-family); font-size:var(--font-size-base); color:var(--color-text-primary); background:var(--color-bg-input); border:1px solid var(--color-border); border-radius:var(--radius-md); padding:var(--space-3) var(--space-4); outline:none; transition:border-color var(--transition-fast); width:100%; }
 input:focus,textarea:focus { border-color:var(--color-border-focus); box-shadow:0 0 0 3px var(--color-accent-subtle); }
 ::placeholder { color:var(--color-text-muted); }
@@ -163,4 +164,30 @@ input:focus,textarea:focus { border-color:var(--color-border-focus); box-shadow:
 @media (max-width: 768px) {
   .board-agent-grid { grid-template-columns: 1fr !important; }
   .board-chat-panel { height: 50vh !important; }
+}
+
+/* AI Workspace */
+@media (max-width: 768px) {
+  .ai-workspace-container { flex-direction: column !important; }
+  .ai-workspace-panel { width: 100% !important; border-left: none !important; border-top: 1px solid rgba(255,255,255,0.06) !important; }
+}
+
+/* Weekly Review Grid */
+@media (max-width: 768px) {
+  .weekly-review-grid { grid-template-columns: 1fr !important; }
+}
+
+/* Founder Twin Grid */
+@media (max-width: 768px) {
+  .founder-grid { grid-template-columns: 1fr !important; }
+}
+
+/* Analytics Grid */
+@media (max-width: 768px) {
+  .analytics-grid { grid-template-columns: 1fr !important; }
+}
+
+/* Simulator Metrics */
+@media (max-width: 768px) {
+  .simulator-metrics { grid-template-columns: 1fr !important; }
 }

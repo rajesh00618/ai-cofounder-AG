@@ -17,5 +17,19 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.js'],
     exclude: ['e2e/**', 'node_modules/**'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'src/test/',
+        'e2e/',
+        '**/*.config.*',
+        '**/*.test.*',
+        '**/*.spec.*',
+        'server/',
+        'dist/',
+      ],
+    },
   },
 })

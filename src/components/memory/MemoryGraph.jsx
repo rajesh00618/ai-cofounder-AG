@@ -173,11 +173,11 @@ export default function MemoryGraph() {
         <>
           <div style={styles.graphCard}>
             <svg ref={svgRef} width="100%" height={SVG_H} viewBox={`0 0 ${SVG_W} ${SVG_H}`} style={{ display: 'block' }}>
-              {usedPairs.map(({ pair: [fromIdx, toIdx], edge }) => {
+              {usedPairs.map(({ pair: [fromIdx, toIdx], edge }, edgeIdx) => {
                 const a = positions[fromIdx], b = positions[toIdx];
                 const midX = (a.x + b.x) / 2, midY = (a.y + b.y) / 2;
                 return (
-                  <g key={`edge-${i}`}>
+                  <g key={`edge-${fromIdx}-${toIdx}-${edgeIdx}`}>
                     <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="rgba(255,255,255,0.12)" strokeWidth="1.5" />
                     <text x={midX} y={midY - 8} fill="rgba(255,255,255,0.25)" fontSize="7" textAnchor="middle">
                       {relationshipLabel(edge?.relationship)}
@@ -242,8 +242,8 @@ export default function MemoryGraph() {
       )}
 
       {showAddModal && (
-        <div style={styles.overlay} onClick={() => setShowAddModal(false)}>
-          <div style={styles.modal} onClick={e => e.stopPropagation()}>
+        <div style={styles.overlay} onClick={() => setShowAddModal(false)} onKeyDown={e => e.key === 'Escape' && setShowAddModal(false)}>
+          <div style={styles.modal} onClick={e => e.stopPropagation()} onKeyDown={e => e.key === 'Escape' && setShowAddModal(false)}>
             <h3 style={{ marginBottom: '1rem' }}>Add Memory Node</h3>
             <select value={newNode.type} onChange={e => setNewNode(p => ({ ...p, type: e.target.value }))} style={styles.input}>
               {Object.keys(NODE_COLORS).map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
@@ -259,8 +259,8 @@ export default function MemoryGraph() {
       )}
 
       {showEdgeModal && (
-        <div style={styles.overlay} onClick={() => setShowEdgeModal(false)}>
-          <div style={styles.modal} onClick={e => e.stopPropagation()}>
+        <div style={styles.overlay} onClick={() => setShowEdgeModal(false)} onKeyDown={e => e.key === 'Escape' && setShowEdgeModal(false)}>
+          <div style={styles.modal} onClick={e => e.stopPropagation()} onKeyDown={e => e.key === 'Escape' && setShowEdgeModal(false)}>
             <h3 style={{ marginBottom: '1rem' }}>Add Edge Connection</h3>
             <select value={newEdge.sourceId} onChange={e => setNewEdge(p => ({ ...p, sourceId: e.target.value }))} style={styles.input}>
               <option value="">Select source node...</option>

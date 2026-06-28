@@ -135,7 +135,7 @@ export default function AuthPage() {
                 <input
                   style={styles.input}
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="At least 6 characters"
+                  placeholder="At least 8 characters"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required

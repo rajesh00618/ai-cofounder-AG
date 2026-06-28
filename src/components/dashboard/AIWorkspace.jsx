@@ -90,6 +90,7 @@ export default function AIWorkspace() {
 
   const handleSend = () => {
     if (!input.trim() || isThinking) return;
+    abortRef.current?.();
     addMessage({ role: 'user', content: input.trim() });
     const msg = input.trim();
     setInput('');

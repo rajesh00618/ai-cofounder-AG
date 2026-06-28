@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -7,8 +8,27 @@ const LOG_DIR = path.join(__dirname, '..', 'logs');
 
 if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
 
-const logFile = path.join(LOG_DIR, `app-${new Date().toISOString().slice(0, 10)}.log`);
-const errorFile = path.join(LOG_DIR, `error-${new Date().toISOString().slice(0, 10)}.log`);
+const getLogFile = () => path.join(LOG_DIR, `app-${new Date().toISOString().slice(0, 10)}.log`);
+const getErrorFile = () => path.join(LOG_DIR, `error-${new Date().toISOString().slice(0, 10)}.log`);
+
+const cleanupOldLogs = () => {
+  try {
+    const files = fs.readdirSync(LOG_DIR);
+    const now = Date.now();
+    const maxAge = 7 * 24 * 60 * 60 * 1000;
+    for (const file of files) {
+      if (!file.startsWith('app-') && !file.startsWith('error-')) continue;
+      const filePath = path.join(LOG_DIR, file);
+      const stat = fs.statSync(filePath);
+      if (now - stat.mtimeMs > maxAge) {
+        fs.unlinkSync(filePath);
+      }
+    }
+  } catch {}
+};
+
+cleanupOldLogs();
+setInterval(cleanupOldLogs, 24 * 60 * 60 * 1000).unref();
 
 const formatEntry = (level, message, meta) => {
   const entry = {
@@ -37,8 +57,7 @@ const flush = (target) => {
   const data = buffers[target];
   if (!data) return;
   buffers[target] = '';
-  const file = target === 'error' ? errorFile : logFile;
-  // Promisified append — does not block the event loop.
+  const file = target === 'error' ? getErrorFile() : getLogFile();
   fs.promises.appendFile(file, data).catch((err) => {
     console.error(`[Logger] Failed to flush ${target} log:`, err.message);
   });
@@ -92,6 +111,7 @@ export const logger = {
   },
   request: (req, statusCode, durationMs) => {
     const entry = formatEntry('INFO', `${req.method} ${req.path}`, {
+      correlationId: req.correlationId,
       method: req.method,
       path: req.path,
       status: statusCode,
@@ -104,6 +124,8 @@ export const logger = {
 };
 
 export const requestLogger = (req, res, next) => {
+  req.correlationId = req.headers['x-correlation-id'] || crypto.randomUUID();
+  res.setHeader('X-Correlation-Id', req.correlationId);
   const start = Date.now();
   res.on('finish', () => {
     logger.request(req, res.statusCode, Date.now() - start);

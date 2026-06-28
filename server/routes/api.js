@@ -1,6 +1,6 @@
 import express from 'express';
 
-import { callOpenAI, callOpenAIStream, PROMPTS, extractJSON } from '../services/ai.js';
+import { callOpenAI, callOpenAIStream, PROMPTS, extractJSON, sanitizeOutput } from '../services/ai.js';
 import { evaluateGoal, calculateRealityScore } from '../engines/reality.js';
 import { negotiateGoal } from '../engines/negotiation.js';
 import { runDecisionSimulation, runCompanySimulation, simulateCustomerReaction } from '../engines/simulation.js';
@@ -14,8 +14,11 @@ import { analyzeDNA, generateAdaptations } from '../engines/dna.js';
 import { generateMission, generateHealthAnalysis } from '../engines/mission.js';
 import { generateReviewNote, suggestTasks } from '../engines/review.js';
 import { getCEOAdvice, getCTOAdvice, getCMOAdvice, getSalesAdvice, getFinanceAdvice, getResearchAdvice } from '../agents/index.js';
+import { evaluateAsInvestor, chatAsInvestor } from '../engines/investor.js';
+import { generateWeeklyReview } from '../engines/weekly.js';
 import { requireJwt } from './auth.js';
 import { sendError } from '../services/errors.js';
+import { getApiKey } from '../apiKeyCache.js';
 
 const router = express.Router();
 
@@ -25,17 +28,32 @@ const router = express.Router();
  * This prevents unauthenticated users from consuming the server's AI quota.
  */
 const requireApiKey = (req, res, next) => {
-  const apiKey = req.headers['x-api-key'];
   const allowFallback = process.env.ALLOW_SERVER_KEY_FALLBACK === 'true';
-  if (!apiKey && !allowFallback) {
-    return res.status(401).json({ error: 'API key is required (x-api-key header). Set ALLOW_SERVER_KEY_FALLBACK=true to use the server key.' });
+  const cachedKey = req.userId ? getApiKey(req.userId) : null;
+  const apiKey = cachedKey || req.headers['x-api-key'] || (allowFallback ? process.env.NVIDIA_API_KEY : null);
+  if (!apiKey) {
+    return res.status(401).json({ error: 'API key is required.' });
   }
-  req.apiKey = apiKey || process.env.NVIDIA_API_KEY;
-  if (!req.apiKey) return res.status(401).json({ error: 'API key is required.' });
+  req.apiKey = apiKey;
   next();
 };
 
 const pick = (body, ...keys) => { for (const k of keys) { if (body[k] !== undefined && body[k] !== null && body[k] !== '') return body[k]; } return undefined; };
+
+const sanitizeContext = (obj) => {
+  if (!obj || typeof obj !== 'object') return obj;
+  const sanitized = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (typeof value === 'string') {
+      sanitized[key] = value.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').slice(0, 5000);
+    } else if (typeof value === 'object' && value !== null) {
+      sanitized[key] = sanitizeContext(value);
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+};
 
 const requireBody = (...fieldGroups) => (req, res, next) => {
   for (const group of fieldGroups) {
@@ -51,10 +69,11 @@ const requireBody = (...fieldGroups) => (req, res, next) => {
 router.post('/chat', requireApiKey, requireBody('message'), async (req, res) => {
   try {
     const { message, context } = req.body;
-    const prompt = `Context:\n${JSON.stringify(context || {})}\n\nUser: ${JSON.stringify(message)}`;
-    const response = await callOpenAI(req.apiKey, PROMPTS.CEO, prompt, 0.7);
-    const confidence = Math.min(70 + Math.floor((response?.length || 10) / 20), 95);
-    res.json({ content: response, confidence });
+    const sanitizedContext = sanitizeContext(context);
+    const prompt = `Context:\n${JSON.stringify(sanitizedContext || {})}\n\nUser: ${JSON.stringify(message)}`;
+    const response = sanitizeOutput(await callOpenAI(req.apiKey, PROMPTS.CEO, prompt, 0.7));
+    const confidence = response?.length > 100 ? 85 : response?.length > 50 ? 75 : 65;
+    res.json({ content: response, confidence, confidenceReason: confidence >= 80 ? 'High confidence — detailed reasoning available' : confidence >= 70 ? 'Medium confidence — consider verifying key assumptions' : 'Lower confidence — limited context for this response' });
   } catch (error) {
     sendError(res, error);
   }
@@ -63,7 +82,8 @@ router.post('/chat', requireApiKey, requireBody('message'), async (req, res) => 
 router.post('/chat/stream', requireApiKey, requireBody('message'), async (req, res) => {
   try {
     const { message, context } = req.body;
-    const prompt = `Context:\n${JSON.stringify(context || {})}\n\nUser: ${JSON.stringify(message)}`;
+    const sanitizedContext = sanitizeContext(context);
+    const prompt = `Context:\n${JSON.stringify(sanitizedContext || {})}\n\nUser: ${JSON.stringify(message)}`;
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -77,7 +97,7 @@ router.post('/chat/stream', requireApiKey, requireBody('message'), async (req, r
     res.write(`data: ${JSON.stringify({ done: true, fullText: full })}\n\n`);
     res.end();
   } catch (error) {
-    res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+    res.write(`data: ${JSON.stringify({ error: 'Stream processing failed' })}\n\n`);
     res.end();
   }
 });
@@ -87,8 +107,8 @@ router.post('/chat/agent', requireApiKey, requireBody('message', 'agent'), async
     const { message, context, agent } = req.body;
     const agents = { ceo: getCEOAdvice, cto: getCTOAdvice, cmo: getCMOAdvice, sales: getSalesAdvice, finance: getFinanceAdvice, research: getResearchAdvice };
     const agentFn = agents[agent] || getCEOAdvice;
-    const response = await agentFn(req.apiKey, context || {}, message);
-    const confidence = Math.min(70 + Math.floor((message?.length || 10) / 10), 99);
+    const response = sanitizeOutput(await agentFn(req.apiKey, context || {}, message));
+    const confidence = response?.length > 100 ? 85 : response?.length > 50 ? 75 : 65;
     res.json({ content: response, confidence, agent });
   } catch (error) {
     sendError(res, error);
@@ -346,7 +366,9 @@ router.post('/memory/nodes', requireJwt, requireBody('founderId', 'type', 'label
 
 router.get('/memory/nodes/:founderId', requireJwt, async (req, res) => {
   try {
-    const nodes = await getMemoryNodes(req.userId, req.params.founderId);
+    const limit = Math.min(parseInt(req.query.limit) || 100, 500);
+    const offset = parseInt(req.query.offset) || 0;
+    const nodes = await getMemoryNodes(req.userId, req.params.founderId, limit, offset);
     res.json(nodes);
   } catch (error) {
     sendError(res, error);
@@ -355,7 +377,9 @@ router.get('/memory/nodes/:founderId', requireJwt, async (req, res) => {
 
 router.get('/memory/timeline/:founderId', requireJwt, async (req, res) => {
   try {
-    const timeline = await getMemoryTimeline(req.userId, req.params.founderId);
+    const limit = Math.min(parseInt(req.query.limit) || 200, 500);
+    const offset = parseInt(req.query.offset) || 0;
+    const timeline = await getMemoryTimeline(req.userId, req.params.founderId, limit, offset);
     res.json(timeline);
   } catch (error) {
     sendError(res, error);
@@ -374,7 +398,9 @@ router.post('/memory/edges', requireJwt, requireBody('sourceNodeId', 'targetNode
 
 router.get('/memory/graph/:founderId', requireJwt, async (req, res) => {
   try {
-    const graph = await getMemoryGraph(req.userId, req.params.founderId);
+    const limit = Math.min(parseInt(req.query.limit) || 100, 500);
+    const offset = parseInt(req.query.offset) || 0;
+    const graph = await getMemoryGraph(req.userId, req.params.founderId, limit, offset);
     res.json(graph);
   } catch (error) {
     sendError(res, error);
@@ -448,6 +474,42 @@ router.post('/execution/step', requireApiKey, requireBody('stepId', 'task'), asy
     const { stepId, task } = req.body;
     const result = await executeStep(req.apiKey, stepId, task);
     res.json({ stepId, output: result.output });
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
+// --- INVESTOR MODE (flagship feature) ---
+router.post('/investor/evaluate', requireApiKey, async (req, res) => {
+  try {
+    const context = pick(req.body, 'context', 'blueprint', 'businessHealth', 'startupScore') || {};
+    const result = await evaluateAsInvestor(req.apiKey, context);
+    res.json(result);
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
+router.post('/investor/chat', requireApiKey, requireBody('message'), async (req, res) => {
+  try {
+    const { message, context } = req.body;
+    const response = await chatAsInvestor(req.apiKey, context || {}, message);
+    res.json({ content: response });
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
+// --- WEEKLY CEO/BOARD REVIEW ---
+router.post('/review/weekly', requireApiKey, async (req, res) => {
+  try {
+    const profile = pick(req.body, 'profile') || {};
+    const tasks = pick(req.body, 'tasks') || [];
+    const dnaScores = pick(req.body, 'dnaScores') || {};
+    const businessHealth = pick(req.body, 'businessHealth') || {};
+    const startupScore = pick(req.body, 'startupScore') || {};
+    const review = await generateWeeklyReview(req.apiKey, profile, tasks, dnaScores, businessHealth, startupScore);
+    res.json(review);
   } catch (error) {
     sendError(res, error);
   }

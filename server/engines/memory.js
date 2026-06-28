@@ -13,7 +13,7 @@ export const addMemoryNode = async (userId, founderId, type, label, metadata = {
   return id;
 };
 
-export const getMemoryNodes = async (userId, founderId) => {
+export const getMemoryNodes = async (userId, founderId, limit = 100, offset = 0) => {
   const supabase = getDb();
   if (!supabase) return [];
   const { data, error } = await supabase
@@ -21,7 +21,8 @@ export const getMemoryNodes = async (userId, founderId) => {
     .select('*')
     .eq('user_id', userId)
     .eq('founder_id', founderId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
   if (error) throw error;
   return (data || []).map(r => ({
     ...r,
@@ -29,7 +30,7 @@ export const getMemoryNodes = async (userId, founderId) => {
   }));
 };
 
-export const getMemoryTimeline = async (userId, founderId) => {
+export const getMemoryTimeline = async (userId, founderId, limit = 200, offset = 0) => {
   const supabase = getDb();
   if (!supabase) return [];
   const { data, error } = await supabase
@@ -37,7 +38,8 @@ export const getMemoryTimeline = async (userId, founderId) => {
     .select('id, type, label, created_at')
     .eq('user_id', userId)
     .eq('founder_id', founderId)
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: true })
+    .range(offset, offset + limit - 1);
   if (error) throw error;
   return data || [];
 };
@@ -45,6 +47,14 @@ export const getMemoryTimeline = async (userId, founderId) => {
 export const addMemoryEdge = async (userId, sourceNodeId, targetNodeId, relationship) => {
   const supabase = getDb();
   if (!supabase) return null;
+
+  // Validate both source and target nodes belong to the same user
+  const { data: sourceNode } = await supabase.from('memory_nodes').select('user_id').eq('id', sourceNodeId).maybeSingle();
+  if (!sourceNode || sourceNode.user_id !== userId) throw new Error('Source node not found or access denied');
+
+  const { data: targetNode } = await supabase.from('memory_nodes').select('user_id').eq('id', targetNodeId).maybeSingle();
+  if (!targetNode || targetNode.user_id !== userId) throw new Error('Target node not found or access denied');
+
   const id = uuidv4();
   const { error } = await supabase.from('memory_edges').insert({
     id, user_id: userId, source_node_id: sourceNodeId,
@@ -54,7 +64,7 @@ export const addMemoryEdge = async (userId, sourceNodeId, targetNodeId, relation
   return id;
 };
 
-export const getMemoryGraph = async (userId, founderId) => {
+export const getMemoryGraph = async (userId, founderId, limit = 100, offset = 0) => {
   const supabase = getDb();
   if (!supabase) return { nodes: [], edges: [] };
 
@@ -63,7 +73,8 @@ export const getMemoryGraph = async (userId, founderId) => {
     .select('*')
     .eq('user_id', userId)
     .eq('founder_id', founderId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
   if (nodeError) throw nodeError;
 
   const nodeIds = (nodes || []).map(n => n.id);

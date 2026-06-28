@@ -2,13 +2,30 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import jwt from 'jsonwebtoken';
 import 'dotenv/config';
 import { initDb } from './db/schema.js';
 import apiRoutes from './routes/api.js';
 import authRoutes from './routes/auth.js';
 import { logger, requestLogger } from './services/logger.js';
 import { startReminderScheduler, registerWhatsAppPhone } from './services/reminders.js';
+import { startBackgroundResearch } from './services/backgroundResearch.js';
 import { globalErrorHandler } from './services/errors.js';
+
+const validateEnv = () => {
+  const required = ['JWT_SECRET'];
+  const missing = required.filter(key => !process.env[key]);
+  if (missing.length > 0) {
+    logger.error(`Missing required environment variables: ${missing.join(', ')}`);
+    process.exit(1);
+  }
+  if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
+    logger.error('JWT_SECRET must be at least 32 characters');
+    process.exit(1);
+  }
+};
+
+validateEnv();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -35,8 +52,23 @@ app.use('/api/auth', authLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api', apiRoutes);
 
-// WhatsApp phone registration (safe in-memory registry, never mutates process.env)
-app.post('/api/reminders/register', (req, res) => {
+// JWT verification middleware for protected routes
+const requireJwt = (req, res, next) => {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  try {
+    const decoded = jwt.verify(auth.split(' ')[1], process.env.JWT_SECRET);
+    req.userId = decoded.userId;
+    next();
+  } catch {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
+// WhatsApp phone registration (requires authentication)
+app.post('/api/reminders/register', requireJwt, (req, res) => {
   const { email, phone } = req.body;
   if (!email || !phone) return res.status(400).json({ error: 'Email and phone required' });
   if (!/^\+\d{7,15}$/.test(phone)) return res.status(400).json({ error: 'Invalid phone number format. Use +CountryCode (e.g., +1234567890).' });
@@ -49,7 +81,43 @@ app.post('/api/reminders/register', (req, res) => {
 app.get('/health', (req, res) => res.redirect('/api/health'));
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'AI Co-Founder API is running', timestamp: new Date().toISOString() });
+  const health = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    version: process.env.npm_package_version || '1.0.0',
+    uptime: process.uptime(),
+    memory: {
+      rss: Math.round(process.memoryUsage().rss / 1024 / 1024) + 'MB',
+      heap: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
+    },
+  };
+  res.json(health);
+});
+
+app.get('/api/health/ready', async (req, res) => {
+  const checks = {
+    database: 'ok',
+    ai: process.env.NVIDIA_API_KEY || process.env.AI_MODEL ? 'configured' : 'not configured',
+  };
+
+  const supabase = getDb();
+  if (supabase) {
+    try {
+      await supabase.from('users').select('id').limit(1);
+      checks.database = 'ok';
+    } catch {
+      checks.database = 'error';
+    }
+  } else {
+    checks.database = 'not configured';
+  }
+
+  const isReady = checks.database !== 'error';
+  res.status(isReady ? 200 : 503).json({
+    status: isReady ? 'ready' : 'not ready',
+    checks,
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // 404 handler for unmatched routes
@@ -66,6 +134,7 @@ initDb().then(() => {
   app.listen(PORT, () => {
     logger.info(`API listening on port ${PORT}`);
     startReminderScheduler();
+    startBackgroundResearch();
   });
 }).catch(err => {
   logger.error(`Database unavailable — starting without persistence: ${err.message}`);

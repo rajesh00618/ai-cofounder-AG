@@ -25,36 +25,52 @@ const getHeaders = () => {
   return headers;
 };
 
+const API_TIMEOUT = 60000;
+
 const apiPost = async (path, body) => {
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify(body)
-  });
-  if (!res.ok) {
-    const errBody = await res.json().catch(() => ({ error: 'Request failed' }));
-    const friendly = res.status === 401 ? 'Session expired. Please sign in again.'
-      : res.status === 429 ? 'Too many requests. Please wait a moment.'
-      : res.status >= 500 ? 'Our AI service is temporarily unavailable. Please try again.'
-      : errBody.error || 'Something went wrong';
-    throw new Error(friendly);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({ error: 'Request failed' }));
+      const friendly = res.status === 401 ? 'Session expired. Please sign in again.'
+        : res.status === 429 ? 'Too many requests. Please wait a moment.'
+        : res.status >= 500 ? 'Our AI service is temporarily unavailable. Please try again.'
+        : errBody.error || 'Something went wrong';
+      throw new Error(friendly);
+    }
+    return res.json();
+  } finally {
+    clearTimeout(timeoutId);
   }
-  return res.json();
 };
 
 const apiGet = async (path) => {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: getHeaders()
-  });
-  if (!res.ok) {
-    const errBody = await res.json().catch(() => ({ error: 'Request failed' }));
-    const friendly = res.status === 401 ? 'Session expired. Please sign in again.'
-      : res.status === 429 ? 'Too many requests. Please wait a moment.'
-      : res.status >= 500 ? 'Our AI service is temporarily unavailable.'
-      : errBody.error || 'Something went wrong';
-    throw new Error(friendly);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      headers: getHeaders(),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({ error: 'Request failed' }));
+      const friendly = res.status === 401 ? 'Session expired. Please sign in again.'
+        : res.status === 429 ? 'Too many requests. Please wait a moment.'
+        : res.status >= 500 ? 'Our AI service is temporarily unavailable.'
+        : errBody.error || 'Something went wrong';
+      throw new Error(friendly);
+    }
+    return res.json();
+  } finally {
+    clearTimeout(timeoutId);
   }
-  return res.json();
 };
 
 export const api = {
@@ -84,10 +100,14 @@ export const api = {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let streamDone = false;
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          if (onDone && !streamDone) onDone(buffer || '');
+          break;
+        }
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
@@ -96,7 +116,7 @@ export const api = {
             try {
               const data = JSON.parse(line.slice(6));
               if (data.error) { onError?.(data.error); return; }
-              if (data.done) { onDone?.(data.fullText); return; }
+              if (data.done) { streamDone = true; onDone?.(data.fullText); return; }
               onToken?.(data.token, data.fullText);
             } catch {}
           }
@@ -143,6 +163,17 @@ export const api = {
   generateBlueprintTasks: (answers, blueprint) => apiPost('/business/blueprint/tasks', { answers, blueprint }),
   generateBlueprintScores: (answers, blueprint, profile) => apiPost('/business/blueprint/scores', { answers, blueprint, profile }),
   healthCheck: () => apiGet('/health'),
+
+  // Investor Mode
+  investorEvaluate: (context) => apiPost('/investor/evaluate', { context }),
+  investorChat: (message, context) => apiPost('/investor/chat', { message, context }),
+
+  // Reviews
+  generateWeeklyReview: (data) => apiPost('/review/weekly', data),
+
+  // API Key (server-side storage)
+  setApiKey: (apiKey) => apiPost('/auth/api-key', { apiKey }),
+  getApiKeyStatus: () => apiGet('/auth/api-key'),
 
   // WhatsApp
   registerReminderPhone: (email, phone) => apiPost('/reminders/register', { email, phone }),
