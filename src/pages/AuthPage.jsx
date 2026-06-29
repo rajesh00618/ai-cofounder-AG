@@ -4,7 +4,6 @@ import { Sparkles, Mail, Lock, User, ArrowRight, Eye, EyeOff, LogIn, LogOut, Loa
 import { api } from '../utils/api';
 import { useAuthStore } from '../store/authStore';
 import { useFounderStore } from '../store/founderStore';
-import CursorGlow from '../components/ui/CursorGlow';
 import ThreeDCard from '../components/ui/ThreeDCard';
 import RippleButton from '../components/ui/RippleButton';
 
@@ -24,7 +23,6 @@ export default function AuthPage() {
   const [error, setError] = useState('');
   const [hydrated, setHydrated] = useState(false);
   const [focusedField, setFocusedField] = useState('');
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isAnimating, setIsAnimating] = useState(false);
   const cardRef = useRef(null);
 
@@ -32,14 +30,6 @@ export default function AuthPage() {
     const unsub = useAuthStore.persist.onFinishHydration(() => setHydrated(true));
     if (useAuthStore.persist.hasHydrated()) setHydrated(true);
     return () => unsub();
-  }, []);
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      setMousePos({ x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
   if (!hydrated) {
@@ -88,11 +78,6 @@ export default function AuthPage() {
 
   return (
     <div style={styles.page}>
-      <CursorGlow color="rgba(196,154,108,0.04)" size={400} />
-
-      <div style={{ ...styles.bgOrb1, transform: `translate(${mousePos.x * 0.01}px, ${mousePos.y * 0.01}px)` }} />
-      <div style={{ ...styles.bgOrb2, transform: `translate(${-mousePos.x * 0.008}px, ${-mousePos.y * 0.008}px)` }} />
-      <div style={styles.gridBg} />
 
       <div style={styles.container}>
         <ThreeDCard intensity={5} style={{ width: '100%' }}>
@@ -264,9 +249,6 @@ export default function AuthPage() {
 
 const styles = {
   page: { position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  bgOrb1: { position: 'fixed', top: '-20%', right: '-10%', width: '600px', height: '600px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(196,154,108,0.08) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0, transition: 'transform 0.3s ease-out' },
-  bgOrb2: { position: 'fixed', bottom: '-20%', left: '-10%', width: '500px', height: '500px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(125,184,125,0.05) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0, transition: 'transform 0.3s ease-out' },
-  gridBg: { position: 'fixed', inset: 0, backgroundImage: 'linear-gradient(rgba(255,248,235,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,248,235,0.015) 1px, transparent 1px)', backgroundSize: '60px 60px', pointerEvents: 'none', zIndex: 0 },
   container: { position: 'relative', zIndex: 1, width: '100%', maxWidth: '420px', padding: '2rem' },
   card: { background: 'rgba(20,18,15,0.85)', backdropFilter: 'blur(24px)', border: '1px solid rgba(255,248,235,0.08)', borderRadius: '24px', padding: '2.5rem 2rem', boxShadow: '0 16px 48px rgba(0,0,0,0.5)' },
   logo: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '2rem' },

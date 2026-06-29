@@ -389,19 +389,6 @@ input:focus,textarea:focus { border-color:var(--color-border-focus); box-shadow:
   gap: var(--space-2);
 }
 
-/* ===== CURSOR GLOW ===== */
-.cursor-glow {
-  position: fixed;
-  width: 400px;
-  height: 400px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(196,154,108,0.06) 0%, transparent 70%);
-  pointer-events: none;
-  z-index: 0;
-  transform: translate(-50%, -50%);
-  transition: opacity 0.3s;
-}
-
 /* ===== STICKY BOTTOM SHEET ===== */
 .bottom-sheet {
   position: fixed;

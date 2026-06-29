@@ -1,5 +1,4 @@
 export { default as AuroraBackground } from './AuroraBackground';
-export { default as CursorGlow } from './CursorGlow';
 export { default as KineticText } from './KineticText';
 export { SlideCard, SlideCardDeck } from './SlideCards';
 export { SkeletonText, SkeletonCircle, SkeletonCard, SkeletonBento, SkeletonDashboard } from './SkeletonLoaders';

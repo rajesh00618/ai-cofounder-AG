@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Rocket, Brain, Target, Zap, TrendingUp, Shield, ArrowRight, Sparkles, BarChart3, Users, Bot, LogIn, ChevronDown, ArrowUpRight } from 'lucide-react';
 import AuroraBackground from '../components/ui/AuroraBackground';
-import CursorGlow from '../components/ui/CursorGlow';
 import KineticText from '../components/ui/KineticText';
 import { ScrollStorySection, useScrollProgress } from '../components/ui/ScrollStory';
 import { BentoGrid, BentoItem } from '../components/ui/BentoGrid';
@@ -34,41 +33,12 @@ export default function LandingPage() {
   const [visible, setVisible] = useState(false);
   const heroRef = useRef(null);
   const scrollProgress = useScrollProgress();
-  const orb1Ref = useRef(null);
-  const orb2Ref = useRef(null);
-  const orb3Ref = useRef(null);
-  const rafRef = useRef(null);
 
   useEffect(() => { setVisible(true); }, []);
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      rafRef.current = requestAnimationFrame(() => {
-        const x = e.clientX;
-        const y = e.clientY;
-        if (orb1Ref.current) orb1Ref.current.style.transform = `translate(${x * 0.01}px, ${y * 0.01}px)`;
-        if (orb2Ref.current) orb2Ref.current.style.transform = `translate(${-x * 0.008}px, ${-y * 0.008}px)`;
-        if (orb3Ref.current) orb3Ref.current.style.transform = `translate(${x * 0.005}px, ${y * 0.005}px)`;
-      });
-    };
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, []);
 
   return (
     <div style={styles.page}>
       <ScrollProgress />
-      <CursorGlow color="rgba(196,154,108,0.04)" size={500} />
-
-      {/* Floating orbs with parallax */}
-      <div ref={orb1Ref} style={styles.bgOrb1} />
-      <div ref={orb2Ref} style={styles.bgOrb2} />
-      <div ref={orb3Ref} style={styles.bgOrb3} />
-      <div style={styles.gridBg} />
 
       {/* Nav */}
       <nav style={{ ...styles.nav, backdropFilter: `blur(${20 + scrollProgress * 10}px)`, background: `rgba(15,13,10,${0.7 + scrollProgress * 0.25})` }}>
@@ -308,10 +278,7 @@ export default function LandingPage() {
 
 const styles = {
   page: { position: 'relative', minHeight: '100vh', overflow: 'hidden' },
-  bgOrb1: { position: 'fixed', top: '-20%', right: '-10%', width: '600px', height: '600px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(196,154,108,0.08) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0, transition: 'transform 0.3s ease-out' },
-  bgOrb2: { position: 'fixed', bottom: '-20%', left: '-10%', width: '500px', height: '500px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(125,184,125,0.05) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0, transition: 'transform 0.3s ease-out' },
-  bgOrb3: { position: 'fixed', top: '40%', left: '50%', width: '400px', height: '400px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(123,168,196,0.04) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0, transition: 'transform 0.3s ease-out' },
-  gridBg: { position: 'fixed', inset: 0, backgroundImage: 'linear-gradient(rgba(255,248,235,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,248,235,0.015) 1px, transparent 1px)', backgroundSize: '60px 60px', pointerEvents: 'none', zIndex: 0 },
+
 
   nav: { position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, borderBottom: '1px solid rgba(255,248,235,0.06)' },
   navInner: { maxWidth: '1200px', margin: '0 auto', padding: '0 2rem', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },

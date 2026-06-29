@@ -20,7 +20,6 @@ const InvestorMode = React.lazy(() => import('../components/ai/InvestorMode'));
 const WeeklyReview = React.lazy(() => import('../components/review/WeeklyReview'));
 import { useNavigate } from 'react-router-dom';
 import { SkeletonDashboard } from '../components/ui/SkeletonLoaders';
-import CursorGlow from '../components/ui/CursorGlow';
 
 const VIEWS = {
   home: CommandCenter,
@@ -81,7 +80,6 @@ export default function DashboardPage() {
 
   return (
     <div style={styles.layout}>
-      <CursorGlow color="rgba(196,154,108,0.03)" size={300} />
       <Suspense fallback={<div style={{ width: sidebarCollapsed ? '72px' : '260px', padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.8125rem' }}>Loading...</div>}>
         <Sidebar activeView={activeView} onNavigate={handleNavigate} />
       </Suspense>

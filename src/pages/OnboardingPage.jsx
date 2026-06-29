@@ -4,7 +4,6 @@ import { useFounderStore } from '../store/founderStore';
 import { ONBOARDING_QUESTIONS } from '../utils/constants';
 import { ArrowLeft, Sparkles, User, CheckCircle2, Send } from 'lucide-react';
 import AuroraBackground from '../components/ui/AuroraBackground';
-import CursorGlow from '../components/ui/CursorGlow';
 import ThreeDCard from '../components/ui/ThreeDCard';
 import RippleButton from '../components/ui/RippleButton';
 
@@ -54,7 +53,6 @@ export default function OnboardingPage() {
     return (
       <AuroraBackground intensity={0.3}>
         <div style={styles.page}>
-          <CursorGlow color="rgba(196,154,108,0.04)" size={400} />
           <div style={styles.container}>
             <ThreeDCard intensity={5} style={{ width: '100%' }}>
               <div style={styles.card} className="page-enter">
@@ -84,7 +82,6 @@ export default function OnboardingPage() {
   return (
     <AuroraBackground intensity={0.3}>
       <div style={styles.page}>
-        <CursorGlow color="rgba(196,154,108,0.04)" size={400} />
         <div style={styles.container}>
           {/* Progress */}
           <div style={styles.progressWrap}>
