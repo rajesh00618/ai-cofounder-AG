@@ -5,12 +5,31 @@ import { useTaskStore } from '../../store/taskStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getGreeting, getScoreColor, getScoreLabel, calculateOverallScore } from '../../utils/helpers';
 import { STARTUP_STAGES } from '../../utils/constants';
-import { Sparkles, Target, AlertTriangle, TrendingUp, CheckSquare, Brain, Zap, ArrowRight, BarChart3, Activity, Loader2 } from 'lucide-react';
+import { Sparkles, Target, AlertTriangle, TrendingUp, CheckSquare, Brain, Zap, ArrowRight, BarChart3, Activity, Loader2, ChevronRight } from 'lucide-react';
 import { api } from '../../utils/api';
+import { BentoGrid, BentoItem } from '../ui/BentoGrid';
+import ThreeDCard from '../ui/ThreeDCard';
+import RippleButton from '../ui/RippleButton';
 
-const ScoreCard = React.memo(function ScoreCard({ label, value, icon: Icon, color }) {
+const ScoreCard = React.memo(function ScoreCard({ label, value, icon: Icon, color, delay = 0 }) {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsVisible(true), delay);
+    return () => clearTimeout(timer);
+  }, [delay]);
+
   return (
-    <div style={styles.scoreCard}>
+    <div
+      ref={ref}
+      style={{
+        ...styles.scoreCard,
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? 'translateY(0)' : 'translateY(20px)',
+        transition: `all 0.5s ${delay}ms cubic-bezier(0.4,0,0.2,1)`,
+      }}
+    >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
         <span style={styles.scoreLabel}>{label}</span>
         <Icon size={14} style={{ color }} />
@@ -20,7 +39,7 @@ const ScoreCard = React.memo(function ScoreCard({ label, value, icon: Icon, colo
         <span style={styles.scoreQuality}>{getScoreLabel(value)}</span>
       </div>
       <div className="progress-bar" style={{ marginTop: '0.5rem', height: '4px' }}>
-        <div className="progress-bar-fill" style={{ width: `${value}%`, background: color }} />
+        <div className="progress-bar-fill" style={{ width: `${value}%`, background: color, transition: 'width 1s cubic-bezier(0.4,0,0.2,1)' }} />
       </div>
     </div>
   );
@@ -65,6 +84,7 @@ export default function CommandCenter({ onNavigate }) {
 
   return (
     <div style={styles.page} className="page-enter">
+      {/* Header */}
       <div className="dashboard-header" style={styles.header}>
         <div>
           <h1 style={styles.greeting}>{getGreeting()}, {profile?.name} 👋</h1>
@@ -76,117 +96,153 @@ export default function CommandCenter({ onNavigate }) {
         </div>
       </div>
 
-      <div style={styles.section}>
-        <h3 style={styles.sectionTitle}><Zap size={16} style={{ color: 'var(--color-warning)' }} /> Live Startup Score</h3>
-        <div className="dashboard-grid-6" style={styles.scoreGrid}>
-          <ScoreCard label="Execution" value={startupScore.execution} icon={TrendingUp} color="var(--color-accent-light)" />
-          <ScoreCard label="Business" value={startupScore.business} icon={BarChart3} color="var(--color-info-light)" />
-          <ScoreCard label="Customers" value={startupScore.customers} icon={Target} color="var(--color-success-light)" />
-          <ScoreCard label="Product" value={startupScore.product} icon={Zap} color="var(--color-warning-light)" />
-          <ScoreCard label="Cash" value={startupScore.cash} icon={TrendingUp} color="var(--color-danger-light)" />
-          <ScoreCard label="AI Confidence" value={startupScore.aiConfidence} icon={Brain} color="var(--color-accent)" />
-        </div>
-      </div>
-
-      <div className="dashboard-grid-2" style={styles.twoCol}>
-        <div style={styles.panel}>
-          <h3 style={styles.panelTitle}><Target size={16} style={{ color: 'var(--color-accent-light)' }} /> Today's Mission</h3>
-          <div style={styles.missionCard}>
-            {loading ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0' }}>
-                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-tertiary)' }}>Crafting your mission...</span>
-              </div>
-            ) : (
-              <p style={styles.missionText}>{mission || 'Waiting for mission...'}</p>
-            )}
-            <div style={styles.missionMeta}>
-              <span className="badge badge-warning">Priority</span>
-              {estimatedTime && <span style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)' }}>{estimatedTime}</span>}
+      {/* Bento Grid Layout */}
+      <BentoGrid columns={4} gap="1rem" style={{ marginBottom: '1.5rem' }}>
+        {/* Score Cards - Full Width */}
+        <BentoItem full delay={0}>
+          <div style={styles.scoreSection}>
+            <h3 style={styles.sectionTitle}><Zap size={16} style={{ color: 'var(--color-warning)' }} /> Live Startup Score</h3>
+            <div style={styles.scoreGrid}>
+              <ScoreCard label="Execution" value={startupScore.execution} icon={TrendingUp} color="var(--color-accent-light)" delay={0} />
+              <ScoreCard label="Business" value={startupScore.business} icon={BarChart3} color="var(--color-info-light)" delay={80} />
+              <ScoreCard label="Customers" value={startupScore.customers} icon={Target} color="var(--color-success-light)" delay={160} />
+              <ScoreCard label="Product" value={startupScore.product} icon={Zap} color="var(--color-warning-light)" delay={240} />
+              <ScoreCard label="Cash" value={startupScore.cash} icon={TrendingUp} color="var(--color-danger-light)" delay={320} />
+              <ScoreCard label="AI Confidence" value={startupScore.aiConfidence} icon={Brain} color="var(--color-accent)" delay={400} />
             </div>
           </div>
+        </BentoItem>
 
-          <h4 style={{ ...styles.panelTitle, fontSize: '0.8125rem', marginTop: '1.25rem' }}>
-            <CheckSquare size={14} /> Today's Tasks ({completedToday}/{totalTasks})
-          </h4>
-          {todayTasks.length > 0 && todayTasks.map((task) => (
-            <div key={task.id} style={styles.taskItem}>
-              <div style={{ ...styles.taskDot, background: task.priority === 'high' ? 'var(--color-danger)' : task.priority === 'medium' ? 'var(--color-warning)' : 'var(--color-text-muted)' }} />
-              <div style={{ flex: 1 }}>
-                <div style={styles.taskTitle}>{task.title}</div>
-                <div style={styles.taskMeta}>
-                  <span>{task.estimatedTime}</span> · <span>{task.aiAssistance}</span>
+        {/* Mission - Wide */}
+        <BentoItem wide delay={0.1}>
+          <ThreeDCard intensity={4}>
+            <div style={styles.panel}>
+              <h3 style={styles.panelTitle}><Target size={16} style={{ color: 'var(--color-accent-light)' }} /> Today's Mission</h3>
+              <div style={styles.missionCard}>
+                {loading ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0' }}>
+                    <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                    <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-tertiary)' }}>Crafting your mission...</span>
+                  </div>
+                ) : (
+                  <p style={styles.missionText}>{mission || 'Waiting for mission...'}</p>
+                )}
+                <div style={styles.missionMeta}>
+                  <span className="badge badge-warning">Priority</span>
+                  {estimatedTime && <span style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)' }}>{estimatedTime}</span>}
                 </div>
               </div>
-              <span className={`badge ${task.priority === 'high' ? 'badge-danger' : 'badge-warning'}`}>{task.priority}</span>
             </div>
-          ))}
-          {todayTasks.length === 0 && (
-            <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', padding: '1rem 0' }}>No tasks yet. Generate your business blueprint first!</p>
-          )}
-        </div>
+          </ThreeDCard>
+        </BentoItem>
 
-        <div style={styles.rightCol}>
-          <div style={styles.panel}>
-            <h3 style={styles.panelTitle}><BarChart3 size={16} style={{ color: 'var(--color-success)' }} /> Business Health</h3>
-            <div style={styles.healthOverall}>
-              <span style={{ ...styles.healthValue, color: getScoreColor(overallHealth) }}>{overallHealth}%</span>
-              <span style={styles.healthLabel}>Overall</span>
-            </div>
-            {Object.entries(businessHealth).map(([key, val]) => (
-              <div key={key} style={styles.healthRow}>
-                <span style={styles.healthKey}>{key.charAt(0).toUpperCase() + key.slice(1)}</span>
-                <div className="progress-bar" style={{ flex: 1, height: '4px' }}>
-                  <div className="progress-bar-fill" style={{ width: `${val}%`, background: getScoreColor(val) }} />
-                </div>
-                <span style={{ ...styles.healthPercent, color: getScoreColor(val) }}>{val}%</span>
+        {/* Business Health - Tall */}
+        <BentoItem tall delay={0.15}>
+          <ThreeDCard intensity={4}>
+            <div style={{ ...styles.panel, height: '100%' }}>
+              <h3 style={styles.panelTitle}><BarChart3 size={16} style={{ color: 'var(--color-success)' }} /> Business Health</h3>
+              <div style={styles.healthOverall}>
+                <span style={{ ...styles.healthValue, color: getScoreColor(overallHealth) }}>{overallHealth}%</span>
+                <span style={styles.healthLabel}>Overall</span>
               </div>
-            ))}
-          </div>
-
-          <div style={{ ...styles.panel, background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.15)' }}>
-            <h3 style={styles.panelTitle}><Sparkles size={16} style={{ color: 'var(--color-accent-light)' }} /> AI Recommendation</h3>
-            {loading ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0' }}>
-                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-tertiary)' }}>Analyzing your data...</span>
-              </div>
-            ) : (
-              <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
-                {recommendation || 'Waiting for AI recommendation...'}
-              </p>
-            )}
-            <button className="btn btn-primary btn-sm" style={{ marginTop: '0.75rem' }} onClick={() => onNavigate('workspace')}>
-              Talk to AI <ArrowRight size={14} />
-            </button>
-          </div>
-
-          <div style={styles.panel}>
-            <h3 style={styles.panelTitle}><TrendingUp size={16} style={{ color: 'var(--color-warning)' }} /> Current Stage</h3>
-            <div style={styles.stageRow}>
-              {STARTUP_STAGES.map((stage) => (
-                <div key={stage.id} style={{
-                  ...styles.stageItem,
-                  ...(stage.id === currentStage ? styles.stageActive : {}),
-                  opacity: STARTUP_STAGES.findIndex(s => s.id === currentStage) >= STARTUP_STAGES.findIndex(s => s.id === stage.id) ? 1 : 0.3
-                }}>
-                  <span style={styles.stageEmoji}>{stage.icon}</span>
-                  <span style={styles.stageLabel}>{stage.label}</span>
+              {Object.entries(businessHealth).map(([key, val]) => (
+                <div key={key} style={styles.healthRow}>
+                  <span style={styles.healthKey}>{key.charAt(0).toUpperCase() + key.slice(1)}</span>
+                  <div className="progress-bar" style={{ flex: 1, height: '4px' }}>
+                    <div className="progress-bar-fill" style={{ width: `${val}%`, background: getScoreColor(val) }} />
+                  </div>
+                  <span style={{ ...styles.healthPercent, color: getScoreColor(val) }}>{val}%</span>
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-      </div>
+          </ThreeDCard>
+        </BentoItem>
+
+        {/* Tasks */}
+        <BentoItem wide delay={0.2}>
+          <ThreeDCard intensity={4}>
+            <div style={styles.panel}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                <h3 style={styles.panelTitle}><CheckSquare size={16} /> Today's Tasks ({completedToday}/{totalTasks})</h3>
+                <button className="btn btn-ghost btn-sm" onClick={() => onNavigate('tasks')} style={{ fontSize: '0.75rem' }}>
+                  View All <ChevronRight size={12} />
+                </button>
+              </div>
+              {todayTasks.length > 0 && todayTasks.map((task) => (
+                <div key={task.id} style={styles.taskItem}>
+                  <div style={{ ...styles.taskDot, background: task.priority === 'high' ? 'var(--color-danger)' : task.priority === 'medium' ? 'var(--color-warning)' : 'var(--color-text-muted)' }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={styles.taskTitle}>{task.title}</div>
+                    <div style={styles.taskMeta}>
+                      <span>{task.estimatedTime}</span> · <span>{task.aiAssistance}</span>
+                    </div>
+                  </div>
+                  <span className={`badge ${task.priority === 'high' ? 'badge-danger' : 'badge-warning'}`}>{task.priority}</span>
+                </div>
+              ))}
+              {todayTasks.length === 0 && (
+                <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', padding: '1rem 0' }}>No tasks yet. Generate your business blueprint first!</p>
+              )}
+            </div>
+          </ThreeDCard>
+        </BentoItem>
+
+        {/* AI Recommendation */}
+        <BentoItem wide delay={0.25}>
+          <ThreeDCard intensity={4}>
+            <div style={{ ...styles.panel, background: 'rgba(196,154,108,0.04)', border: '1px solid rgba(196,154,108,0.1)' }}>
+              <h3 style={styles.panelTitle}><Sparkles size={16} style={{ color: 'var(--color-accent-light)' }} /> AI Recommendation</h3>
+              {loading ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0' }}>
+                  <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-tertiary)' }}>Analyzing your data...</span>
+                </div>
+              ) : (
+                <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                  {recommendation || 'Waiting for AI recommendation...'}
+                </p>
+              )}
+              <RippleButton className="btn btn-primary btn-sm" style={{ marginTop: '0.75rem' }} onClick={() => onNavigate('workspace')}>
+                Talk to AI <ArrowRight size={14} />
+              </RippleButton>
+            </div>
+          </ThreeDCard>
+        </BentoItem>
+
+        {/* Current Stage */}
+        <BentoItem wide delay={0.3}>
+          <ThreeDCard intensity={4}>
+            <div style={styles.panel}>
+              <h3 style={styles.panelTitle}><TrendingUp size={16} style={{ color: 'var(--color-warning)' }} /> Current Stage</h3>
+              <div style={styles.stageRow}>
+                {STARTUP_STAGES.map((stage) => (
+                  <div
+                    key={stage.id}
+                    style={{
+                      ...styles.stageItem,
+                      ...(stage.id === currentStage ? styles.stageActive : {}),
+                      opacity: STARTUP_STAGES.findIndex(s => s.id === currentStage) >= STARTUP_STAGES.findIndex(s => s.id === stage.id) ? 1 : 0.3,
+                      transition: 'all 0.3s ease',
+                    }}
+                  >
+                    <span style={styles.stageEmoji}>{stage.icon}</span>
+                    <span style={styles.stageLabel}>{stage.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </ThreeDCard>
+        </BentoItem>
+      </BentoGrid>
 
       {apiError && (
-        <div style={{padding:'0.5rem 1rem',background:'rgba(239,68,68,0.08)',border:'1px solid rgba(239,68,68,0.15)',borderRadius:'10px',fontSize:'0.75rem',color:'var(--color-danger)',marginBottom:'1rem'}}>
+        <div style={{ padding: '0.5rem 1rem', background: 'rgba(196,112,112,0.06)', border: '1px solid rgba(196,112,112,0.12)', borderRadius: '10px', fontSize: '0.75rem', color: 'var(--color-danger)', marginBottom: '1rem' }}>
           {apiError}
         </div>
       )}
 
       {overallHealth < 50 && (
-        <div style={styles.alertCard}>
+        <div style={{ ...styles.alertCard, animation: 'fadeInUp 0.5s ease-out' }}>
           <AlertTriangle size={18} style={{ color: 'var(--color-warning)', flexShrink: 0 }} />
           <div>
             <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Reality Alert</div>
@@ -212,21 +268,19 @@ const styles = {
   subtitle: { color: 'var(--color-text-tertiary)', fontSize: '0.9375rem', marginTop: '0.25rem' },
   headerRight: { display: 'flex', alignItems: 'center', gap: '0.75rem' },
   date: { fontSize: '0.8125rem', color: 'var(--color-text-muted)' },
-  section: { marginBottom: '1.5rem' },
   sectionTitle: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9375rem', fontWeight: 600, marginBottom: '1rem' },
+  scoreSection: { padding: '1.25rem', background: 'rgba(255,248,235,0.03)', borderRadius: '16px', border: '1px solid rgba(255,248,235,0.06)', height: '100%' },
   scoreGrid: { display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.75rem' },
-  scoreCard: { padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.06)' },
+  scoreCard: { padding: '1rem', background: 'rgba(255,248,235,0.03)', borderRadius: '14px', border: '1px solid rgba(255,248,235,0.06)', transition: 'all 0.3s ease' },
   scoreLabel: { fontSize: '0.6875rem', color: 'var(--color-text-tertiary)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' },
   scoreValue: { fontSize: '1.5rem', fontWeight: 700 },
   scoreQuality: { fontSize: '0.6875rem', color: 'var(--color-text-muted)' },
-  twoCol: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.5rem' },
-  panel: { padding: '1.25rem', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' },
-  panelTitle: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9375rem', fontWeight: 600, marginBottom: '1rem' },
-  rightCol: { display: 'flex', flexDirection: 'column', gap: '1.25rem' },
-  missionCard: { padding: '1rem', background: 'rgba(99,102,241,0.05)', borderRadius: '12px', border: '1px solid rgba(99,102,241,0.1)' },
+  panel: { padding: '1.25rem', background: 'rgba(255,248,235,0.03)', borderRadius: '16px', border: '1px solid rgba(255,248,235,0.06)', height: '100%' },
+  panelTitle: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9375rem', fontWeight: 600, marginBottom: '0.75rem' },
+  missionCard: { padding: '1rem', background: 'rgba(196,154,108,0.04)', borderRadius: '12px', border: '1px solid rgba(196,154,108,0.08)' },
   missionText: { fontSize: '0.9375rem', lineHeight: 1.6, marginBottom: '0.75rem' },
   missionMeta: { display: 'flex', gap: '0.75rem', alignItems: 'center' },
-  taskItem: { display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)' },
+  taskItem: { display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem 0', borderBottom: '1px solid rgba(255,248,235,0.04)', transition: 'background 0.2s' },
   taskDot: { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
   taskTitle: { fontSize: '0.875rem', fontWeight: 500 },
   taskMeta: { fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.125rem' },
@@ -238,8 +292,8 @@ const styles = {
   healthPercent: { fontSize: '0.8125rem', fontWeight: 600, width: '35px', textAlign: 'right' },
   stageRow: { display: 'flex', gap: '0.5rem', flexWrap: 'wrap' },
   stageItem: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem', padding: '0.5rem', borderRadius: '10px', fontSize: '0.6875rem', transition: 'all 0.2s' },
-  stageActive: { background: 'rgba(99,102,241,0.1)' },
+  stageActive: { background: 'rgba(196,154,108,0.1)', boxShadow: 'inset 0 0 0 1px rgba(196,154,108,0.15)' },
   stageEmoji: { fontSize: '1.25rem' },
   stageLabel: { color: 'var(--color-text-tertiary)', fontWeight: 500 },
-  alertCard: { display: 'flex', gap: '0.75rem', padding: '1rem 1.25rem', background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: '14px' },
+  alertCard: { display: 'flex', gap: '0.75rem', padding: '1rem 1.25rem', background: 'rgba(212,168,67,0.04)', border: '1px solid rgba(212,168,67,0.12)', borderRadius: '14px' },
 };

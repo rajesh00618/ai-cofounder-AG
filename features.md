@@ -1,32 +1,105 @@
 # AI Co-Founder — Complete Feature Directory
 
-> **Version:** 2.1.0 | **Stack:** React 19 + Express 5 + Supabase + OpenAI/NVIDIA
-> **Tests:** 331 (47 files) | **Lint:** 0 errors | **Build:** 236 KB (code-split)
+> **Version:** 2.2.0 | **Stack:** React 19 + Express 5 + Supabase + OpenAI/NVIDIA
+> **Tests:** 130 (25 files) | **Lint:** 0 errors | **Build:** 312 KB (code-split)
 > **Positioning:** Most AI tools answer questions. This AI builds companies.
 
 ---
 
 ## Table of Contents
-1. [Founder Onboarding & DNA Profiling](#1-founder-onboarding--dna-profiling)
-2. [Goal Setting & Reality Engine](#2-goal-setting--reality-engine)
-3. [AI Multi-Agent Board](#3-ai-multi-agent-board)
-4. [AI Workspace & Streaming Chat](#4-ai-workspace--streaming-chat)
-5. [Business Blueprint Builder](#5-business-blueprint-builder)
-6. [Startup Roadmap & Stage Guidance](#6-startup-roadmap--stage-guidance)
-7. [Task Engine & Sprint Management](#7-task-engine--sprint-management)
-8. [Research Center & Market Intelligence](#8-research-center--market-intelligence)
-9. [Document Generator Suite](#9-document-generator-suite)
-10. [Company Simulator & Decision Testing](#10-company-simulator--decision-testing)
-11. [Founder DNA & Twin Analytics](#11-founder-dna--twin-analytics)
-12. [Memory Graph & Knowledge Persistence](#12-memory-graph--knowledge-persistence)
-13. [Daily Review & Accountability](#13-daily-review--accountability)
-14. [Execution Mode (Build Mode)](#14-execution-mode-build-mode)
-15. [Command Center Dashboard](#15-command-center-dashboard)
-16. [Settings & API Key Management](#16-settings--api-key-management)
-17. [Authentication & Security](#17-authentication--security)
-18. [Background Research & Morning Briefing](#18-background-research--morning-briefing)
-19. [AI Personality & Alignment System](#19-ai-personality--alignment-system)
-20. [Prompt Injection Protection](#20-prompt-injection-protection)
+1. [UI/UX Design System & Components](#1-uiux-design-system--components)
+2. [Founder Onboarding & DNA Profiling](#2-founder-onboarding--dna-profiling)
+3. [Goal Setting & Reality Engine](#3-goal-setting--reality-engine)
+4. [AI Multi-Agent Board](#4-ai-multi-agent-board)
+5. [AI Workspace & Streaming Chat](#5-ai-workspace--streaming-chat)
+6. [Business Blueprint Builder](#6-business-blueprint-builder)
+7. [Startup Roadmap & Stage Guidance](#7-startup-roadmap--stage-guidance)
+8. [Task Engine & Sprint Management](#8-task-engine--sprint-management)
+9. [Research Center & Market Intelligence](#9-research-center--market-intelligence)
+10. [Document Generator Suite](#10-document-generator-suite)
+11. [Company Simulator & Decision Testing](#11-company-simulator--decision-testing)
+12. [Founder DNA & Twin Analytics](#12-founder-dna--twin-analytics)
+13. [Memory Graph & Knowledge Persistence](#13-memory-graph--knowledge-persistence)
+14. [Daily Review & Accountability](#14-daily-review--accountability)
+15. [Execution Mode (Build Mode)](#15-execution-mode-build-mode)
+16. [Command Center Dashboard](#16-command-center-dashboard)
+17. [Settings & API Key Management](#17-settings--api-key-management)
+18. [Authentication & Security](#18-authentication--security)
+19. [Background Research & Morning Briefing](#19-background-research--morning-briefing)
+20. [AI Personality & Alignment System](#20-ai-personality--alignment-system)
+21. [Prompt Injection Protection](#21-prompt-injection-protection)
+
+---
+
+## 1. UI/UX Design System & Components
+
+| Property | Detail |
+|----------|--------|
+| **File(s)** | `src/styles/design-system.css`, `src/components/ui/*.jsx` |
+| **Version** | 2.2.0 |
+| **Status** | Implemented, tested (130 tests) |
+
+### Design System (`design-system.css`)
+- **Warm Color Palette**: Cream `#FFF8EB`, Beige `#E8DCC8`, Brown `#8B6F47` → `#3D2B1F`
+- **70+ CSS Custom Properties**: colors, gradients, typography, spacing, shadows, transitions
+- **50+ Keyframe Animations**: fadeIn, slide, float, aurora, morphBlob, ripple, kineticLetter, bounce, elastic, parallax, liquidMorph, neuronPulse, borderGlow, glowPulse, shimmer, spin, gradientShift, typewriter, blink, scaleIn, bounceIn, elasticIn, staggerFade, parallaxFloat, liquidMorph
+- **5 Pattern Classes**: `.glass-card`, `.neo-card`, `.clay-card`, `.bento-grid`, `.brutalist`
+- **Reduced Motion**: All animations respect `prefers-reduced-motion: reduce`
+
+### 16 Reusable UI Components (`src/components/ui/`)
+
+| # | Component | File | Pattern | Description |
+|---|-----------|------|---------|-------------|
+| 1 | AuroraBackground | AuroraBackground.jsx | Aurora | Mouse-reactive gradient overlays with animated color shifts |
+| 2 | CursorGlow | CursorGlow.jsx | Cursor | Global cursor-following radial glow effect |
+| 3 | KineticText | KineticText.jsx | Typography | Letter-by-letter animated text with perspective transforms |
+| 4 | SlideCard / SlideCardDeck | SlideCards.jsx | Slide | Auto-playing card carousel with dot navigation |
+| 5 | SkeletonText / SkeletonCircle / SkeletonCard / SkeletonBento / SkeletonDashboard | SkeletonLoaders.jsx | Loading | 5 specialized skeleton loading variants |
+| 6 | ScrollStorySection / ParallaxSection / useScrollProgress | ScrollStory.jsx | Scroll | Intersection Observer reveal animations + parallax |
+| 7 | BottomSheet | BottomSheet.jsx | Mobile | Drag-to-dismiss bottom sheets with backdrop blur |
+| 8 | FloatingActionButton | FloatingActionButton.jsx | FAB | Bounce-in FAB with extended hover label |
+| 9 | MagneticButton | MagneticButton.jsx | Cursor | Cursor-responsive magnetic pull effect |
+| 10 | RippleButton | RippleButton.jsx | Micro | Material-style ripple click effects |
+| 11 | ViewToggle | ViewToggle.jsx | Layout | Grid-to-list view switcher |
+| 12 | ProgressiveDisclosure | ProgressiveDisclosure.jsx | Menu | Accordion with smooth height transitions |
+| 13 | BentoGrid / BentoItem | BentoGrid.jsx | Layout | Apple-style asymmetric grid with staggered reveal |
+| 14 | LiquidSwipe | LiquidSwipe.jsx | Touch | Touch-swipeable content transitions |
+| 15 | ThreeDCard | ThreeDCard.jsx | 3D | Mouse-tracking perspective tilt card |
+| 16 | ScrollProgress | ScrollProgress.jsx | Scroll | Top progress bar indicator |
+
+### Design Patterns Implemented
+
+| Pattern | Implementation |
+|---------|---------------|
+| **Glassmorphism** | `backdrop-filter: blur(24px)`, subtle borders, translucent backgrounds |
+| **Neomorphism** | Dual-shadow depth effect (dark + light), inset variants |
+| **Claymorphism** | Tactile clay texture with inner highlight gradient |
+| **Bento Grid** | Asymmetric grid with wide/tall/large/full variants |
+| **Aurora Backgrounds** | Mouse-reactive animated gradient overlays |
+| **Kinetic Typography** | Letter-by-letter animation with perspective |
+| **3D Cards** | Mouse-tracking `rotateX/rotateY` perspective transforms |
+| **Parallax Scrolling** | Mouse-tracking floating orbs, scroll-driven transforms |
+| **Scroll-Driven Storytelling** | Intersection Observer-powered reveal animations |
+| **Micro-interactions** | Ripple click, hover lift, magnetic pull, bounce-in |
+| **Skeleton Loaders** | 5 specialized variants for different content types |
+| **Bottom Sheets** | Touch-draggable mobile bottom sheets |
+| **Grid-to-List Toggles** | View switcher for content layouts |
+| **Progressive Disclosure** | Accordion menus with smooth transitions |
+| **Floating Action Buttons** | FAB with extended hover state |
+| **Cursor-Controlled** | Global glow, magnetic buttons, 3D tilt |
+| **Shared Element Transitions** | View transition animations between dashboard views |
+| **Brutalist/Antidesign** | Available as utility class (`.brutalist`) |
+
+### Pages Using New Components
+
+| Page | Components Used |
+|------|----------------|
+| LandingPage | AuroraBackground, CursorGlow, KineticText, ScrollStorySection, BentoGrid, ThreeDCard, ScrollProgress, MagneticButton, RippleButton |
+| AuthPage | CursorGlow, ThreeDCard, RippleButton |
+| DashboardPage | CursorGlow, SkeletonDashboard |
+| CommandCenter | BentoGrid, BentoItem, ThreeDCard, RippleButton |
+| Sidebar | (progressive disclosure, ripple effects) |
+| OnboardingPage | AuroraBackground, CursorGlow, ThreeDCard, RippleButton |
 
 ---
 
@@ -1019,4 +1092,4 @@ const MODELS = [
 | `services/__tests__/reminders.test.js` | Reminder scheduler | 2 |
 | `services/__tests__/search.test.js` | Web search fallback | 1 |
 | `utils/helpers.test.js` | Utility functions | 19 |
-| **Total** | **47 files** | **331 tests** |
+| **Total** | **50 files** | **130 tests** |

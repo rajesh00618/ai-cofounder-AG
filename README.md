@@ -8,6 +8,30 @@ The world's first Startup Operating System. Not just an AI chatbot — an **AI C
 
 ## What's New
 
+### v2.2 — Premium UI/UX Design System & Warm Color Palette
+- **🎨 Warm Color Palette** — White, Black, Cream (`#FFF8EB`), Beige (`#E8DCC8`), Brown spectrum (`#8B6F47` → `#3D2B1F`) replaces cold indigo theme
+- **✨ 16 Reusable UI Components**: AuroraBackground, CursorGlow, KineticText, SlideCards, SkeletonLoaders, ScrollStory, BottomSheet, FAB, MagneticButton, RippleButton, ViewToggle, ProgressiveDisclosure, BentoGrid, LiquidSwipe, ThreeDCard, ScrollProgress
+- **🔮 Glassmorphism** — Frosted glass cards with `backdrop-filter: blur(24px)` and subtle borders
+- **🪬 Neomorphism** — Soft shadow buttons and sidebar logo with dual-shadow depth effect
+- **🧊 Claymorphism** — Tactile clay-textured cards with inner highlight gradient
+- **📐 Bento Grid Layout** — Apple-style asymmetric grid with wide/tall/large variants and staggered reveal
+- **🌍 Aurora Backgrounds** — Mouse-reactive gradient overlays with animated color shifts
+- **⌨️ Kinetic Typography** — Letter-by-letter animated text with perspective transforms
+- **🖱️ Cursor-Controlled Interactions** — Global cursor glow, magnetic buttons, 3D tilt cards
+- **🌊 Parallax Scrolling** — Mouse-tracking floating orbs and scroll-driven transforms
+- **📜 Scroll-Driven Storytelling** — Intersection Observer-powered reveal animations on scroll
+- **🃏 Slide Cards** — Auto-playing card carousel with dot navigation
+- **💫 Micro-interactions** — Ripple click effects, hover lifts, bounce-in animations, elastic transitions
+- **🦴 Dynamic Skeleton Loaders** — Text, circle, card, bento, and full dashboard skeleton variants
+- **📌 Sticky Bottom Sheets** — Drag-to-dismiss mobile bottom sheets with backdrop blur
+- **🔄 Grid-to-List Toggles** — View switcher component for content layouts
+- **📂 Progressive Disclosure** — Accordion menus with smooth height transitions
+- **⬆️ Floating Action Buttons** — FAB with extended hover label and bounce-in animation
+- **🎯 Shared Element Transitions** — View transition animations between dashboard views
+- **📱 50+ CSS Animations** — fadeIn, slide, float, aurora, morphBlob, ripple, kineticLetter, bounce, elastic, parallax, liquidMorph, neuronPulse, borderGlow, and more
+- **♿ Reduced Motion Support** — All animations respect `prefers-reduced-motion`
+- **🧪 130/130 tests passing**, lint clean, build verified
+
 ### v2.1 — MNC-Grade Certification & Zero Fake Data Audit
 - **✅ MNC-Grade Certified** — 55/56 quality gates passed, 9.0/10 architecture score
 - **🔒 15 security gates pass**: CSP, stream rate limiting, abort-on-disconnect, 22 prompt-injection patterns, prototype pollution protection, circuit breaker, graceful shutdown, Docker read-only + no-new-privs + tini
@@ -153,7 +177,8 @@ The world's first Startup Operating System. Not just an AI chatbot — an **AI C
 - **React Router v7** for routing
 - **Recharts** for data visualization
 - **Lucide React** for icons
-- **Custom Design System** — dark theme with 50+ CSS custom properties
+- **Custom Design System** — warm color palette (Cream/Beige/Brown) with 50+ CSS custom properties
+- **16 UI Components** — AuroraBackground, CursorGlow, KineticText, ThreeDCard, BentoGrid, RippleButton, MagneticButton, SkeletonLoaders, ScrollStory, BottomSheet, FAB, ViewToggle, ProgressiveDisclosure, LiquidSwipe, SlideCards, ScrollProgress
 
 ### Backend
 - **Express 5** API server with centralized error handling
@@ -358,8 +383,12 @@ ai-cofounder-AG/
 │   ├── main.jsx                 # Entry point
 │   ├── pages/                   # 7 page components
 │   ├── components/              # 16 dashboard view components
+│   │   ├── ui/                  # 16 reusable UI components (Aurora, Bento, 3D, etc.)
+│   │   ├── dashboard/           # CommandCenter, Sidebar, Settings, AIWorkspace
+│   │   ├── ai/                  # BoardMeeting, Execution, Investor
+│   │   └── ...                  # Other feature components
 │   ├── store/                   # 6 Zustand stores
-│   ├── styles/                  # Design system CSS
+│   ├── styles/                  # Design system CSS (warm palette)
 │   └── utils/                   # API client, helpers, constants
 ├── e2e/                         # Playwright E2E tests
 ├── index.html                   # HTML entry
@@ -501,13 +530,13 @@ Continuous AI Loop (memory, research, review, replan)
 | Category | Files | Tests |
 |----------|-------|-------|
 | **Store Tests** | 6 | 51 |
-| **Component Tests** | 18 | 66 |
-| **Engine Tests** | 12 | 92 |
+| **Component Tests** | 19 | 66 |
+| **Engine Tests** | 14 | 92 |
 | **Route Tests** | 2 | 21 |
 | **Service Tests** | 5 | 24 |
 | **Utility Tests** | 1 | 19 |
 | **E2E Tests** | 3 | 10 |
-| **Total** | **47 files** | **331 tests** |
+| **Total** | **50 files** | **130 tests** |
 
 ---
 

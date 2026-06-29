@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Mail, Lock, User, ArrowRight, Eye, EyeOff, LogIn, LogOut, Loader2 } from 'lucide-react';
 import { api } from '../utils/api';
 import { useAuthStore } from '../store/authStore';
 import { useFounderStore } from '../store/founderStore';
+import CursorGlow from '../components/ui/CursorGlow';
+import ThreeDCard from '../components/ui/ThreeDCard';
+import RippleButton from '../components/ui/RippleButton';
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -20,6 +23,10 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hydrated, setHydrated] = useState(false);
+  const [focusedField, setFocusedField] = useState('');
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [isAnimating, setIsAnimating] = useState(false);
+  const cardRef = useRef(null);
 
   useEffect(() => {
     const unsub = useAuthStore.persist.onFinishHydration(() => setHydrated(true));
@@ -27,10 +34,18 @@ export default function AuthPage() {
     return () => unsub();
   }, []);
 
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      setMousePos({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
   if (!hydrated) {
     return (
-      <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh',background:'var(--color-bg-primary)',color:'var(--color-text-tertiary)',gap:'0.5rem',fontSize:'0.9375rem'}}>
-        <Loader2 size={16} style={{animation:'spin 1s linear infinite'}} /> Loading...
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--color-bg-primary)', color: 'var(--color-text-tertiary)', gap: '0.5rem', fontSize: '0.9375rem' }}>
+        <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Loading...
       </div>
     );
   }
@@ -39,6 +54,7 @@ export default function AuthPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
+    setIsAnimating(true);
     try {
       const res = mode === 'login'
         ? await api.login(email, password)
@@ -54,151 +70,193 @@ export default function AuthPage() {
       }
     } catch (err) {
       setError(err.message);
+      setTimeout(() => setError(''), 4000);
     } finally {
       setLoading(false);
+      setIsAnimating(false);
     }
   };
 
   const toggleMode = () => {
-    setMode(m => m === 'login' ? 'register' : 'login');
-    setError('');
+    setIsAnimating(true);
+    setTimeout(() => {
+      setMode(m => m === 'login' ? 'register' : 'login');
+      setError('');
+      setIsAnimating(false);
+    }, 200);
   };
 
   return (
     <div style={styles.page}>
-      <div style={styles.bgOrb1} />
-      <div style={styles.bgOrb2} />
+      <CursorGlow color="rgba(196,154,108,0.04)" size={400} />
+
+      <div style={{ ...styles.bgOrb1, transform: `translate(${mousePos.x * 0.01}px, ${mousePos.y * 0.01}px)` }} />
+      <div style={{ ...styles.bgOrb2, transform: `translate(${-mousePos.x * 0.008}px, ${-mousePos.y * 0.008}px)` }} />
       <div style={styles.gridBg} />
 
       <div style={styles.container}>
-        <div style={styles.card}>
-          <div style={styles.logo}>
-            <div style={styles.logoIcon}><Sparkles size={20} /></div>
-            <span style={styles.logoText}>AI Co-Founder</span>
-          </div>
-
-          {token ? (
-            <div style={styles.signedInBox}>
-              <div style={styles.avatar}>{user?.name?.[0] || '?'}</div>
-              <h2 style={styles.signedInTitle}>You're signed in</h2>
-              <p style={styles.signedInEmail}>{user?.email}</p>
-              <button className="btn btn-primary btn-lg" style={styles.signedInBtn} onClick={() => navigate('/onboarding')}>
-                <ArrowRight size={18} /> Continue to Onboarding
-              </button>
-              <button className="btn btn-ghost" style={styles.logoutBtn} onClick={() => { logout(); }}>
-                <LogOut size={14} /> Sign out
-              </button>
+        <ThreeDCard intensity={5} style={{ width: '100%' }}>
+          <div ref={cardRef} className="auth-card" style={{
+            ...styles.card,
+            opacity: isAnimating ? 0.7 : 1,
+            transform: isAnimating ? 'scale(0.98)' : 'scale(1)',
+            transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
+          }}>
+            <div style={styles.logo}>
+              <div style={styles.logoIcon}><Sparkles size={20} /></div>
+              <span style={styles.logoText}>AI Co-Founder</span>
             </div>
-          ) : (
-          <>
-          <h1 style={styles.title}>
-            {mode === 'login' ? 'Welcome back' : 'Create your account'}
-          </h1>
-          <p style={styles.subtitle}>
-            {mode === 'login'
-              ? 'Sign in to continue building your startup'
-              : 'Start your journey with your AI co-founder'}
-          </p>
 
-          <form onSubmit={handleSubmit} style={styles.form}>
-            {mode === 'register' && (
-              <div style={styles.inputGroup}>
-                <label style={styles.label}>Name</label>
-                <div style={styles.inputWrapper}>
-                  <User size={16} style={styles.inputIcon} />
-                  <input
-                    style={styles.input}
-                    type="text"
-                    placeholder="Your name"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    required
-                  />
-                </div>
+            {token ? (
+              <div style={styles.signedInBox}>
+                <div style={styles.avatar}>{user?.name?.[0] || '?'}</div>
+                <h2 style={styles.signedInTitle}>You're signed in</h2>
+                <p style={styles.signedInEmail}>{user?.email}</p>
+                <RippleButton className="btn btn-primary btn-lg" style={styles.signedInBtn} onClick={() => navigate('/onboarding')}>
+                  <ArrowRight size={18} /> Continue to Onboarding
+                </RippleButton>
+                <button className="btn btn-ghost" style={styles.logoutBtn} onClick={() => { logout(); }}>
+                  <LogOut size={14} /> Sign out
+                </button>
               </div>
+            ) : (
+              <>
+                <h1 style={styles.title}>
+                  {mode === 'login' ? 'Welcome back' : 'Create your account'}
+                </h1>
+                <p style={styles.subtitle}>
+                  {mode === 'login'
+                    ? 'Sign in to continue building your startup'
+                    : 'Start your journey with your AI co-founder'}
+                </p>
+
+                <form onSubmit={handleSubmit} style={styles.form}>
+                  {mode === 'register' && (
+                    <div style={styles.inputGroup}>
+                      <label style={styles.label}>Name</label>
+                      <div style={{
+                        ...styles.inputWrapper,
+                        ...(focusedField === 'name' ? styles.inputWrapperFocused : {}),
+                      }}>
+                        <User size={16} style={{ ...styles.inputIcon, color: focusedField === 'name' ? 'var(--color-accent)' : 'var(--color-text-tertiary)' }} />
+                        <input
+                          style={styles.input}
+                          type="text"
+                          placeholder="Your name"
+                          value={name}
+                          onChange={e => setName(e.target.value)}
+                          onFocus={() => setFocusedField('name')}
+                          onBlur={() => setFocusedField('')}
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={styles.inputGroup}>
+                    <label style={styles.label}>Email</label>
+                    <div style={{
+                      ...styles.inputWrapper,
+                      ...(focusedField === 'email' ? styles.inputWrapperFocused : {}),
+                    }}>
+                      <Mail size={16} style={{ ...styles.inputIcon, color: focusedField === 'email' ? 'var(--color-accent)' : 'var(--color-text-tertiary)' }} />
+                      <input
+                        style={styles.input}
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        onFocus={() => setFocusedField('email')}
+                        onBlur={() => setFocusedField('')}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div style={styles.inputGroup}>
+                    <label style={styles.label}>Password</label>
+                    <div style={{
+                      ...styles.inputWrapper,
+                      ...(focusedField === 'password' ? styles.inputWrapperFocused : {}),
+                    }}>
+                      <Lock size={16} style={{ ...styles.inputIcon, color: focusedField === 'password' ? 'var(--color-accent)' : 'var(--color-text-tertiary)' }} />
+                      <input
+                        style={styles.input}
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="At least 8 characters"
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        onFocus={() => setFocusedField('password')}
+                        onBlur={() => setFocusedField('')}
+                        required
+                        minLength={8}
+                      />
+                      <button
+                        type="button"
+                        style={styles.eyeBtn}
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                    {mode === 'login' && (
+                      <button
+                        type="button"
+                        style={styles.forgotLink}
+                        onClick={() => navigate('/reset-password')}
+                      >
+                        Forgot password?
+                      </button>
+                    )}
+                  </div>
+
+                  {error && (
+                    <div style={{
+                      ...styles.error,
+                      animation: 'bounceIn 0.4s ease-out',
+                    }}>
+                      {error}
+                    </div>
+                  )}
+
+                  <RippleButton
+                    type="submit"
+                    className="btn btn-primary btn-lg"
+                    style={styles.submitBtn}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                        Please wait...
+                      </span>
+                    ) : mode === 'login' ? (
+                      <><LogIn size={18} /> Sign In</>
+                    ) : (
+                      <><User size={18} /> Create Account</>
+                    )}
+                  </RippleButton>
+                </form>
+              </>
             )}
 
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Email</label>
-              <div style={styles.inputWrapper}>
-                <Mail size={16} style={styles.inputIcon} />
-                <input
-                  style={styles.input}
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Password</label>
-              <div style={styles.inputWrapper}>
-                <Lock size={16} style={styles.inputIcon} />
-                <input
-                  style={styles.input}
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="At least 8 characters"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  required
-                  minLength={8}
-                />
+            {!token && (
+              <div style={styles.footer}>
+                <span style={styles.footerText}>
+                  {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}
+                </span>
                 <button
                   type="button"
-                  style={styles.eyeBtn}
-                  onClick={() => setShowPassword(!showPassword)}
+                  style={styles.switchBtn}
+                  onClick={toggleMode}
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {mode === 'login' ? 'Sign up' : 'Sign in'}
+                  <ArrowRight size={14} />
                 </button>
               </div>
-              {mode === 'login' && (
-                <button
-                  type="button"
-                  style={styles.forgotLink}
-                  onClick={() => navigate('/reset-password')}
-                >
-                  Forgot password?
-                </button>
-              )}
-            </div>
-
-            {error && <div style={styles.error}>{error}</div>}
-
-            <button
-              type="submit"
-              className="btn btn-primary btn-lg"
-              style={styles.submitBtn}
-              disabled={loading}
-            >
-              {loading ? 'Please wait...' : mode === 'login' ? (
-                <><LogIn size={18} /> Sign In</>
-              ) : (
-                <><User size={18} /> Create Account</>
-              )}
-            </button>
-          </form>
-          </>
-          )}
-
-          {!token && (
-          <div style={styles.footer}>
-            <span style={styles.footerText}>
-              {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}
-            </span>
-            <button
-              type="button"
-              style={styles.switchBtn}
-              onClick={toggleMode}
-            >
-              {mode === 'login' ? 'Sign up' : 'Sign in'}
-              <ArrowRight size={14} />
-            </button>
+            )}
           </div>
-          )}
-        </div>
+        </ThreeDCard>
       </div>
     </div>
   );
@@ -206,33 +264,34 @@ export default function AuthPage() {
 
 const styles = {
   page: { position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  bgOrb1: { position:'fixed', top:'-20%', right:'-10%', width:'600px', height:'600px', borderRadius:'50%', background:'radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)', pointerEvents:'none', zIndex:0 },
-  bgOrb2: { position:'fixed', bottom:'-20%', left:'-10%', width:'500px', height:'500px', borderRadius:'50%', background:'radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%)', pointerEvents:'none', zIndex:0 },
-  gridBg: { position:'fixed', inset:0, backgroundImage:'linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)', backgroundSize:'60px 60px', pointerEvents:'none', zIndex:0 },
-  container: { position:'relative', zIndex:1, width:'100%', maxWidth:'420px', padding:'2rem' },
-  card: { background:'rgba(10,11,26,0.8)', backdropFilter:'blur(20px)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:'24px', padding:'2.5rem 2rem' },
-  logo: { display:'flex', alignItems:'center', justifyContent:'center', gap:'0.5rem', marginBottom:'2rem' },
-  logoIcon: { width:'36px', height:'36px', borderRadius:'10px', background:'var(--gradient-primary)', display:'flex', alignItems:'center', justifyContent:'center', color:'white' },
-  logoText: { fontSize:'1.125rem', fontWeight:700, color:'var(--color-text-primary)' },
-  title: { fontSize:'1.75rem', fontWeight:700, textAlign:'center', marginBottom:'0.5rem', letterSpacing:'-0.02em' },
-  subtitle: { fontSize:'0.9375rem', color:'var(--color-text-tertiary)', textAlign:'center', marginBottom:'2rem' },
-  form: { display:'flex', flexDirection:'column', gap:'1.25rem' },
-  inputGroup: { display:'flex', flexDirection:'column', gap:'0.375rem' },
-  label: { fontSize:'0.8125rem', fontWeight:500, color:'var(--color-text-secondary)' },
-  inputWrapper: { position:'relative', display:'flex', alignItems:'center' },
-  inputIcon: { position:'absolute', left:'12px', color:'var(--color-text-tertiary)', pointerEvents:'none' },
-  input: { width:'100%', padding:'0.75rem 0.75rem 0.75rem 2.5rem', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:'10px', color:'var(--color-text-primary)', fontSize:'0.9375rem', outline:'none', transition:'border-color 0.2s' },
-  eyeBtn: { position:'absolute', right:'12px', background:'none', border:'none', color:'var(--color-text-tertiary)', cursor:'pointer', padding:'4px', display:'flex' },
-  forgotLink: { background:'none', border:'none', color:'var(--color-accent-light)', cursor:'pointer', fontSize:'0.8125rem', fontWeight:500, padding:'0.25rem 0', textAlign:'right', width:'100%' },
-  error: { padding:'0.75rem 1rem', background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:'10px', color:'var(--color-danger)', fontSize:'0.875rem', textAlign:'center' },
-  submitBtn: { width:'100%', justifyContent:'center', gap:'0.5rem', marginTop:'0.5rem' },
-  footer: { display:'flex', alignItems:'center', justifyContent:'center', gap:'0.5rem', marginTop:'1.5rem' },
-  footerText: { fontSize:'0.875rem', color:'var(--color-text-tertiary)' },
-  switchBtn: { display:'inline-flex', alignItems:'center', gap:'0.25rem', background:'none', border:'none', color:'var(--color-accent-light)', cursor:'pointer', fontSize:'0.875rem', fontWeight:500, padding:'0' },
-  signedInBox: { textAlign:'center', padding:'1rem 0' },
-  avatar: { width:'64px', height:'64px', borderRadius:'50%', background:'var(--gradient-primary)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.5rem', fontWeight:700, color:'white', margin:'0 auto 1rem' },
-  signedInTitle: { fontSize:'1.5rem', fontWeight:700, marginBottom:'0.25rem' },
-  signedInEmail: { fontSize:'0.9375rem', color:'var(--color-text-tertiary)', marginBottom:'1.5rem' },
-  signedInBtn: { width:'100%', justifyContent:'center', gap:'0.5rem' },
-  logoutBtn: { width:'100%', justifyContent:'center', gap:'0.5rem', marginTop:'0.75rem', color:'var(--color-text-muted)' },
+  bgOrb1: { position: 'fixed', top: '-20%', right: '-10%', width: '600px', height: '600px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(196,154,108,0.08) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0, transition: 'transform 0.3s ease-out' },
+  bgOrb2: { position: 'fixed', bottom: '-20%', left: '-10%', width: '500px', height: '500px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(125,184,125,0.05) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0, transition: 'transform 0.3s ease-out' },
+  gridBg: { position: 'fixed', inset: 0, backgroundImage: 'linear-gradient(rgba(255,248,235,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,248,235,0.015) 1px, transparent 1px)', backgroundSize: '60px 60px', pointerEvents: 'none', zIndex: 0 },
+  container: { position: 'relative', zIndex: 1, width: '100%', maxWidth: '420px', padding: '2rem' },
+  card: { background: 'rgba(20,18,15,0.85)', backdropFilter: 'blur(24px)', border: '1px solid rgba(255,248,235,0.08)', borderRadius: '24px', padding: '2.5rem 2rem', boxShadow: '0 16px 48px rgba(0,0,0,0.5)' },
+  logo: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '2rem' },
+  logoIcon: { width: '36px', height: '36px', borderRadius: '10px', background: 'var(--gradient-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' },
+  logoText: { fontSize: '1.125rem', fontWeight: 700, color: 'var(--color-text-primary)' },
+  title: { fontSize: '1.75rem', fontWeight: 700, textAlign: 'center', marginBottom: '0.5rem', letterSpacing: '-0.02em' },
+  subtitle: { fontSize: '0.9375rem', color: 'var(--color-text-tertiary)', textAlign: 'center', marginBottom: '2rem' },
+  form: { display: 'flex', flexDirection: 'column', gap: '1.25rem' },
+  inputGroup: { display: 'flex', flexDirection: 'column', gap: '0.375rem' },
+  label: { fontSize: '0.8125rem', fontWeight: 500, color: 'var(--color-text-secondary)' },
+  inputWrapper: { position: 'relative', display: 'flex', alignItems: 'center', borderRadius: '10px', transition: 'all 0.3s ease', border: '1px solid rgba(255,248,235,0.08)' },
+  inputWrapperFocused: { borderColor: 'var(--color-accent)', boxShadow: '0 0 0 3px rgba(196,154,108,0.1)' },
+  inputIcon: { position: 'absolute', left: '12px', pointerEvents: 'none', transition: 'color 0.2s ease' },
+  input: { width: '100%', padding: '0.75rem 0.75rem 0.75rem 2.5rem', background: 'rgba(255,248,235,0.03)', border: 'none', borderRadius: '10px', color: 'var(--color-text-primary)', fontSize: '0.9375rem', outline: 'none' },
+  eyeBtn: { position: 'absolute', right: '12px', background: 'none', border: 'none', color: 'var(--color-text-tertiary)', cursor: 'pointer', padding: '4px', display: 'flex', transition: 'color 0.2s' },
+  forgotLink: { background: 'none', border: 'none', color: 'var(--color-accent-light)', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500, padding: '0.25rem 0', textAlign: 'right', width: '100%', transition: 'color 0.2s' },
+  error: { padding: '0.75rem 1rem', background: 'rgba(196,112,112,0.08)', border: '1px solid rgba(196,112,112,0.15)', borderRadius: '10px', color: 'var(--color-danger)', fontSize: '0.875rem', textAlign: 'center' },
+  submitBtn: { width: '100%', justifyContent: 'center', gap: '0.5rem', marginTop: '0.5rem' },
+  footer: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginTop: '1.5rem' },
+  footerText: { fontSize: '0.875rem', color: 'var(--color-text-tertiary)' },
+  switchBtn: { display: 'inline-flex', alignItems: 'center', gap: '0.25rem', background: 'none', border: 'none', color: 'var(--color-accent-light)', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500, padding: '0', transition: 'color 0.2s' },
+  signedInBox: { textAlign: 'center', padding: '1rem 0' },
+  avatar: { width: '64px', height: '64px', borderRadius: '50%', background: 'var(--gradient-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 700, color: 'white', margin: '0 auto 1rem', animation: 'bounceIn 0.6s ease-out' },
+  signedInTitle: { fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.25rem' },
+  signedInEmail: { fontSize: '0.9375rem', color: 'var(--color-text-tertiary)', marginBottom: '1.5rem' },
+  signedInBtn: { width: '100%', justifyContent: 'center', gap: '0.5rem' },
+  logoutBtn: { width: '100%', justifyContent: 'center', gap: '0.5rem', marginTop: '0.75rem', color: 'var(--color-text-muted)' },
 };

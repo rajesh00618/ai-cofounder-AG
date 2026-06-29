@@ -19,6 +19,8 @@ const SettingsPanel = React.lazy(() => import('../components/dashboard/SettingsP
 const InvestorMode = React.lazy(() => import('../components/ai/InvestorMode'));
 const WeeklyReview = React.lazy(() => import('../components/review/WeeklyReview'));
 import { useNavigate } from 'react-router-dom';
+import { SkeletonDashboard } from '../components/ui/SkeletonLoaders';
+import CursorGlow from '../components/ui/CursorGlow';
 
 const VIEWS = {
   home: CommandCenter,
@@ -46,6 +48,7 @@ export default function DashboardPage() {
   const [activeView, setActiveView] = useState('home');
   const [hydrated, setHydrated] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [viewTransition, setViewTransition] = useState('');
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -63,16 +66,37 @@ export default function DashboardPage() {
     if (hydrated && !profile) navigate('/onboarding');
   }, [hydrated, profile, navigate]);
 
-  if (!hydrated) return null;
+  const handleNavigate = (view) => {
+    setViewTransition('exiting');
+    setTimeout(() => {
+      setActiveView(view);
+      setViewTransition('entering');
+      setTimeout(() => setViewTransition(''), 400);
+    }, 200);
+  };
+
+  if (!hydrated) return <SkeletonDashboard />;
 
   const ActiveComponent = VIEWS[activeView] || CommandCenter;
 
   return (
     <div style={styles.layout}>
-      <Suspense fallback={<div style={{width: sidebarCollapsed ? '72px' : '260px', padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.8125rem'}}>Loading...</div>}><Sidebar activeView={activeView} onNavigate={setActiveView} /></Suspense>
-      <main className="dashboard-main" style={{...styles.main, marginLeft: isMobile ? '56px' : (sidebarCollapsed ? '72px' : '260px')}}>
-        <Suspense fallback={<div style={{display:'flex',alignItems:'center',justifyContent:'center',padding:'4rem',color:'var(--color-text-tertiary)'}}>Loading...</div>}>
-          <ActiveComponent onNavigate={setActiveView} />
+      <CursorGlow color="rgba(196,154,108,0.03)" size={300} />
+      <Suspense fallback={<div style={{ width: sidebarCollapsed ? '72px' : '260px', padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.8125rem' }}>Loading...</div>}>
+        <Sidebar activeView={activeView} onNavigate={handleNavigate} />
+      </Suspense>
+      <main
+        className="dashboard-main"
+        style={{
+          ...styles.main,
+          marginLeft: isMobile ? '56px' : (sidebarCollapsed ? '72px' : '260px'),
+          opacity: viewTransition === 'exiting' ? 0 : 1,
+          transform: viewTransition === 'exiting' ? 'translateY(8px)' : viewTransition === 'entering' ? 'translateY(0)' : 'none',
+          transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
+        }}
+      >
+        <Suspense fallback={<SkeletonDashboard />}>
+          <ActiveComponent onNavigate={handleNavigate} />
         </Suspense>
       </main>
     </div>
@@ -80,6 +104,6 @@ export default function DashboardPage() {
 }
 
 const styles = {
-  layout: { display:'flex', minHeight:'100vh', background:'var(--color-bg-primary)' },
-  main: { flex:1, transition:'margin-left 0.3s ease', overflow:'auto', padding:'1.5rem 2rem' },
+  layout: { display: 'flex', minHeight: '100vh', background: 'var(--color-bg-primary)' },
+  main: { flex: 1, transition: 'margin-left 0.3s ease, opacity 0.3s ease, transform 0.3s ease', overflow: 'auto', padding: '1.5rem 2rem' },
 };

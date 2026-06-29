@@ -66,7 +66,7 @@ describe('AuthPage', () => {
     expect(screen.getByPlaceholderText('At least 8 characters')).toBeInTheDocument();
   });
 
-  it('toggles to register form', () => {
+  it('toggles to register form', async () => {
     mockUseAuthStore.mockImplementation((selector) => {
       const state = { user: null, token: null, setAuth: mockSetAuth, logout: mockLogout };
       return selector(state);
@@ -79,6 +79,7 @@ describe('AuthPage', () => {
     );
 
     fireEvent.click(screen.getByText('Sign up'));
+    await new Promise(r => setTimeout(r, 300));
     expect(screen.getByText('Create your account')).toBeInTheDocument();
     expect(screen.getByText('Create Account')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Your name')).toBeInTheDocument();

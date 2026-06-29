@@ -20,6 +20,10 @@ vi.mock('../../store/taskStore', () => ({
   useTaskStore: (selector) => mockUseTaskStore(selector),
 }));
 
+vi.mock('zustand/react/shallow', () => ({
+  useShallow: (selector) => selector,
+}));
+
 vi.mock('../../utils/api', () => ({
   api: {
     getMission: vi.fn(() => Promise.resolve({ mission: 'Test mission' })),
