@@ -7,8 +7,8 @@ import { getGreeting, getScoreColor, getScoreLabel, calculateOverallScore } from
 import { STARTUP_STAGES } from '../../utils/constants';
 import { Sparkles, Target, AlertTriangle, TrendingUp, CheckSquare, Brain, Zap, ArrowRight, BarChart3, Activity, Loader2, ChevronRight } from 'lucide-react';
 import { api } from '../../utils/api';
+import { Card } from '../ui';
 import { BentoGrid, BentoItem } from '../ui/BentoGrid';
-import ThreeDCard from '../ui/ThreeDCard';
 import RippleButton from '../ui/RippleButton';
 
 const ScoreCard = React.memo(function ScoreCard({ label, value, icon: Icon, color, delay = 0 }) {
@@ -53,8 +53,8 @@ export default function CommandCenter({ onNavigate }) {
   const { businessHealth, startupScore, currentStage, blueprint } = useBusinessStore(
     useShallow(s => ({ businessHealth: s.businessHealth, startupScore: s.startupScore, currentStage: s.currentStage, blueprint: s.blueprint }))
   );
-  const { tasks } = useTaskStore(
-    useShallow(s => ({ tasks: s.tasks }))
+  const { tasks, getTodaysTasks, sprints, currentSprintId } = useTaskStore(
+    useShallow(s => ({ tasks: s.tasks, getTodaysTasks: s.getTodaysTasks, sprints: s.sprints, currentSprintId: s.currentSprintId }))
   );
   const [mission, setMission] = useState('');
   const [estimatedTime, setEstimatedTime] = useState('');
@@ -62,7 +62,8 @@ export default function CommandCenter({ onNavigate }) {
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState('');
 
-  const todayTasks = tasks.filter(t => t.status !== 'done').slice(0, 4);
+  const todayTasks = getTodaysTasks();
+  const activeSprint = sprints.find(s => s.id === currentSprintId);
   const completedToday = tasks.filter(t => t.status === 'done').length;
   const totalTasks = tasks.length;
   const overallHealth = calculateOverallScore(businessHealth);
@@ -87,7 +88,7 @@ export default function CommandCenter({ onNavigate }) {
       {/* Header */}
       <div className="dashboard-header" style={styles.header}>
         <div>
-          <h1 style={styles.greeting}>{getGreeting()}, {profile?.name} 👋</h1>
+          <h1 style={styles.greeting}>{getGreeting()}, {profile?.name}</h1>
           <p style={styles.subtitle}>Here's your startup's pulse today</p>
         </div>
         <div style={styles.headerRight}>
@@ -101,46 +102,46 @@ export default function CommandCenter({ onNavigate }) {
         {/* Score Cards - Full Width */}
         <BentoItem full delay={0}>
           <div style={styles.scoreSection}>
-            <h3 style={styles.sectionTitle}><Zap size={16} style={{ color: 'var(--color-warning)' }} /> Live Startup Score</h3>
+            <h3 style={styles.sectionTitle}><Zap size={16} style={{ color: 'var(--warning)' }} /> Live Startup Score</h3>
             <div style={styles.scoreGrid}>
-              <ScoreCard label="Execution" value={startupScore.execution} icon={TrendingUp} color="var(--color-accent-light)" delay={0} />
-              <ScoreCard label="Business" value={startupScore.business} icon={BarChart3} color="var(--color-info-light)" delay={80} />
-              <ScoreCard label="Customers" value={startupScore.customers} icon={Target} color="var(--color-success-light)" delay={160} />
-              <ScoreCard label="Product" value={startupScore.product} icon={Zap} color="var(--color-warning-light)" delay={240} />
-              <ScoreCard label="Cash" value={startupScore.cash} icon={TrendingUp} color="var(--color-danger-light)" delay={320} />
-              <ScoreCard label="AI Confidence" value={startupScore.aiConfidence} icon={Brain} color="var(--color-accent)" delay={400} />
+              <ScoreCard label="Execution" value={startupScore.execution} icon={TrendingUp} color="var(--accent)" delay={0} />
+              <ScoreCard label="Business" value={startupScore.business} icon={BarChart3} color="var(--accent-light)" delay={80} />
+              <ScoreCard label="Customers" value={startupScore.customers} icon={Target} color="var(--success)" delay={160} />
+              <ScoreCard label="Product" value={startupScore.product} icon={Zap} color="var(--warning)" delay={240} />
+              <ScoreCard label="Cash" value={startupScore.cash} icon={TrendingUp} color="var(--danger)" delay={320} />
+              <ScoreCard label="AI Confidence" value={startupScore.aiConfidence} icon={Brain} color="var(--accent-dark)" delay={400} />
             </div>
           </div>
         </BentoItem>
 
         {/* Mission - Wide */}
         <BentoItem wide delay={0.1}>
-          <ThreeDCard intensity={4}>
+          <Card>
             <div style={styles.panel}>
-              <h3 style={styles.panelTitle}><Target size={16} style={{ color: 'var(--color-accent-light)' }} /> Today's Mission</h3>
+              <h3 style={styles.panelTitle}><Target size={16} style={{ color: 'var(--accent)' }} /> Today's Mission</h3>
               <div style={styles.missionCard}>
                 {loading ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0' }}>
                     <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                    <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-tertiary)' }}>Crafting your mission...</span>
+                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-tertiary)' }}>Crafting your mission...</span>
                   </div>
                 ) : (
                   <p style={styles.missionText}>{mission || 'Waiting for mission...'}</p>
                 )}
                 <div style={styles.missionMeta}>
                   <span className="badge badge-warning">Priority</span>
-                  {estimatedTime && <span style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)' }}>{estimatedTime}</span>}
+                  {estimatedTime && <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{estimatedTime}</span>}
                 </div>
               </div>
             </div>
-          </ThreeDCard>
+          </Card>
         </BentoItem>
 
         {/* Business Health - Tall */}
         <BentoItem tall delay={0.15}>
-          <ThreeDCard intensity={4}>
+          <Card>
             <div style={{ ...styles.panel, height: '100%' }}>
-              <h3 style={styles.panelTitle}><BarChart3 size={16} style={{ color: 'var(--color-success)' }} /> Business Health</h3>
+              <h3 style={styles.panelTitle}><BarChart3 size={16} style={{ color: 'var(--success)' }} /> Business Health</h3>
               <div style={styles.healthOverall}>
                 <span style={{ ...styles.healthValue, color: getScoreColor(overallHealth) }}>{overallHealth}%</span>
                 <span style={styles.healthLabel}>Overall</span>
@@ -155,12 +156,12 @@ export default function CommandCenter({ onNavigate }) {
                 </div>
               ))}
             </div>
-          </ThreeDCard>
+          </Card>
         </BentoItem>
 
         {/* Tasks */}
         <BentoItem wide delay={0.2}>
-          <ThreeDCard intensity={4}>
+          <Card>
             <div style={styles.panel}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
                 <h3 style={styles.panelTitle}><CheckSquare size={16} /> Today's Tasks ({completedToday}/{totalTasks})</h3>
@@ -168,9 +169,15 @@ export default function CommandCenter({ onNavigate }) {
                   View All <ChevronRight size={12} />
                 </button>
               </div>
+              {activeSprint && (
+                <div style={{ fontSize: '0.75rem', color: 'var(--accent)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <span style={{ fontWeight: 600 }}>{activeSprint.phaseTitle || 'Sprint ' + activeSprint.week}</span>
+                  {activeSprint.goal && <span style={{ color: 'var(--text-muted)' }}>· {activeSprint.goal}</span>}
+                </div>
+              )}
               {todayTasks.length > 0 && todayTasks.map((task) => (
                 <div key={task.id} style={styles.taskItem}>
-                  <div style={{ ...styles.taskDot, background: task.priority === 'high' ? 'var(--color-danger)' : task.priority === 'medium' ? 'var(--color-warning)' : 'var(--color-text-muted)' }} />
+                  <div style={{ ...styles.taskDot, background: task.priority === 'high' ? 'var(--danger)' : task.priority === 'medium' ? 'var(--warning)' : 'var(--text-muted)' }} />
                   <div style={{ flex: 1 }}>
                     <div style={styles.taskTitle}>{task.title}</div>
                     <div style={styles.taskMeta}>
@@ -181,24 +188,24 @@ export default function CommandCenter({ onNavigate }) {
                 </div>
               ))}
               {todayTasks.length === 0 && (
-                <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', padding: '1rem 0' }}>No tasks yet. Generate your business blueprint first!</p>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', padding: '1rem 0' }}>No tasks yet. Generate your business blueprint first!</p>
               )}
             </div>
-          </ThreeDCard>
+          </Card>
         </BentoItem>
 
         {/* AI Recommendation */}
         <BentoItem wide delay={0.25}>
-          <ThreeDCard intensity={4}>
-            <div style={{ ...styles.panel, background: 'rgba(196,154,108,0.04)', border: '1px solid rgba(196,154,108,0.1)' }}>
-              <h3 style={styles.panelTitle}><Sparkles size={16} style={{ color: 'var(--color-accent-light)' }} /> AI Recommendation</h3>
+          <Card>
+            <div style={{ ...styles.panel, background: 'var(--accent-subtle)', border: '1px solid var(--border)' }}>
+              <h3 style={styles.panelTitle}><Sparkles size={16} style={{ color: 'var(--accent)' }} /> AI Recommendation</h3>
               {loading ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0' }}>
                   <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                  <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-tertiary)' }}>Analyzing your data...</span>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--text-tertiary)' }}>Analyzing your data...</span>
                 </div>
               ) : (
-                <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                   {recommendation || 'Waiting for AI recommendation...'}
                 </p>
               )}
@@ -206,14 +213,14 @@ export default function CommandCenter({ onNavigate }) {
                 Talk to AI <ArrowRight size={14} />
               </RippleButton>
             </div>
-          </ThreeDCard>
+          </Card>
         </BentoItem>
 
         {/* Current Stage */}
         <BentoItem wide delay={0.3}>
-          <ThreeDCard intensity={4}>
+          <Card>
             <div style={styles.panel}>
-              <h3 style={styles.panelTitle}><TrendingUp size={16} style={{ color: 'var(--color-warning)' }} /> Current Stage</h3>
+              <h3 style={styles.panelTitle}><TrendingUp size={16} style={{ color: 'var(--warning)' }} /> Current Stage</h3>
               <div style={styles.stageRow}>
                 {STARTUP_STAGES.map((stage) => (
                   <div
@@ -231,22 +238,22 @@ export default function CommandCenter({ onNavigate }) {
                 ))}
               </div>
             </div>
-          </ThreeDCard>
+          </Card>
         </BentoItem>
       </BentoGrid>
 
       {apiError && (
-        <div style={{ padding: '0.5rem 1rem', background: 'rgba(196,112,112,0.06)', border: '1px solid rgba(196,112,112,0.12)', borderRadius: '10px', fontSize: '0.75rem', color: 'var(--color-danger)', marginBottom: '1rem' }}>
+        <div style={{ padding: '0.5rem 1rem', background: 'rgba(196,112,112,0.06)', border: '1px solid rgba(196,112,112,0.12)', borderRadius: '10px', fontSize: '0.75rem', color: 'var(--danger)', marginBottom: '1rem' }}>
           {apiError}
         </div>
       )}
 
       {overallHealth < 50 && (
         <div style={{ ...styles.alertCard, animation: 'fadeInUp 0.5s ease-out' }}>
-          <AlertTriangle size={18} style={{ color: 'var(--color-warning)', flexShrink: 0 }} />
+          <AlertTriangle size={18} style={{ color: 'var(--warning)', flexShrink: 0 }} />
           <div>
             <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Reality Alert</div>
-            <div style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
+            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
               Your business health is at {overallHealth}%. Key weak spots: {
                 Object.entries(businessHealth)
                   .filter(([_, v]) => v < 30)
@@ -265,35 +272,35 @@ const styles = {
   page: { maxWidth: '1200px' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' },
   greeting: { fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.02em' },
-  subtitle: { color: 'var(--color-text-tertiary)', fontSize: '0.9375rem', marginTop: '0.25rem' },
+  subtitle: { color: 'var(--text-tertiary)', fontSize: '0.9375rem', marginTop: '0.25rem' },
   headerRight: { display: 'flex', alignItems: 'center', gap: '0.75rem' },
-  date: { fontSize: '0.8125rem', color: 'var(--color-text-muted)' },
+  date: { fontSize: '0.8125rem', color: 'var(--text-muted)' },
   sectionTitle: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9375rem', fontWeight: 600, marginBottom: '1rem' },
-  scoreSection: { padding: '1.25rem', background: 'rgba(255,248,235,0.03)', borderRadius: '16px', border: '1px solid rgba(255,248,235,0.06)', height: '100%' },
+  scoreSection: { padding: '1.25rem', borderRadius: '16px', height: '100%' },
   scoreGrid: { display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.75rem' },
-  scoreCard: { padding: '1rem', background: 'rgba(255,248,235,0.03)', borderRadius: '14px', border: '1px solid rgba(255,248,235,0.06)', transition: 'all 0.3s ease' },
-  scoreLabel: { fontSize: '0.6875rem', color: 'var(--color-text-tertiary)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' },
+  scoreCard: { padding: '1rem', background: 'var(--bg-elevated)', borderRadius: '14px', border: '1px solid var(--border)', transition: 'all 0.3s ease' },
+  scoreLabel: { fontSize: '0.6875rem', color: 'var(--text-tertiary)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' },
   scoreValue: { fontSize: '1.5rem', fontWeight: 700 },
-  scoreQuality: { fontSize: '0.6875rem', color: 'var(--color-text-muted)' },
-  panel: { padding: '1.25rem', background: 'rgba(255,248,235,0.03)', borderRadius: '16px', border: '1px solid rgba(255,248,235,0.06)', height: '100%' },
+  scoreQuality: { fontSize: '0.6875rem', color: 'var(--text-muted)' },
+  panel: { padding: '1.25rem', borderRadius: '16px', height: '100%' },
   panelTitle: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9375rem', fontWeight: 600, marginBottom: '0.75rem' },
-  missionCard: { padding: '1rem', background: 'rgba(196,154,108,0.04)', borderRadius: '12px', border: '1px solid rgba(196,154,108,0.08)' },
+  missionCard: { padding: '1rem', background: 'var(--bg-elevated)', borderRadius: '12px', border: '1px solid var(--border)' },
   missionText: { fontSize: '0.9375rem', lineHeight: 1.6, marginBottom: '0.75rem' },
   missionMeta: { display: 'flex', gap: '0.75rem', alignItems: 'center' },
-  taskItem: { display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem 0', borderBottom: '1px solid rgba(255,248,235,0.04)', transition: 'background 0.2s' },
+  taskItem: { display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem 0', borderBottom: '1px solid var(--border)', transition: 'background 0.2s' },
   taskDot: { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },
   taskTitle: { fontSize: '0.875rem', fontWeight: 500 },
-  taskMeta: { fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.125rem' },
+  taskMeta: { fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' },
   healthOverall: { textAlign: 'center', marginBottom: '1rem' },
   healthValue: { fontSize: '2.5rem', fontWeight: 800 },
-  healthLabel: { display: 'block', fontSize: '0.75rem', color: 'var(--color-text-tertiary)' },
+  healthLabel: { display: 'block', fontSize: '0.75rem', color: 'var(--text-tertiary)' },
   healthRow: { display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' },
-  healthKey: { fontSize: '0.8125rem', color: 'var(--color-text-secondary)', width: '80px', flexShrink: 0 },
+  healthKey: { fontSize: '0.8125rem', color: 'var(--text-secondary)', width: '80px', flexShrink: 0 },
   healthPercent: { fontSize: '0.8125rem', fontWeight: 600, width: '35px', textAlign: 'right' },
   stageRow: { display: 'flex', gap: '0.5rem', flexWrap: 'wrap' },
   stageItem: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem', padding: '0.5rem', borderRadius: '10px', fontSize: '0.6875rem', transition: 'all 0.2s' },
-  stageActive: { background: 'rgba(196,154,108,0.1)', boxShadow: 'inset 0 0 0 1px rgba(196,154,108,0.15)' },
+  stageActive: { background: 'var(--accent-subtle)', boxShadow: 'inset 0 0 0 1px var(--accent)' },
   stageEmoji: { fontSize: '1.25rem' },
-  stageLabel: { color: 'var(--color-text-tertiary)', fontWeight: 500 },
+  stageLabel: { color: 'var(--text-tertiary)', fontWeight: 500 },
   alertCard: { display: 'flex', gap: '0.75rem', padding: '1rem 1.25rem', background: 'rgba(212,168,67,0.04)', border: '1px solid rgba(212,168,67,0.12)', borderRadius: '14px' },
 };

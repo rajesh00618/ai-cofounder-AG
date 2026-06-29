@@ -36,10 +36,16 @@ describe('founderStore', () => {
     expect(state.goal).toBeNull();
   });
 
-  it('sets onboarding answer', () => {
-    useFounderStore.getState().setOnboardingAnswer(1, 'Find an idea');
-    const answers = useFounderStore.getState().onboardingAnswers;
-    expect(answers[1]).toBe('Find an idea');
+  it('toggles onboarding answer', () => {
+    useFounderStore.getState().toggleOnboardingAnswer(1, 'Find an idea');
+    let answers = useFounderStore.getState().onboardingAnswers;
+    expect(answers[1]).toEqual(['Find an idea']);
+    useFounderStore.getState().toggleOnboardingAnswer(1, 'Validate an idea');
+    answers = useFounderStore.getState().onboardingAnswers;
+    expect(answers[1]).toEqual(['Find an idea', 'Validate an idea']);
+    useFounderStore.getState().toggleOnboardingAnswer(1, 'Find an idea');
+    answers = useFounderStore.getState().onboardingAnswers;
+    expect(answers[1]).toEqual(['Validate an idea']);
   });
 
   it('increments onboarding step', () => {
@@ -59,9 +65,9 @@ describe('founderStore', () => {
   });
 
   it('completes onboarding with profile', () => {
-    useFounderStore.getState().setOnboardingAnswer(2, 'Serial entrepreneur');
-    useFounderStore.getState().setOnboardingAnswer(3, 'Solo');
-    useFounderStore.getState().setOnboardingAnswer(4, 'Full-time');
+    useFounderStore.getState().toggleOnboardingAnswer(2, 'Serial entrepreneur');
+    useFounderStore.getState().toggleOnboardingAnswer(3, 'Solo');
+    useFounderStore.getState().toggleOnboardingAnswer(4, 'Full-time');
     useFounderStore.getState().completeOnboarding('Test Founder');
 
     const state = useFounderStore.getState();
@@ -73,7 +79,7 @@ describe('founderStore', () => {
   });
 
   it('resets onboarding state', () => {
-    useFounderStore.getState().setOnboardingAnswer(1, 'Test');
+    useFounderStore.getState().toggleOnboardingAnswer(1, 'Test');
     useFounderStore.getState().completeOnboarding('User');
     expect(useFounderStore.getState().onboardingComplete).toBe(true);
 

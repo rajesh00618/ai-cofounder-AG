@@ -20,27 +20,31 @@ export const useFounderStore = create(
 
   setFounderError: (error) => set({ founderError: error }),
 
-  setOnboardingAnswer: (questionId, answer) => set(s => ({
-    onboardingAnswers: { ...s.onboardingAnswers, [questionId]: answer }
-  })),
+  toggleOnboardingAnswer: (questionId, answer) => set(s => {
+    const current = s.onboardingAnswers[questionId] || [];
+    const arr = Array.isArray(current) ? current : [current];
+    const next = arr.includes(answer) ? arr.filter(a => a !== answer) : [...arr, answer];
+    return { onboardingAnswers: { ...s.onboardingAnswers, [questionId]: next } };
+  }),
   nextOnboardingStep: () => set(s => ({ onboardingStep: Math.min(10, s.onboardingStep + 1) })),
   prevOnboardingStep: () => set(s => ({ onboardingStep: Math.max(0, s.onboardingStep - 1) })),
 
   completeOnboarding: (name) => {
     const answers = get().onboardingAnswers;
+    const pick = (key, fallback) => { const v = answers[key]; return Array.isArray(v) ? v[0] : (v || fallback); };
     const profile = {
       id: generateId(),
       name: name || 'Founder',
-      experienceLevel: answers[2] || 'First startup',
-      primaryGoal: answers[1] || 'Find an idea',
-      teamStatus: answers[3] || 'Solo',
-      timeAvailable: answers[4] || '1–2 hrs/day',
-      workingStyle: answers[5] || 'Mix of both',
-      biggestBlocker: answers[6] || 'Idea',
-      successDefinition: answers[7] || 'MVP',
+      experienceLevel: pick(2, 'First startup'),
+      primaryGoal: pick(1, 'Find an idea'),
+      teamStatus: pick(3, 'Solo'),
+      timeAvailable: pick(4, '1–2 hrs/day'),
+      workingStyle: pick(5, 'Mix of both'),
+      biggestBlocker: pick(6, 'Idea'),
+      successDefinition: pick(7, 'MVP'),
       strengths: [],
       weaknesses: [],
-      riskAppetite: answers[2] === 'Serial entrepreneur' ? 'high' : answers[2] === 'First startup' ? 'low' : 'medium',
+      riskAppetite: pick(2) === 'Serial entrepreneur' ? 'high' : pick(2) === 'First startup' ? 'low' : 'medium',
       createdAt: new Date().toISOString()
     };
     set({ profile, onboardingComplete: true });

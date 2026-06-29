@@ -9,6 +9,7 @@ export const useTaskStore = create(
   sprints: [],
   currentSprintId: null,
   taskError: null,
+  fullPlan: null,
 
   addTask: (task) => set(s => ({
     tasks: [...s.tasks, {
@@ -22,6 +23,7 @@ export const useTaskStore = create(
       aiAssistance: task.aiAssistance || 'assisted',
       status: 'todo',
       sprintId: task.sprintId || s.currentSprintId,
+      dueDate: task.dueDate || null,
       createdAt: new Date().toISOString(),
       completedAt: null
     }]
@@ -38,6 +40,8 @@ export const useTaskStore = create(
   deleteTask: (id) => set(s => ({ tasks: s.tasks.filter(t => t.id !== id) })),
 
   setTaskError: (error) => set({ taskError: error }),
+
+  setFullPlan: (plan) => set({ fullPlan: plan }),
 
   createSprint: (sprint) => {
     const id = generateId();
@@ -61,11 +65,22 @@ export const useTaskStore = create(
   getTasksByStatus: (status) => get().tasks.filter(t => t.status === status),
   getTasksBySprint: (sprintId) => get().tasks.filter(t => t.sprintId === sprintId),
 
+  getTodaysTasks: () => {
+    const state = get();
+    const activeSprint = state.sprints.find(s => s.status === 'active');
+    if (activeSprint) {
+      const sprintTasks = state.tasks.filter(t => t.sprintId === activeSprint.id && t.status !== 'done');
+      if (sprintTasks.length > 0) return sprintTasks.slice(0, 4);
+    }
+    return state.tasks.filter(t => t.status !== 'done').slice(0, 4);
+  },
+
   resetTasks: () => set({
     tasks: [],
     sprints: [],
     currentSprintId: null,
     taskError: null,
+    fullPlan: null,
   }),
     }),
     {

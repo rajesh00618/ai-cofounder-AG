@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { useFounderStore } from './founderStore';
 import { useBusinessStore } from './businessStore';
 import { useTaskStore } from './taskStore';
 import { useChatStore } from './chatStore';
@@ -25,13 +24,11 @@ export const useAuthStore = create(
       'ai-cofounder-chat-storage',
       'ai-cofounder-business-storage',
       'ai-cofounder-task-storage',
-      'ai-cofounder-founder-storage',
     ];
     for (const key of otherStoreKeys) {
       try { localStorage.removeItem(key); } catch (e) { console.warn('Failed to clear persisted store on logout:', key, e); }
     }
-    // Reset all other stores' in-memory state to prevent data leakage
-    try { useFounderStore.getState().resetOnboarding(); } catch (e) { console.error('Failed to reset founder store:', e); }
+    // Reset session-scoped stores in memory (founder profile is NOT cleared so it persists on re-login)
     try { useBusinessStore.getState().resetBusiness(); } catch (e) { console.error('Failed to reset business store:', e); }
     try { useTaskStore.getState().resetTasks(); } catch (e) { console.error('Failed to reset task store:', e); }
     try { useChatStore.getState().resetChat(); } catch (e) { console.error('Failed to reset chat store:', e); }

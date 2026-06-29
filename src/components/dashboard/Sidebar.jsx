@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useFounderStore } from '../../store/founderStore';
 import { useAppStore } from '../../store/appStore';
-import { Home, MessageSquare, Briefcase, CheckSquare, Map, Brain, Search, FileText, Users, DollarSign, Zap, Beaker, Dna, CalendarCheck, Award, ChevronLeft, ChevronRight, LogOut, Menu } from 'lucide-react';
+import { Home, MessageSquare, Briefcase, CheckSquare, Map, Brain, Search, FileText, Users, DollarSign, Zap, Beaker, Dna, CalendarCheck, Award, ChevronLeft, ChevronRight, LogOut, Menu, Route } from 'lucide-react';
 
 const NAV_ITEMS = [
   { id: 'home', label: 'Command Center', icon: Home },
   { id: 'workspace', label: 'AI Co-Founder', icon: MessageSquare },
   { id: 'business', label: 'Business Blueprint', icon: Briefcase },
   { id: 'tasks', label: 'Task Engine', icon: CheckSquare },
+  { id: 'plan', label: 'Full Plan', icon: Route },
   { id: 'roadmap', label: 'Roadmap', icon: Map },
   { id: 'memory', label: 'Memory Graph', icon: Brain },
   { id: 'founder', label: 'Founder DNA', icon: Dna },
@@ -45,16 +46,14 @@ export default function Sidebar({ activeView, onNavigate }) {
     <>
       {isMobile && mobileOpen && (
         <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 40 }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 40 }}
           onClick={() => setMobileOpen(false)}
         />
       )}
       <aside
         style={{
           position: 'fixed', top: 0, left: 0, bottom: 0, width,
-          background: 'rgba(7,7,13,0.96)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
+          background: 'var(--bg-card)',
           borderRight: '1px solid var(--border)',
           display: 'flex', flexDirection: 'column',
           transition: 'width 0.3s cubic-bezier(0.4,0,0.2,1)',
@@ -100,7 +99,7 @@ export default function Sidebar({ activeView, onNavigate }) {
                   padding: collapsed ? '0.625rem 0' : '0.625rem 0.75rem',
                   borderRadius: 'var(--radius)',
                   fontSize: '0.8125rem', fontWeight: isActive ? 600 : 500,
-                  color: isActive ? 'var(--accent-light)' : 'var(--text-secondary)',
+                  color: isActive ? 'var(--accent-dark)' : 'var(--text-secondary)',
                   background: isActive ? 'var(--accent-subtle)' : 'transparent',
                   border: 'none', cursor: 'pointer',
                   justifyContent: collapsed ? 'center' : 'flex-start',
@@ -115,11 +114,12 @@ export default function Sidebar({ activeView, onNavigate }) {
                     position: 'absolute', left: 0, top: '50%',
                     transform: 'translateY(-50%)',
                     width: 3, height: '60%',
-                    background: 'linear-gradient(180deg, var(--accent), var(--accent-light))',
+                    background: 'var(--accent)',
                     borderRadius: '0 3px 3px 0',
                   }} />
                 )}
                 <item.icon size={18} />
+                {!collapsed && <span>{item.label}</span>}
               </button>
             );
           })}

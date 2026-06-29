@@ -10,11 +10,14 @@ const mockResetOnboarding = vi.fn();
 const mockUseAuthStore = vi.fn();
 const mockUseFounderStore = vi.fn();
 
-const mockAuthStoreModule = vi.hoisted(() => {
-  const mocks = { onFinishHydration: (cb) => { cb(); return () => {}; }, hasHydrated: () => true };
-  const fn = (sel) => mockUseAuthStore(sel);
-  fn.persist = mocks;
-  return fn;
+const { mockAuthStoreModule, mockFounderStoreModule } = vi.hoisted(() => {
+  const persist = { onFinishHydration: (cb) => { cb(); return () => {}; }, hasHydrated: () => true };
+  const authFn = (sel) => mockUseAuthStore(sel);
+  authFn.persist = persist;
+  const founderFn = (sel) => mockUseFounderStore(sel);
+  founderFn.persist = persist;
+  founderFn.getState = () => ({ profile: null });
+  return { mockAuthStoreModule: authFn, mockFounderStoreModule: founderFn };
 });
 
 vi.mock('react-router-dom', async () => {
@@ -27,7 +30,7 @@ vi.mock('../../store/authStore', () => ({
 }));
 
 vi.mock('../../store/founderStore', () => ({
-  useFounderStore: (selector) => mockUseFounderStore(selector),
+  useFounderStore: mockFounderStoreModule,
 }));
 
 vi.mock('../../utils/api', () => ({
@@ -104,6 +107,6 @@ describe('AuthPage', () => {
 
     expect(screen.getByText("You're signed in")).toBeInTheDocument();
     expect(screen.getByText('test@example.com')).toBeInTheDocument();
-    expect(screen.getByText('Continue to Onboarding')).toBeInTheDocument();
+    expect(screen.getByText('Continue')).toBeInTheDocument();
   });
 });

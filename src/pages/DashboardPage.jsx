@@ -7,6 +7,7 @@ import Sidebar from '../components/dashboard/Sidebar';
 const CommandCenter = lazy(() => import('../components/dashboard/CommandCenter'));
 const AIWorkspace = lazy(() => import('../components/dashboard/AIWorkspace'));
 const TaskEngine = lazy(() => import('../components/tasks/TaskEngine'));
+const FullPlanView = lazy(() => import('../components/tasks/FullPlanView'));
 const RoadmapView = lazy(() => import('../components/roadmap/RoadmapView'));
 const MemoryGraph = lazy(() => import('../components/memory/MemoryGraph'));
 const FounderTwin = lazy(() => import('../components/founder/FounderTwin'));
@@ -23,7 +24,7 @@ const WeeklyReview = lazy(() => import('../components/review/WeeklyReview'));
 
 const VIEWS = {
   home: CommandCenter, workspace: AIWorkspace, business: BusinessBlueprint,
-  tasks: TaskEngine, roadmap: RoadmapView, memory: MemoryGraph,
+  tasks: TaskEngine, plan: FullPlanView, roadmap: RoadmapView, memory: MemoryGraph,
   founder: FounderTwin, research: ResearchCenter, documents: DocumentGenerator,
   board: AIBoardMeeting, investor: InvestorMode, build: ExecutionMode,
   simulator: DecisionSimulator, review: DailyReview, 'weekly-review': WeeklyReview,

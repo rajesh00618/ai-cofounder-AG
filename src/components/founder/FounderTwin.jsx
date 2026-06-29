@@ -11,6 +11,7 @@ export default function FounderTwin() {
   const [adaptations, setAdaptations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [dnaError, setDnaError] = useState('');
   const mountedRef = useRef(true);
 
   useEffect(() => { return () => { mountedRef.current = false; }; }, []);
@@ -18,22 +19,27 @@ export default function FounderTwin() {
   const hasDnaScores = dnaScores && typeof dnaScores === 'object' && Object.keys(dnaScores).length > 0;
   const avgScore = hasDnaScores ? Math.round(Object.values(dnaScores).reduce((a, b) => a + b, 0) / dims.length) : 0;
 
+  const runDnaAnalysis = () => {
+    setAnalyzing(true);
+    setDnaError('');
+    api.analyzeDNA(useFounderStore.getState().profile)
+      .then(res => {
+        if (!mountedRef.current) return;
+        if (res.dnaScores) {
+          const { updateDnaScore } = useFounderStore.getState();
+          if (typeof updateDnaScore === 'function') {
+            Object.entries(res.dnaScores).forEach(([k, v]) => updateDnaScore(k, v));
+          }
+        }
+        if (res.founderTwin) useFounderStore.setState({ founderTwin: res.founderTwin });
+      })
+      .catch(e => { if (mountedRef.current) setDnaError(e.message || 'Analysis failed'); })
+      .finally(() => { if (mountedRef.current) setAnalyzing(false); });
+  };
+
   useEffect(() => {
     if (!hasDnaScores) {
-      setAnalyzing(true);
-      api.analyzeDNA(useFounderStore.getState().profile)
-        .then(res => {
-          if (!mountedRef.current) return;
-          if (res.dnaScores) {
-            const { updateDnaScore } = useFounderStore.getState();
-            if (typeof updateDnaScore === 'function') {
-              Object.entries(res.dnaScores).forEach(([k, v]) => updateDnaScore(k, v));
-            }
-          }
-          if (res.founderTwin) useFounderStore.setState({ founderTwin: res.founderTwin });
-        })
-        .catch(() => {})
-        .finally(() => { if (mountedRef.current) setAnalyzing(false); });
+      runDnaAnalysis();
       return;
     }
     setLoading(true);
@@ -48,10 +54,19 @@ export default function FounderTwin() {
       <div style={styles.page} className="page-enter">
         <h2 style={styles.title}><Dna size={22} style={{ color: 'var(--color-accent-light)' }} /> Founder DNA</h2>
         <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-          <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: 'var(--color-accent)' }} />
-          <p style={{ color: 'var(--color-text-tertiary)', marginTop: '1rem' }}>
-            {analyzing ? 'AI is analyzing your founder profile...' : 'DNA analysis not yet run. Complete onboarding to activate.'}
-          </p>
+          {dnaError ? (
+            <>
+              <p style={{ color: 'var(--color-danger)', marginBottom: '1rem', fontSize: '0.875rem' }}>DNA analysis failed: {dnaError}</p>
+              <button className="btn btn-primary btn-sm" onClick={runDnaAnalysis}>Retry Analysis</button>
+            </>
+          ) : (
+            <>
+              <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: 'var(--color-accent)' }} />
+              <p style={{ color: 'var(--color-text-tertiary)', marginTop: '1rem' }}>
+                {analyzing ? 'AI is analyzing your founder profile...' : 'DNA analysis not yet run. Complete onboarding to activate.'}
+              </p>
+            </>
+          )}
         </div>
       </div>
     );

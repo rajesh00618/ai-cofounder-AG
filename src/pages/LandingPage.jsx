@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SlashCard, ThreeDCard } from '../components/ui';
+import { Card } from '../components/ui';
 import { Rss, BarChart3, Brain, Target, Zap, Shield, ChevronDown } from 'lucide-react';
 
 const features = [
@@ -31,9 +31,9 @@ export default function LandingPage() {
           position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
           padding: '0 2rem', height: '64px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          background: `rgba(7,7,13,${Math.min(scrollY / 200, 0.9)})`,
+          background: `rgba(250,248,245,${Math.min(scrollY / 200, 0.95)})`,
           backdropFilter: `blur(${Math.min(scrollY / 10, 20)}px)`,
-          borderBottom: `1px solid rgba(99,102,241,${Math.min(scrollY / 600, 0.08)})`,
+          borderBottom: `1px solid rgba(232,228,224,${Math.min(scrollY / 600, 0.5)})`,
           transition: 'all 0.3s',
         }}
       >
@@ -65,12 +65,11 @@ export default function LandingPage() {
           display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
           padding: '0.375rem 1rem',
           background: 'var(--accent-subtle)',
-          border: '1px solid rgba(99,102,241,0.15)',
+          border: '1px solid var(--border)',
           borderRadius: '9999px',
           fontSize: '0.8125rem',
-          color: 'var(--accent-light)',
+          color: 'var(--accent-dark)',
           marginBottom: '2rem',
-          animation: 'floatSlow 4s ease-in-out infinite',
         }}>
           <Zap size={12} /> The world's first Startup Operating System
         </div>
@@ -106,7 +105,6 @@ export default function LandingPage() {
           <button
             className="btn btn-primary btn-lg"
             onClick={() => navigate('/auth')}
-            style={{ animation: 'glowPulse 2s ease-in-out infinite' }}
           >
             Start Your Journey
           </button>
@@ -115,29 +113,23 @@ export default function LandingPage() {
           </button>
         </div>
 
-        <ThreeDCard intensity={6} glow>
+        <Card style={{ maxWidth: '500px' }}>
           <div style={{
-            background: 'rgba(7,7,13,0.9)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid var(--border)',
             borderRadius: 'var(--radius-lg)',
-            padding: '1.5rem',
-            maxWidth: '500px',
-            animation: 'tiltFloat 6s ease-in-out infinite',
           }}>
             <div style={{ display: 'flex', gap: '6px', marginBottom: '1rem' }}>
               {[0,1,2].map(i => <div key={`dot-${i}`} style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--border)' }} />)}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {[100, 70, 85, 60].map((w, i) => (
-                <div key={i} style={{ height: 8, background: 'rgba(255,255,255,0.04)', borderRadius: 4, width: `${w}%` }} />
+                <div key={i} style={{ height: 8, background: 'var(--bg-elevated)', borderRadius: 4, width: `${w}%` }} />
               ))}
-              <div style={{ height: 6, background: 'rgba(255,255,255,0.04)', borderRadius: 3, marginTop: 8, overflow: 'hidden' }}>
+              <div style={{ height: 6, background: 'var(--bg-elevated)', borderRadius: 3, marginTop: 8, overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: '72%', background: 'linear-gradient(90deg, var(--accent), var(--accent-light))', borderRadius: 3 }} />
               </div>
             </div>
           </div>
-        </ThreeDCard>
+        </Card>
       </section>
 
       <section id="features" style={{ padding: '60px 2rem 100px', maxWidth: '1000px', margin: '0 auto' }}>
@@ -145,35 +137,31 @@ export default function LandingPage() {
         <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '3rem', fontSize: '1rem' }}>Features a competitor cannot fake with a better prompt</p>
         <div className="stagger" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
           {features.map((f) => (
-            <ThreeDCard key={f.title} intensity={5}>
-              <SlashCard variant="accent" tilt>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                  <div style={{
-                    width: 44, height: 44, borderRadius: 12,
-                    background: 'var(--accent-subtle)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <f.icon size={22} style={{ color: 'var(--accent-light)' }} />
-                  </div>
-                  <h3 style={{ fontWeight: 600, fontSize: '1rem' }}>{f.title}</h3>
+            <Card key={f.title}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: 12,
+                  background: 'var(--accent-subtle)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <f.icon size={22} style={{ color: 'var(--accent)' }} />
                 </div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.6 }}>{f.desc}</p>
-              </SlashCard>
-            </ThreeDCard>
+                <h3 style={{ fontWeight: 600, fontSize: '1rem' }}>{f.title}</h3>
+              </div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.6 }}>{f.desc}</p>
+            </Card>
           ))}
         </div>
       </section>
 
       <section style={{ padding: '60px 2rem', textAlign: 'center' }}>
-        <ThreeDCard intensity={4}>
-          <SlashCard variant="accent" glow style={{ maxWidth: '600px', margin: '0 auto' }}>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '1rem' }}>Ready to build?</h2>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>2 minutes to set up. Your AI co-founder remembers everything.</p>
-            <button className="btn btn-primary btn-lg" onClick={() => navigate('/auth')}>
-              Begin Onboarding
-            </button>
-          </SlashCard>
-        </ThreeDCard>
+        <Card style={{ maxWidth: '600px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '1rem' }}>Ready to build?</h2>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>2 minutes to set up. Your AI co-founder remembers everything.</p>
+          <button className="btn btn-primary btn-lg" onClick={() => navigate('/auth')}>
+            Begin Onboarding
+          </button>
+        </Card>
       </section>
 
       <footer style={{

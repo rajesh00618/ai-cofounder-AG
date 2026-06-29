@@ -187,6 +187,7 @@ export const api = {
   getExecutionPlan: (task) => apiPost('/execution/plan', { task }),
   executeStep: (stepId, task) => apiPost('/execution/step', { stepId, task }),
   generateBlueprint: (answers) => apiPost('/business/blueprint', { answers }),
+  generateBlueprintFromGoal: (context) => apiPost('/business/blueprint', { answers: context }),
   getFailurePrediction: (context = {}) => apiPost('/failure/prediction', { ...context }),
   generateDocument: (type, context) => apiPost('/documents/generate', { type, context }),
   getRoadmapGuidance: (stage, context) => apiPost('/roadmap/guidance', { stage, ...context }),
@@ -199,6 +200,64 @@ export const api = {
   getBusinessBlueprint: () => apiGet('/business/blueprint'),
   generateBlueprintTasks: (answers, blueprint) => apiPost('/business/blueprint/tasks', { answers, blueprint }),
   generateBlueprintScores: (answers, blueprint, profile) => apiPost('/business/blueprint/scores', { answers, blueprint, profile }),
+  generateFullPlan: async (context, blueprint) => {
+    const goalText = context?.[1] || '';
+    const timeframeMatch = goalText.match(/\b(\d+)\s*(day|week|month|year)s?\b/i);
+    const timeframe = timeframeMatch ? `${timeframeMatch[1]} ${timeframeMatch[2]}${timeframeMatch[1] !== '1' ? 's' : ''}` : null;
+
+    const prompt = `You are a startup execution planner. Generate a complete phased execution plan to achieve the founder's goal within the stated timeframe.
+
+Return ONLY a JSON object with a "phases" array. The response must be valid JSON and nothing else.
+
+TIMEFRAME CONSTRAINT: The goal must be achieved within ${timeframe || 'the stated period'}. The total duration of ALL phases combined MUST NOT exceed ${timeframe || 'the goal timeframe'}. Break the timeframe into realistic phases — shorter goals mean shorter/denser phases.
+
+REQUIREMENTS:
+- The "phases" array contains phases that fit within the total timeframe
+- Each phase has "title" (string), "goal" (string), "duration" (string e.g. "1 week", "3 days"), "tasks" (array)
+- Each task has "title" (string), "description" (string), "priority" ("high"/"medium"/"low"), "estimatedTime" (string like "2 hrs"), "difficulty" ("easy"/"medium"/"hard")
+- Each phase has 3-5 tasks
+- Cover the full journey from start to goal completion — every phase must be necessary and fit within the total deadline
+
+FOUNDER GOAL: ${goalText}
+FOUNDER: ${context?.[5] || 'Unknown'}
+REALITY SCORE: ${context?.[3] || 'Unknown'}
+
+BUSINESS BLUEPRINT DATA:
+Executive Summary: ${blueprint?.executiveSummary?.slice(0, 300) || ''}
+Target Customer: ${blueprint?.targetCustomer || ''}
+Problem: ${blueprint?.problem || ''}
+Solution: ${blueprint?.solution || ''}
+Revenue Model: ${blueprint?.revenueModel || ''}
+Go-to-Market: ${blueprint?.gtmPlan || ''}
+Validation Plan: ${blueprint?.validationPlan || ''}
+MVP Plan: ${blueprint?.mvpPlan || ''}
+Competitors: ${blueprint?.competitors || ''}
+Risks: ${(blueprint?.risks || []).join(', ')}
+Success Metrics: ${(blueprint?.successMetrics || []).join(', ')}`;
+
+    const extractPlan = (raw) => {
+      let text = typeof raw === 'string' ? raw : (raw?.content || '');
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) text = jsonMatch[0];
+      const parsed = JSON.parse(text);
+      if (!parsed || typeof parsed !== 'object') throw new Error('AI returned non-object response');
+      return parsed;
+    };
+
+    let plan;
+    try {
+      const res = await apiPost('/chat', { message: prompt, context: { goal: context?.[1], blueprint } });
+      plan = extractPlan(res);
+    } catch {
+      const retryPrompt = prompt + '\n\nYour previous response was not valid. Return ONLY a JSON object with a "phases" array. No markdown, no explanation, just JSON.';
+      const res = await apiPost('/chat', { message: retryPrompt, context: { goal: context?.[1], blueprint } });
+      plan = extractPlan(res);
+    }
+    if (!plan?.phases || !Array.isArray(plan.phases)) {
+      throw new Error('AI returned a plan without a phases array');
+    }
+    return plan;
+  },
   healthCheck: () => apiGet('/health'),
 
   // Investor Mode

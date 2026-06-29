@@ -26,10 +26,10 @@ export const formatTime = (date) => {
 };
 
 export const getScoreColor = (score) => {
-  if (score >= 80) return 'var(--color-success)';
-  if (score >= 60) return 'var(--color-accent)';
-  if (score >= 40) return 'var(--color-warning)';
-  return 'var(--color-danger)';
+  if (score >= 80) return 'var(--success)';
+  if (score >= 60) return 'var(--accent)';
+  if (score >= 40) return 'var(--warning)';
+  return 'var(--danger)';
 };
 
 export const getScoreLabel = (score) => {
@@ -61,6 +61,16 @@ export const calculateOverallScore = (scores) => {
   const values = Object.values(scores).filter(v => typeof v === 'number');
   if (values.length === 0) return 0;
   return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+};
+
+export const isToday = (dateStr) => {
+  if (!dateStr) return false;
+  const today = new Date();
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return false;
+  return d.getFullYear() === today.getFullYear() &&
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate();
 };
 
 export const getGreeting = () => {

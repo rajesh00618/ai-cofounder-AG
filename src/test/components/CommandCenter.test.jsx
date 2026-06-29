@@ -60,6 +60,9 @@ beforeEach(() => {
         { id: '1', title: 'Task 1', status: 'todo', priority: 'high', estimatedTime: '2 hrs', aiAssistance: 'Full' },
         { id: '2', title: 'Task 2', status: 'done', priority: 'medium', estimatedTime: '1 hr', aiAssistance: 'Partial' },
       ],
+      sprints: [{ id: 's1', phaseTitle: 'Validation', goal: 'Validate idea', week: 1 }],
+      currentSprintId: 's1',
+      getTodaysTasks: () => state.tasks.filter(t => t.status !== 'done').slice(0, 4),
     };
     return selector ? selector(state) : state;
   });
