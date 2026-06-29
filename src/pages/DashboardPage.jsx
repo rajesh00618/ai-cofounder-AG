@@ -1,42 +1,32 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useFounderStore } from '../store/founderStore';
 import { useAppStore } from '../store/appStore';
-const Sidebar = React.lazy(() => import('../components/dashboard/Sidebar'));
-const CommandCenter = React.lazy(() => import('../components/dashboard/CommandCenter'));
-const AIWorkspace = React.lazy(() => import('../components/dashboard/AIWorkspace'));
-const TaskEngine = React.lazy(() => import('../components/tasks/TaskEngine'));
-const RoadmapView = React.lazy(() => import('../components/roadmap/RoadmapView'));
-const MemoryGraph = React.lazy(() => import('../components/memory/MemoryGraph'));
-const FounderTwin = React.lazy(() => import('../components/founder/FounderTwin'));
-const ResearchCenter = React.lazy(() => import('../components/research/ResearchCenter'));
-const BusinessBlueprint = React.lazy(() => import('../components/business/BusinessBlueprint'));
-const DocumentGenerator = React.lazy(() => import('../components/documents/DocumentGenerator'));
-const AIBoardMeeting = React.lazy(() => import('../components/ai/AIBoardMeeting'));
-const ExecutionMode = React.lazy(() => import('../components/ai/ExecutionMode'));
-const DecisionSimulator = React.lazy(() => import('../components/simulators/DecisionSimulator'));
-const DailyReview = React.lazy(() => import('../components/review/DailyReview'));
-const SettingsPanel = React.lazy(() => import('../components/dashboard/SettingsPanel'));
-const InvestorMode = React.lazy(() => import('../components/ai/InvestorMode'));
-const WeeklyReview = React.lazy(() => import('../components/review/WeeklyReview'));
 import { useNavigate } from 'react-router-dom';
-import { SkeletonDashboard } from '../components/ui/SkeletonLoaders';
+import Sidebar from '../components/dashboard/Sidebar';
+
+const CommandCenter = lazy(() => import('../components/dashboard/CommandCenter'));
+const AIWorkspace = lazy(() => import('../components/dashboard/AIWorkspace'));
+const TaskEngine = lazy(() => import('../components/tasks/TaskEngine'));
+const RoadmapView = lazy(() => import('../components/roadmap/RoadmapView'));
+const MemoryGraph = lazy(() => import('../components/memory/MemoryGraph'));
+const FounderTwin = lazy(() => import('../components/founder/FounderTwin'));
+const ResearchCenter = lazy(() => import('../components/research/ResearchCenter'));
+const BusinessBlueprint = lazy(() => import('../components/business/BusinessBlueprint'));
+const DocumentGenerator = lazy(() => import('../components/documents/DocumentGenerator'));
+const AIBoardMeeting = lazy(() => import('../components/ai/AIBoardMeeting'));
+const ExecutionMode = lazy(() => import('../components/ai/ExecutionMode'));
+const DecisionSimulator = lazy(() => import('../components/simulators/DecisionSimulator'));
+const DailyReview = lazy(() => import('../components/review/DailyReview'));
+const SettingsPanel = lazy(() => import('../components/dashboard/SettingsPanel'));
+const InvestorMode = lazy(() => import('../components/ai/InvestorMode'));
+const WeeklyReview = lazy(() => import('../components/review/WeeklyReview'));
 
 const VIEWS = {
-  home: CommandCenter,
-  workspace: AIWorkspace,
-  business: BusinessBlueprint,
-  tasks: TaskEngine,
-  roadmap: RoadmapView,
-  memory: MemoryGraph,
-  founder: FounderTwin,
-  research: ResearchCenter,
-  documents: DocumentGenerator,
-  board: AIBoardMeeting,
-  investor: InvestorMode,
-  build: ExecutionMode,
-  simulator: DecisionSimulator,
-  review: DailyReview,
-  'weekly-review': WeeklyReview,
+  home: CommandCenter, workspace: AIWorkspace, business: BusinessBlueprint,
+  tasks: TaskEngine, roadmap: RoadmapView, memory: MemoryGraph,
+  founder: FounderTwin, research: ResearchCenter, documents: DocumentGenerator,
+  board: AIBoardMeeting, investor: InvestorMode, build: ExecutionMode,
+  simulator: DecisionSimulator, review: DailyReview, 'weekly-review': WeeklyReview,
   settings: SettingsPanel,
 };
 
@@ -46,11 +36,12 @@ export default function DashboardPage() {
   const { sidebarCollapsed } = useAppStore();
   const [activeView, setActiveView] = useState('home');
   const [hydrated, setHydrated] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [viewTransition, setViewTransition] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
+  const [transition, setTransition] = useState('');
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
+    check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
@@ -66,42 +57,71 @@ export default function DashboardPage() {
   }, [hydrated, profile, navigate]);
 
   const handleNavigate = (view) => {
-    setViewTransition('exiting');
+    setTransition('exiting');
     setTimeout(() => {
       setActiveView(view);
-      setViewTransition('entering');
-      setTimeout(() => setViewTransition(''), 400);
+      setTransition('entering');
+      setTimeout(() => setTransition(''), 400);
     }, 200);
   };
 
-  if (!hydrated) return <SkeletonDashboard />;
+  if (!hydrated) {
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
+        <div style={{ width: sidebarCollapsed ? '64px' : '240px' }} />
+        <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{
+            width: 200, height: 8, background: 'rgba(255,255,255,0.04)',
+            borderRadius: 4, overflow: 'hidden',
+          }}>
+            <div style={{
+              height: '100%', width: '40%',
+              background: 'linear-gradient(90deg, var(--accent), var(--accent-light))',
+              borderRadius: 4, animation: 'shimmer 1.5s ease-in-out infinite',
+              backgroundSize: '200% 100%',
+            }} />
+          </div>
+        </main>
+      </div>
+    );
+  }
 
+  const sidebarWidth = isMobile ? 0 : (sidebarCollapsed ? '64px' : '240px');
   const ActiveComponent = VIEWS[activeView] || CommandCenter;
 
   return (
-    <div style={styles.layout}>
-      <Suspense fallback={<div style={{ width: sidebarCollapsed ? '72px' : '260px', padding: '1rem', color: 'var(--color-text-muted)', fontSize: '0.8125rem' }}>Loading...</div>}>
-        <Sidebar activeView={activeView} onNavigate={handleNavigate} />
-      </Suspense>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
+      <Sidebar activeView={activeView} onNavigate={handleNavigate} />
       <main
-        className="dashboard-main"
         style={{
-          ...styles.main,
-          marginLeft: isMobile ? '56px' : (sidebarCollapsed ? '72px' : '260px'),
-          opacity: viewTransition === 'exiting' ? 0 : 1,
-          transform: viewTransition === 'exiting' ? 'translateY(8px)' : viewTransition === 'entering' ? 'translateY(0)' : 'none',
-          transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
+          flex: 1,
+          marginLeft: sidebarWidth,
+          transition: 'margin-left 0.3s ease, opacity 0.3s ease, transform 0.3s ease',
+          opacity: transition === 'exiting' ? 0 : 1,
+          transform: transition === 'exiting' ? 'translateY(8px)' : 'none',
+          overflow: 'auto',
+          minHeight: '100vh',
         }}
       >
-        <Suspense fallback={<SkeletonDashboard />}>
-          <ActiveComponent onNavigate={handleNavigate} />
+        <Suspense fallback={
+          <div style={{ padding: '2rem' }}>
+            <div className="stagger" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {[1,2,3].map(i => (
+                <div key={i} style={{
+                  height: 120, borderRadius: 'var(--radius-lg)',
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid var(--border)',
+                  animation: 'pulse 1.5s ease-in-out infinite',
+                }} />
+              ))}
+            </div>
+          </div>
+        }>
+          <div className="page-enter" style={{ padding: '1.5rem 2rem' }}>
+            <ActiveComponent onNavigate={handleNavigate} />
+          </div>
         </Suspense>
       </main>
     </div>
   );
 }
-
-const styles = {
-  layout: { display: 'flex', minHeight: '100vh', background: 'var(--color-bg-primary)' },
-  main: { flex: 1, transition: 'margin-left 0.3s ease, opacity 0.3s ease, transform 0.3s ease', overflow: 'auto', padding: '1.5rem 2rem' },
-};
