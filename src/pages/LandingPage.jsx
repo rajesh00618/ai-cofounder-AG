@@ -32,18 +32,31 @@ const pipelineStages = ['Idea', 'Validation', 'MVP', 'Launch', 'Revenue', 'PMF',
 export default function LandingPage() {
   const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const heroRef = useRef(null);
   const scrollProgress = useScrollProgress();
+  const orb1Ref = useRef(null);
+  const orb2Ref = useRef(null);
+  const orb3Ref = useRef(null);
+  const rafRef = useRef(null);
 
   useEffect(() => { setVisible(true); }, []);
 
   useEffect(() => {
     const handleMouseMove = (e) => {
-      setMousePos({ x: e.clientX, y: e.clientY });
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(() => {
+        const x = e.clientX;
+        const y = e.clientY;
+        if (orb1Ref.current) orb1Ref.current.style.transform = `translate(${x * 0.01}px, ${y * 0.01}px)`;
+        if (orb2Ref.current) orb2Ref.current.style.transform = `translate(${-x * 0.008}px, ${-y * 0.008}px)`;
+        if (orb3Ref.current) orb3Ref.current.style.transform = `translate(${x * 0.005}px, ${y * 0.005}px)`;
+      });
     };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
   }, []);
 
   return (
@@ -52,9 +65,9 @@ export default function LandingPage() {
       <CursorGlow color="rgba(196,154,108,0.04)" size={500} />
 
       {/* Floating orbs with parallax */}
-      <div style={{ ...styles.bgOrb1, transform: `translate(${mousePos.x * 0.01}px, ${mousePos.y * 0.01}px)` }} />
-      <div style={{ ...styles.bgOrb2, transform: `translate(${-mousePos.x * 0.008}px, ${-mousePos.y * 0.008}px)` }} />
-      <div style={{ ...styles.bgOrb3, transform: `translate(${mousePos.x * 0.005}px, ${mousePos.y * 0.005}px)` }} />
+      <div ref={orb1Ref} style={styles.bgOrb1} />
+      <div ref={orb2Ref} style={styles.bgOrb2} />
+      <div ref={orb3Ref} style={styles.bgOrb3} />
       <div style={styles.gridBg} />
 
       {/* Nav */}

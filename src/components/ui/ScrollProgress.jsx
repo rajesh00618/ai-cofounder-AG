@@ -14,6 +14,7 @@ export default function ScrollProgress() {
         height: '3px',
         zIndex: 200,
         background: 'transparent',
+        pointerEvents: 'none',
       }}
     >
       <div

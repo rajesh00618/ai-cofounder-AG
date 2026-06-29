@@ -1,29 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 export default function CursorGlow({ color = 'rgba(196,154,108,0.06)', size = 400 }) {
-  const [pos, setPos] = useState({ x: -999, y: -999 });
-  const [visible, setVisible] = useState(false);
+  const ref = useRef(null);
+  const rafRef = useRef(null);
 
   useEffect(() => {
-    const handleMove = (e) => {
-      setPos({ x: e.clientX, y: e.clientY });
-      if (!visible) setVisible(true);
-    };
-    const handleLeave = () => setVisible(false);
-    const handleEnter = () => setVisible(true);
+    const el = ref.current;
+    if (!el) return;
 
-    window.addEventListener('mousemove', handleMove);
+    const handleMove = (e) => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(() => {
+        el.style.left = `${e.clientX}px`;
+        el.style.top = `${e.clientY}px`;
+        el.style.opacity = '1';
+      });
+    };
+    const handleLeave = () => { el.style.opacity = '0'; };
+    const handleEnter = () => { el.style.opacity = '1'; };
+
+    window.addEventListener('mousemove', handleMove, { passive: true });
     document.addEventListener('mouseleave', handleLeave);
     document.addEventListener('mouseenter', handleEnter);
     return () => {
       window.removeEventListener('mousemove', handleMove);
       document.removeEventListener('mouseleave', handleLeave);
       document.removeEventListener('mouseenter', handleEnter);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [visible]);
+  }, []);
 
   return (
     <div
+      ref={ref}
       style={{
         position: 'fixed',
         width: `${size}px`,
@@ -33,9 +42,9 @@ export default function CursorGlow({ color = 'rgba(196,154,108,0.06)', size = 40
         pointerEvents: 'none',
         zIndex: 0,
         transform: 'translate(-50%, -50%)',
-        left: pos.x,
-        top: pos.y,
-        opacity: visible ? 1 : 0,
+        left: '-999px',
+        top: '-999px',
+        opacity: 0,
         transition: 'opacity 0.3s ease',
       }}
       aria-hidden="true"

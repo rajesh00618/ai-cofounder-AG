@@ -23,7 +23,7 @@ export default function RippleButton({ children, className = '', style = {}, onC
     <button
       className={`ripple-container ${className}`}
       onClick={handleClick}
-      style={{ ...style, position: 'relative', overflow: 'hidden' }}
+      style={{ ...style, cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
       {...props}
     >
       {children}
