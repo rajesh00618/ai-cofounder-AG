@@ -91,10 +91,12 @@ export default function MemoryGraph() {
   const PAGE_LIMIT = 100;
   const svgRef = useRef(null);
   const [svgWidth, setSvgWidth] = useState(700);
-  const mountedRef = useRef(true);
-  const reqIdRef = useRef(0);
+  const mountedRef = useRef(false);
 
-  useEffect(() => { return () => { mountedRef.current = false; }; }, []);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     const resize = () => {

@@ -22,7 +22,7 @@ const isModelHealthy = (model) => {
   const entry = modelFailures.get(model);
   if (!entry) return true;
   if (entry.failures >= CIRCUIT_BREAKER_THRESHOLD) {
-    if (Date.now() - failures.lastFailure < CIRCUIT_BREAKER_RESET_MS) return false;
+    if (Date.now() - entry.lastFailure < CIRCUIT_BREAKER_RESET_MS) return false;
     modelFailures.delete(model);
     return true;
   }

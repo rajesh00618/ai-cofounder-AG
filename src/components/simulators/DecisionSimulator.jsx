@@ -31,9 +31,12 @@ export default function DecisionSimulator() {
   const [customerResult, setCustomerResult] = useState(null);
   const [failureData, setFailureData] = useState(null);
   const [failureLoading, setFailureLoading] = useState(false);
-  const mountedRef = useRef(true);
+  const mountedRef = useRef(false);
 
-  useEffect(() => { return () => { mountedRef.current = false; }; }, []);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const runSimulation = async () => {
     if (!question.trim()) return;

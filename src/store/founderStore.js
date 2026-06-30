@@ -70,6 +70,7 @@ export const useFounderStore = create(
   setRealityScore: (score) => set({ realityScore: score }),
   setNegotiationResult: (result) => set({ negotiationResult: result }),
   updateDnaScore: (dim, val) => set(s => ({ dnaScores: { ...(s.dnaScores || {}), [dim]: val } })),
+  setDnaScores: (scores) => set({ dnaScores: scores }),
     }),
     {
       name: 'ai-cofounder-founder-storage',

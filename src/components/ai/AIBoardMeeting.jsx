@@ -23,12 +23,12 @@ export default function AIBoardMeeting() {
   const [loading, setLoading] = useState(false);
   const [debating, setDebating] = useState(false);
   const bottomRef = useRef(null);
-  const mountedRef = useRef(true);
-  const msgCounterRef = useRef(0);
+  const mountedRef = useRef(false);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
-
-  useEffect(() => { return () => { mountedRef.current = false; }; }, []);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;

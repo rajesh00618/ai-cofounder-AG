@@ -14,7 +14,7 @@ export default function ResearchCenter() {
   const [briefing, setBriefing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const mountedRef = useRef(true);
+  const mountedRef = useRef(false);
 
   useEffect(() => {
     mountedRef.current = true;

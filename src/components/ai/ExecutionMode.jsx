@@ -18,9 +18,12 @@ export default function ExecutionMode() {
   const [stepOutputs, setStepOutputs] = useState([]);
   const [completed, setCompleted] = useState(false);
   const [error, setError] = useState(null);
-  const mountedRef = useRef(true);
+  const mountedRef = useRef(false);
 
-  useEffect(() => { return () => { mountedRef.current = false; }; }, []);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const handleExecute = async () => {
     if (!task.trim()) return;

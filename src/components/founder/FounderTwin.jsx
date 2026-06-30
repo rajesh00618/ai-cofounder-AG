@@ -12,42 +12,70 @@ export default function FounderTwin() {
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [dnaError, setDnaError] = useState('');
-  const mountedRef = useRef(true);
+  const mountedRef = useRef(false);
+  const analyzingRef = useRef(false);
 
-  useEffect(() => { return () => { mountedRef.current = false; }; }, []);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      analyzingRef.current = false;
+    };
+  }, []);
 
   const hasDnaScores = dnaScores && typeof dnaScores === 'object' && Object.keys(dnaScores).length > 0;
+  const allDimsPresent = hasDnaScores && dims.every(d => dnaScores[d] !== undefined && dnaScores[d] !== null);
   const avgScore = hasDnaScores ? Math.round(Object.values(dnaScores).reduce((a, b) => a + b, 0) / dims.length) : 0;
 
   const runDnaAnalysis = () => {
+    const profile = useFounderStore.getState().profile;
+    if (!profile) {
+      setDnaError('Complete onboarding first to generate your Founder DNA.');
+      setAnalyzing(false);
+      return;
+    }
+    if (analyzingRef.current) return;
+    analyzingRef.current = true;
     setAnalyzing(true);
     setDnaError('');
-    api.analyzeDNA(useFounderStore.getState().profile)
+    api.analyzeDNA(profile)
       .then(res => {
         if (!mountedRef.current) return;
         if (res.dnaScores) {
-          const { updateDnaScore } = useFounderStore.getState();
-          if (typeof updateDnaScore === 'function') {
-            Object.entries(res.dnaScores).forEach(([k, v]) => updateDnaScore(k, v));
+          const { setDnaScores } = useFounderStore.getState();
+          if (typeof setDnaScores === 'function') {
+            setDnaScores(res.dnaScores);
+          } else {
+            const { updateDnaScore } = useFounderStore.getState();
+            if (typeof updateDnaScore === 'function') {
+              Object.entries(res.dnaScores).forEach(([k, v]) => updateDnaScore(k, v));
+            }
           }
         }
         if (res.founderTwin) useFounderStore.setState({ founderTwin: res.founderTwin });
       })
       .catch(e => { if (mountedRef.current) setDnaError(e.message || 'Analysis failed'); })
-      .finally(() => { if (mountedRef.current) setAnalyzing(false); });
+      .finally(() => {
+        if (mountedRef.current) setAnalyzing(false);
+        analyzingRef.current = false;
+      });
   };
 
   useEffect(() => {
-    if (!hasDnaScores) {
+    if (!hasDnaScores && !analyzingRef.current) {
       runDnaAnalysis();
-      return;
     }
+  }, [hasDnaScores]);
+
+  useEffect(() => {
+    if (!allDimsPresent) return;
+    const { dnaScores: ds, founderTwin: ft } = useFounderStore.getState();
     setLoading(true);
-    api.adaptDNA(dnaScores, founderTwin)
+    api.adaptDNA(ds, ft)
       .then(res => { if (mountedRef.current) setAdaptations(res.adaptations || []); })
       .catch(() => { if (mountedRef.current) setAdaptations([]); })
       .finally(() => { if (mountedRef.current) setLoading(false); });
-  }, [dnaScores, founderTwin, hasDnaScores]);
+  }, [allDimsPresent]);
 
   if (!hasDnaScores) {
     return (
