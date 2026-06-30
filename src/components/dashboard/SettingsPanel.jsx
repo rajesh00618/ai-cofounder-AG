@@ -52,7 +52,7 @@ export default function SettingsPanel() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
-      alert('Failed to save API key: ' + err.message);
+      alert('Failed to save API key. Please check your key and try again.');
     }
   };
 
@@ -69,7 +69,7 @@ export default function SettingsPanel() {
       await api.forgotPassword(resetEmail);
       setResetSent(true);
     } catch (err) {
-      setResetError(err.message);
+      setResetError('Something went wrong. Please check your email and try again.');
     }
   };
 
@@ -93,7 +93,7 @@ export default function SettingsPanel() {
         setPasswordError('Password reset is available via forgot password flow.');
       }
     } catch (err) {
-      setPasswordError(err.message);
+      setPasswordError('Failed to change password. Please try again.');
     }
   };
 

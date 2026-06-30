@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Beaker, TrendingUp, AlertTriangle, Sparkles, Users, MessageSquare, Loader2 } from 'lucide-react';
 import { getScoreColor } from '../../utils/helpers';
+import { useFounderStore } from '../../store/founderStore';
 import { useBusinessStore } from '../../store/businessStore';
+import { useTaskStore } from '../../store/taskStore';
 import { api } from '../../utils/api';
 
 const CUSTOMER_PERSONAS = [
@@ -13,7 +15,14 @@ const CUSTOMER_PERSONAS = [
 ];
 
 export default function DecisionSimulator() {
-  const { businessHealth, blueprint } = useBusinessStore();
+  const { businessHealth, blueprint, startupScore, currentStage } = useBusinessStore();
+  const { profile, dnaScores } = useFounderStore();
+  const { tasks } = useTaskStore();
+
+  const buildContext = useCallback(() => ({
+    blueprint, businessHealth, startupScore, currentStage, profile, dnaScores, tasks,
+  }), [blueprint, businessHealth, startupScore, currentStage, profile, dnaScores, tasks]);
+
   const [question, setQuestion] = useState('');
   const [simulating, setSimulating] = useState(false);
   const [result, setResult] = useState(null);
@@ -30,7 +39,7 @@ export default function DecisionSimulator() {
     if (!question.trim()) return;
     setSimulating(true);
     try {
-      const data = await api.simulateDecision(question);
+      const data = await api.simulateDecision(question, buildContext());
       if (mountedRef.current) setResult(data);
     } catch (e) {
       if (mountedRef.current) setResult({ error: e.message });
@@ -42,7 +51,7 @@ export default function DecisionSimulator() {
     if (!question.trim()) return;
     setSimulating(true);
     try {
-      const data = await api.simulateCompany(question);
+      const data = await api.simulateCompany(question, buildContext());
       if (!mountedRef.current) return;
       data.isCompanySim = true;
       setResult(data);
@@ -53,20 +62,21 @@ export default function DecisionSimulator() {
   };
 
   useEffect(() => {
-    if (tab === 'failure') {
-      setFailureLoading(true);
-      api.getFailurePrediction({ businessHealth, blueprint })
-        .then(data => { if (mountedRef.current) setFailureData(data); })
-        .catch(e => { if (mountedRef.current) setFailureData({ error: e.message }); })
-        .finally(() => { if (mountedRef.current) setFailureLoading(false); });
-    }
-  }, [tab, businessHealth, blueprint]);
+    if (tab !== 'failure') return;
+    let cancelled = false;
+    setFailureLoading(true);
+    api.getFailurePrediction({ businessHealth, blueprint, startupScore, currentStage, tasks: tasks?.length })
+      .then(data => { if (!cancelled) setFailureData(data); })
+      .catch(e => { if (!cancelled) setFailureData({ error: e.message }); })
+      .finally(() => { if (!cancelled) setFailureLoading(false); });
+    return () => { cancelled = true; };
+  }, [tab]);
 
   const runCustomerSim = async () => {
     if (!question.trim()) return;
     setSimulating(true);
     try {
-      const data = await api.simulateCustomer(question, selectedPersona);
+      const data = await api.simulateCustomer(question, selectedPersona, buildContext());
       if (mountedRef.current) setCustomerResult(data);
     } catch (e) {
       if (mountedRef.current) setCustomerResult({ error: e.message });
@@ -216,8 +226,8 @@ export default function DecisionSimulator() {
                 </div>
               </div>
               <h4 style={{fontWeight:600,marginBottom:'0.75rem'}}>Your startup currently has an elevated failure risk because:</h4>
-              {(failureData.topRisks || []).map((r) => (
-                <div key={`risk-${r.risk?.slice(0,20) || Math.random()}`} style={{display:'flex',alignItems:'center',gap:'0.5rem',marginBottom:'0.5rem',fontSize:'0.875rem',color:'var(--color-text-secondary)'}}>
+              {(failureData.topRisks || []).map((r, ri) => (
+                <div key={`risk-${ri}`} style={{display:'flex',alignItems:'center',gap:'0.5rem',marginBottom:'0.5rem',fontSize:'0.875rem',color:'var(--color-text-secondary)'}}>
                   <AlertTriangle size={14} style={{color:'var(--color-danger)'}} /> {r.risk}
                 </div>
               ))}

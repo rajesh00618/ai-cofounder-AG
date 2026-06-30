@@ -28,7 +28,7 @@ Landing → Auth → Onboarding → Goal Setting → Blueprint (auto-generated) 
 ## Dashboard Views
 
 | View | Description |
-|---|---|
+|---|---|---|
 | Command Center | Startup score, daily mission, health, today's tasks |
 | AI Co-Founder | Chat with 10 specialized AI agents |
 | Business Blueprint | Review/edit/export your full plan |
@@ -43,7 +43,9 @@ Landing → Auth → Onboarding → Goal Setting → Blueprint (auto-generated) 
 | Investor Mode | AI evaluates your startup |
 | Build Mode | AI executes tasks autonomously |
 | Simulator | Test decisions with virtual customers |
-| Daily/Weekly Review | Progress check-ins |
+| Daily Review | Daily progress check-in |
+| Weekly Review | AI-generated weekly performance summary |
+| Settings | API key, account, server status |
 
 ## Tech Stack
 

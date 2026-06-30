@@ -59,11 +59,9 @@ describe('executeStep', () => {
     expect(typeof result.output).toBe('string');
   });
 
-  it('returns error gracefully when AI call fails', async () => {
+  it('throws when AI call fails', async () => {
     callOpenAI.mockRejectedValue(new Error('API error'));
-    const result = await executeStep('test-key', 'step-1', { title: 'Test' });
-    expect(result).toHaveProperty('output');
-    expect(result.output).toContain('Generation error');
+    await expect(executeStep('test-key', 'step-1', { title: 'Test' })).rejects.toThrow('API error');
   });
 
   it('handles empty files array from AI', async () => {

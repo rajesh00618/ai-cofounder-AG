@@ -73,6 +73,18 @@ export const useFounderStore = create(
     }),
     {
       name: 'ai-cofounder-founder-storage',
+      version: 1,
+      migrate: (persisted, version) => {
+        if (version === 0) return { ...persisted, founderError: null };
+        return persisted;
+      },
+      partialize: (state) => {
+        const { founderError: _fe, ...rest } = state;
+        return rest;
+      },
+      onRehydrateStorage: () => (state, error) => {
+        if (error) console.error('[founderStore] Persist rehydration error:', error);
+      },
     }
   )
 );

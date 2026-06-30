@@ -50,7 +50,7 @@ export default function ExecutionMode() {
 
       if (mountedRef.current) setCompleted(true);
     } catch (err) {
-      if (mountedRef.current) setError(err.message);
+      if (mountedRef.current) setError('Execution failed. Please try a different task or try again.');
     }
     if (mountedRef.current) setActive(false);
   };

@@ -1,11 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Users, Sparkles, Send, Trash2 } from 'lucide-react';
 import { api } from '../../utils/api';
+import { useFounderStore } from '../../store/founderStore';
+import { useBusinessStore } from '../../store/businessStore';
+import { useTaskStore } from '../../store/taskStore';
+import { useShallow } from 'zustand/react/shallow';
 
 const INITIAL_MSG = { id: 'board-initial', role: 'assistant', name: 'Board', content: 'Present your strategic question to the board and we will debate it from every angle.' };
 const INITIAL_DISCUSSION = [INITIAL_MSG];
 
 export default function AIBoardMeeting() {
+  const { profile, dnaScores } = useFounderStore(
+    useShallow(s => ({ profile: s.profile, dnaScores: s.dnaScores }))
+  );
+  const { blueprint, businessHealth, startupScore, currentStage } = useBusinessStore(
+    useShallow(s => ({ blueprint: s.blueprint, businessHealth: s.businessHealth, startupScore: s.startupScore, currentStage: s.currentStage }))
+  );
+  const { tasks } = useTaskStore();
+
   const [messages, setMessages] = useState(INITIAL_DISCUSSION);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,7 +39,8 @@ export default function AIBoardMeeting() {
     setDebating(true);
     try {
       const history = [...messages, userMsg];
-      const data = await api.boardChat(history);
+      const ctx = { profile, blueprint, businessHealth, startupScore, currentStage, dnaScores, tasks };
+      const data = await api.boardChat(history, ctx);
       for (const resp of data.responses) {
         if (!mountedRef.current) return;
         await new Promise(r => setTimeout(r, 400));
@@ -37,7 +50,7 @@ export default function AIBoardMeeting() {
       }
     } catch (err) {
       if (!mountedRef.current) return;
-      setMessages(prev => [...prev, { id: `err-${Date.now()}`, role: 'assistant', name: 'Board', icon: '⚠️', color: '#ef4444', content: `Error: ${err.message}` }]);
+      setMessages(prev => [...prev, { id: `err-${Date.now()}`, role: 'assistant', name: 'Board', icon: '⚠️', color: '#ef4444', content: 'Sorry, the board encountered an error. Please try again.' }]);
     } finally {
       if (mountedRef.current) {
         setLoading(false);

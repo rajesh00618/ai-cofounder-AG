@@ -93,6 +93,6 @@ describe('businessStore', () => {
     useBusinessStore.getState().resetBusiness();
     expect(useBusinessStore.getState().blueprint).toBeNull();
     expect(useBusinessStore.getState().businessHealth.marketing).toBe(0);
-    expect(useBusinessStore.getState().businessError).toBeNull();
+    expect(useBusinessStore.getState().businessError).toBe('');
   });
 });

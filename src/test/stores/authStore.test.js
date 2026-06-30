@@ -39,13 +39,13 @@ describe('authStore', () => {
     expect(useAuthStore.getState().authError).toBe('Invalid credentials');
   });
 
-  it('logout clears user, token, and non-auth persisted stores', () => {
+  it('logout clears user, token, and non-auth persisted stores', async () => {
     const { setAuth, logout } = useAuthStore.getState();
     setAuth({ id: '1', name: 'Test', email: 'test@test.com' }, 'token-123');
 
     localStorage.setItem('ai-cofounder-chat-storage', JSON.stringify({ state: { messages: ['test'] } }));
 
-    logout();
+    await logout();
 
     const state = useAuthStore.getState();
     expect(state.user).toBeNull();
@@ -57,9 +57,8 @@ describe('authStore', () => {
     const parsed = JSON.parse(persisted);
     expect(parsed.state.user).toBeNull();
     expect(parsed.state.token).toBeNull();
-    // Other stores are fully cleared in-memory; persist may rewrite empty state
-    const chatPersisted = JSON.parse(localStorage.getItem('ai-cofounder-chat-storage'));
-    expect(chatPersisted.state.messages).toEqual([]);
+    // Other stores are fully cleared in-memory and localStorage removed
+    expect(localStorage.getItem('ai-cofounder-chat-storage')).toBeNull();
   });
 
   it('persists initial state to zustand storage', () => {

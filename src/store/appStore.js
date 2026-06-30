@@ -40,6 +40,18 @@ export const useAppStore = create(
     }),
     {
       name: 'ai-cofounder-app-storage',
+      version: 1,
+      migrate: (persisted, version) => {
+        if (version === 0) return { ...persisted, appError: null, notifications: [] };
+        return persisted;
+      },
+      partialize: (state) => {
+        const { appError: _ae, ...rest } = state;
+        return rest;
+      },
+      onRehydrateStorage: () => (state, error) => {
+        if (error) console.error('[appStore] Persist rehydration error:', error);
+      },
     }
   )
 );

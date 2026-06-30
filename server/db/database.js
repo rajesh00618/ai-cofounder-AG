@@ -1,10 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '../services/logger.js';
 
 let client = null;
 let clientUrl = null;
 let clientKey = null;
 
+/**
+ * DEPRECATED: This function is dangerous because Supabase already parameterizes
+ * queries, making manual escaping unnecessary and risk of double-escaping.
+ * Avoid using this function — prefer passing raw values to Supabase.
+ */
 const sanitizeValue = (val) => {
+  logger.warn('[DB] sanitizeValue called — this function is deprecated and should not be used');
   if (typeof val === 'string') {
     return val.replace(/[\0\x08\x09\x1a\n\r"'\\%]/g, (char) => {
       switch (char) {
@@ -71,6 +78,13 @@ export const getQuery = async (table, column, value) => {
 };
 
 const ALLOWED_COLUMNS = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
+export const closeDb = () => {
+  if (client) {
+    try { client.auth.signOut(); } catch {}
+    client = null;
+  }
+};
 
 export const allQuery = async (table, filters = {}, options = {}) => {
   const supabase = getDb();

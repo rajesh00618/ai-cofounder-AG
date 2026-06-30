@@ -3,6 +3,7 @@ import { DollarSign, MessageCircle, BarChart3, ThumbsUp, ThumbsDown, HelpCircle,
 import { api } from '../../utils/api';
 import { useFounderStore } from '../../store/founderStore';
 import { useBusinessStore } from '../../store/businessStore';
+import { useTaskStore } from '../../store/taskStore';
 import { useShallow } from 'zustand/react/shallow';
 
 export default function InvestorMode() {
@@ -10,9 +11,10 @@ export default function InvestorMode() {
     useShallow(s => ({ profile: s.profile, dnaScores: s.dnaScores }))
   );
   const dnaScores = rawDnaScores || {};
-  const { blueprint, businessHealth, startupScore } = useBusinessStore(
-    useShallow(s => ({ blueprint: s.blueprint, businessHealth: s.businessHealth, startupScore: s.startupScore }))
+  const { blueprint, businessHealth, startupScore, currentStage } = useBusinessStore(
+    useShallow(s => ({ blueprint: s.blueprint, businessHealth: s.businessHealth, startupScore: s.startupScore, currentStage: s.currentStage }))
   );
+  const { tasks } = useTaskStore();
 
   const [tab, setTab] = useState('evaluate');
   const [loading, setLoading] = useState(false);
@@ -32,8 +34,10 @@ export default function InvestorMode() {
     blueprint,
     businessHealth,
     startupScore,
+    currentStage,
     profile,
     dnaScores,
+    tasks,
   });
 
   const runEvaluation = async () => {
@@ -44,7 +48,7 @@ export default function InvestorMode() {
       const data = await api.investorEvaluate(buildContext());
       setResult(data);
     } catch (err) {
-      setError(err.message);
+      setError('Failed to run investor evaluation. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -60,7 +64,7 @@ export default function InvestorMode() {
       const data = await api.investorChat(input.trim(), buildContext());
       setMessages(prev => [...prev, { id: `inv-ai-${Date.now()}`, role: 'assistant', content: data.content }]);
     } catch (err) {
-      setMessages(prev => [...prev, { id: `inv-err-${Date.now()}`, role: 'assistant', content: `Error: ${err.message}` }]);
+      setMessages(prev => [...prev, { id: `inv-err-${Date.now()}`, role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
     } finally {
       setChatLoading(false);
     }
@@ -157,7 +161,14 @@ export default function InvestorMode() {
 
               {/* Scores */}
               <div style={styles.scoresGrid}>
-                {result.pitchRating != null && <ScoreDisplay label="Pitch Rating" value={result.pitchRating} />}
+                {result.pitchRating != null && (
+                  typeof result.pitchRating === 'number' || !isNaN(result.pitchRating)
+                    ? <ScoreDisplay label="Pitch Rating" value={result.pitchRating} />
+                    : <div style={styles.scoreRow}>
+                        <span style={styles.scoreLabel}>Pitch Rating</span>
+                        <span style={{...styles.scoreValue, fontSize:'1.25rem'}}>{result.pitchRating}</span>
+                      </div>
+                )}
                 {result.failureProbability != null && <ScoreDisplay label="Failure Probability" value={result.failureProbability} max={100} />}
               </div>
 

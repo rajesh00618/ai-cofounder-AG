@@ -1,6 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
-
-export const generateId = () => uuidv4();
+export const generateId = () => crypto.randomUUID();
 
 export const delay = (ms) => {
   if (typeof ms !== 'number' || ms < 0) return Promise.reject(new Error('delay: ms must be a non-negative number'));

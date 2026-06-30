@@ -4,7 +4,7 @@ const WEEKLY_REVIEW_PROMPT = `You are an AI co-founder conducting a weekly CEO/B
 Analyze the founder's weekly performance, task completion, business health trends, and DNA profile.
 Be honest and direct — celebrate wins but flag concerning patterns.
 
-Return JSON only:
+Return ONLY valid JSON. No markdown, no code fences, no explanations:
 {
   "weekSummary": "2-3 sentence summary of the week",
   "achievements": ["achievement 1", "achievement 2"],

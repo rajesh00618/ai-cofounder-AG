@@ -10,7 +10,7 @@ const MODELS = [
 const createClient = (apiKey, config) => new OpenAI({
   apiKey,
   baseURL: config.baseURL,
-  timeout: 30000,
+  timeout: 15000,
   maxRetries: 0,
 });
 
@@ -19,9 +19,9 @@ const CIRCUIT_BREAKER_THRESHOLD = 3;
 const CIRCUIT_BREAKER_RESET_MS = 60000;
 
 const isModelHealthy = (model) => {
-  const failures = modelFailures.get(model);
-  if (!failures) return true;
-  if (failures.count >= CIRCUIT_BREAKER_THRESHOLD) {
+  const entry = modelFailures.get(model);
+  if (!entry) return true;
+  if (entry.failures >= CIRCUIT_BREAKER_THRESHOLD) {
     if (Date.now() - failures.lastFailure < CIRCUIT_BREAKER_RESET_MS) return false;
     modelFailures.delete(model);
     return true;
@@ -30,21 +30,20 @@ const isModelHealthy = (model) => {
 };
 
 const isServerError = (err) => {
-  if (err?.status && err.status >= 500) return true;
-  if (err?.response?.status && err.response.status >= 500) return true;
-  if (err?.message && (err.message.includes('5xx') || err.message.includes('500') || err.message.includes('service unavailable'))) return true;
+  if (err?.status >= 500) return true;
+  if (err?.response?.status >= 500) return true;
+  if (err?.code === 'ETIMEDOUT' || err?.code === 'ECONNRESET' || err?.code === 'ECONNREFUSED' || err?.code === 'ENOTFOUND') return true;
+  if (err?.message?.includes('5xx') || err?.message?.includes('timeout') || err?.message?.includes('ETIMEDOUT')) return true;
   return false;
 };
 
-const recordModelFailure = (model, err) => {
+const recordModelFailure = (modelName, err) => {
   if (!isServerError(err)) return;
-  const existing = modelFailures.get(model);
-  if (existing) {
-    existing.count++;
-    existing.lastFailure = Date.now();
-  } else {
-    modelFailures.set(model, { count: 1, lastFailure: Date.now() });
-  }
+  const entry = modelFailures.get(modelName) || { failures: 0, lastFailure: 0 };
+  entry.failures++;
+  entry.lastFailure = Date.now();
+  modelFailures.set(modelName, entry);
+  logger.error(`[AI] Model failed: ${modelName} (${entry.failures} failures in window)`);
 };
 
 const resetModelFailures = (model) => {
@@ -89,6 +88,12 @@ const sanitizeUserInput = (input) => {
   // Remove null bytes and control characters (except newlines and tabs)
   // eslint-disable-next-line no-control-regex
   input = input.replace(/[\x00-\x1F\x7F]/g, '');
+
+  // Strip common PII patterns before sending to third-party AI
+  input = input.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, '[EMAIL]');
+  input = input.replace(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g, '[PHONE]');
+  input = input.replace(/\b\d{3}[-]?\d{2}[-]?\d{4}\b/g, '[SSN]');
+  input = input.replace(/\b(?:\d{4}[-\s]?){3}\d{4}\b/g, '[CCARD]');
 
   // Limit length
   input = input.slice(0, MAX_USER_INPUT_LENGTH);
@@ -220,6 +225,7 @@ const tryParse = (str) => {
 };
 
 const fixTruncated = (str) => {
+  logger.warn('[AI] fixTruncated applied to AI response');
   // Fix trailing commas
   let fixed = str.replace(/,(\s*[}\]])/g, '$1');
   // Append missing closing braces/brackets
@@ -241,7 +247,7 @@ export const extractJSON = (text) => {
   if (codeBlocks.length > 0) {
     for (let i = codeBlocks.length - 1; i >= 0; i--) {
       const block = codeBlocks[i][1].trim();
-      const result = tryParse(block) || tryParse(fixTruncated(block));
+      const result = tryParse(block) || (logger.warn('[AI] fixTruncated applied to code block'), tryParse(fixTruncated(block)));
       if (result !== undefined) return result;
     }
   }
@@ -251,6 +257,7 @@ export const extractJSON = (text) => {
   if (result !== undefined) return result;
 
   // Fix truncated JSON and try again
+  logger.warn('[AI] fixTruncated applied to full response');
   result = tryParse(fixTruncated(trimmed));
   if (result !== undefined) return result;
 
@@ -259,6 +266,7 @@ export const extractJSON = (text) => {
   const jsonEnd = trimmed.lastIndexOf('}');
   if (jsonStart !== -1) {
     const candidate = jsonEnd > jsonStart ? trimmed.slice(jsonStart, jsonEnd + 1) : trimmed.slice(jsonStart);
+    logger.warn('[AI] fixTruncated applied to JSON block');
     result = tryParse(candidate) || tryParse(fixTruncated(candidate));
     if (result !== undefined) return result;
   }
@@ -268,11 +276,12 @@ export const extractJSON = (text) => {
   const arrEnd = trimmed.lastIndexOf(']');
   if (arrStart !== -1) {
     const candidate = arrEnd > arrStart ? trimmed.slice(arrStart, arrEnd + 1) : trimmed.slice(arrStart);
+    logger.warn('[AI] fixTruncated applied to array block');
     result = tryParse(candidate) || tryParse(fixTruncated(candidate));
     if (result !== undefined) return result;
   }
 
-  throw new Error('Invalid JSON response from AI');
+  throw new Error(`Invalid JSON response from AI. Response preview: ${text.slice(0, 200)}`);
 };
 
 const sanitizeParsedJSON = (obj) => {
@@ -296,7 +305,17 @@ export const sanitizeForPrompt = (input) => {
  * Prevents injection of script tags, sensitive data leakage, and control characters.
  */
 export const sanitizeOutput = (output) => {
-  if (typeof output !== 'string') return output;
+  if (typeof output !== 'string') {
+    if (output && typeof output === 'object') {
+      if (Array.isArray(output)) return output.map(sanitizeOutput);
+      const sanitized = {};
+      for (const key of Object.keys(output)) {
+        sanitized[key] = sanitizeOutput(output[key]);
+      }
+      return sanitized;
+    }
+    return output;
+  }
   let cleaned = output.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '[blocked]');
   cleaned = cleaned.replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '[blocked]');
   cleaned = cleaned.replace(/on\w+\s*=\s*["'][^"']*["']/gi, '[blocked]');
@@ -346,5 +365,18 @@ Format strictly as JSON:
     { "agent": "CMO AI", "icon": "\uD83D\uDCE2", "color": "#ec4899", "position": "The CMO's stance on growth/brand" },
     { "agent": "CFO AI", "icon": "\uD83D\uDCCA", "color": "#f59e0b", "position": "The CFO's stance on burn/unit economics" }
   ]
-}`
+}`,
+
+  PLAN_GENERATION: `You are a startup execution planner. Generate a complete phased execution plan to achieve the founder's goal within the stated timeframe.
+
+Return ONLY a JSON object with a "phases" array. The response must be valid JSON and nothing else. No markdown, no code fences, no explanations.
+
+TIMEFRAME CONSTRAINT: The goal must be achieved within the stated timeframe. The total duration of ALL phases combined MUST NOT exceed the timeframe. Break the timeframe into realistic phases.
+
+REQUIREMENTS:
+- The "phases" array contains phases that fit within the total timeframe
+- Each phase has "title" (string), "goal" (string), "duration" (string e.g. "1 week", "3 days"), "tasks" (array)
+- Each task has "title" (string), "description" (string), "priority" ("high"/"medium"/"low"), "estimatedTime" (string like "2 hrs"), "difficulty" ("easy"/"medium"/"hard")
+- Each phase has 3-5 tasks
+- Cover the full journey from start to goal completion`
 };

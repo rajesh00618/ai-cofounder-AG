@@ -25,7 +25,7 @@ export default class ErrorBoundary extends React.Component {
           <div style={{ fontSize: '3rem', marginBottom: '1rem' }} role="img" aria-label="warning">⚠️</div>
           <h2 style={{ color: 'var(--color-text-primary)', marginBottom: '0.5rem' }}>Something went wrong</h2>
           <p style={{ marginBottom: '1.5rem', maxWidth: '400px' }}>
-            {this.state.error?.message || 'An unexpected error occurred'}
+            {'An unexpected error occurred. Please try returning to the home page.'}
           </p>
           <button
             className="btn btn-primary"

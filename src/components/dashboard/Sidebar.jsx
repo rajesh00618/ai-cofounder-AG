@@ -3,25 +3,26 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useFounderStore } from '../../store/founderStore';
 import { useAppStore } from '../../store/appStore';
-import { Home, MessageSquare, Briefcase, CheckSquare, Map, Brain, Search, FileText, Users, DollarSign, Zap, Beaker, Dna, CalendarCheck, Award, ChevronLeft, ChevronRight, LogOut, Menu, Route } from 'lucide-react';
+import { Home, MessageSquare, Briefcase, CheckSquare, Map, Brain, Search, FileText, Users, DollarSign, Zap, Beaker, Dna, CalendarCheck, Award, ChevronLeft, ChevronRight, LogOut, Menu, Route, Settings } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { id: 'home', label: 'Command Center', icon: Home },
-  { id: 'workspace', label: 'AI Co-Founder', icon: MessageSquare },
-  { id: 'business', label: 'Business Blueprint', icon: Briefcase },
-  { id: 'tasks', label: 'Task Engine', icon: CheckSquare },
-  { id: 'plan', label: 'Full Plan', icon: Route },
-  { id: 'roadmap', label: 'Roadmap', icon: Map },
-  { id: 'memory', label: 'Memory Graph', icon: Brain },
-  { id: 'founder', label: 'Founder DNA', icon: Dna },
-  { id: 'research', label: 'Research', icon: Search },
-  { id: 'documents', label: 'Documents', icon: FileText },
-  { id: 'board', label: 'AI Board', icon: Users },
-  { id: 'investor', label: 'Investor Mode', icon: DollarSign },
-  { id: 'build', label: 'Build Mode', icon: Zap },
-  { id: 'simulator', label: 'Simulator', icon: Beaker },
-  { id: 'review', label: 'Daily Review', icon: CalendarCheck },
-  { id: 'weekly-review', label: 'Weekly Review', icon: Award },
+  { id: 'home', label: 'Command Center', icon: Home, title: 'Your startup command center' },
+  { id: 'workspace', label: 'AI Co-Founder', icon: MessageSquare, title: 'Chat with your AI CEO' },
+  { id: 'business', label: 'Business Blueprint', icon: Briefcase, title: 'Your complete business plan' },
+  { id: 'tasks', label: 'Task Engine', icon: CheckSquare, title: 'Manage your tasks and sprints' },
+  { id: 'plan', label: 'Full Plan', icon: Route, title: 'Full execution plan overview' },
+  { id: 'roadmap', label: 'Roadmap', icon: Map, title: 'Product and business roadmap' },
+  { id: 'memory', label: 'Memory Graph', icon: Brain, title: 'Visual map of your startup knowledge' },
+  { id: 'founder', label: 'Founder DNA', icon: Dna, title: 'Your founder personality profile' },
+  { id: 'research', label: 'Research', icon: Search, title: 'Market research and competitive analysis' },
+  { id: 'documents', label: 'Documents', icon: FileText, title: 'Business documents and reports' },
+  { id: 'board', label: 'AI Board', icon: Users, title: 'Debate decisions with your executive team' },
+  { id: 'investor', label: 'Investor Mode', icon: DollarSign, title: 'Get a VC\'s perspective on your startup' },
+  { id: 'build', label: 'Build Mode', icon: Zap, title: 'AI generates code and executes tasks' },
+  { id: 'simulator', label: 'Simulator', icon: Beaker, title: 'Test pricing, positioning, and decisions' },
+  { id: 'review', label: 'Daily Review', icon: CalendarCheck, title: 'Daily standup and progress review' },
+  { id: 'weekly-review', label: 'Weekly Review', icon: Award, title: 'Weekly retrospective and planning' },
+  { id: 'settings', label: 'Settings', icon: Settings, title: 'Account settings and API key' },
 ];
 
 export default function Sidebar({ activeView, onNavigate }) {
@@ -32,6 +33,7 @@ export default function Sidebar({ activeView, onNavigate }) {
   const [isMobile, setIsMobile] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Note: duplicate resize listener also in DashboardPage.jsx — kept for separation of concerns
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
@@ -107,7 +109,7 @@ export default function Sidebar({ activeView, onNavigate }) {
                   position: 'relative',
                   overflow: 'hidden',
                 }}
-                title={collapsed ? item.label : undefined}
+                title={item.title}
               >
                 {isActive && (
                   <div style={{

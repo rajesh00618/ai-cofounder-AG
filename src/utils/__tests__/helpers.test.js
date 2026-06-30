@@ -1,13 +1,13 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeAll } from 'vitest';
 
-vi.mock('uuid', () => ({
-  v4: () => 'fixed-uuid-abc',
-}));
+beforeAll(() => {
+  vi.spyOn(crypto, 'randomUUID').mockReturnValue('fixed-uuid-abc');
+});
 
 import { generateId, formatDate, formatTime, clamp, randomBetween, truncateText, calculateOverallScore, getScoreColor, getScoreLabel, getGreeting } from '../helpers.js';
 
 describe('generateId', () => {
-  it('returns a string from uuid', () => {
+  it('returns a string from crypto.randomUUID', () => {
     const id = generateId();
     expect(typeof id).toBe('string');
     expect(id).toBe('fixed-uuid-abc');

@@ -107,8 +107,8 @@ After goal setting, the AI automatically generates a 15-section Business Bluepri
 ## 6. Dashboard (`/dashboard`)
 
 ### Sidebar Navigation
-- 15 views: Command Center, AI Co-Founder, Business Blueprint, Task Engine, Roadmap, Memory Graph, Founder DNA, Research, Documents, AI Board, Investor Mode, Build Mode, Simulator, Daily Review, Weekly Review, Settings
-- Collapsible sidebar (toggle with `<`/`>` icon)
+- 17 views: Command Center, AI Co-Founder, Business Blueprint, Full Plan, Task Engine, Roadmap, Memory Graph, Founder DNA, Research, Documents, AI Board, Investor Mode, Build Mode, Simulator, Daily Review, Weekly Review, Settings
+- Collapsible sidebar (toggle with `<`/`>` icon) — all items have tooltip titles
 - User avatar + name at bottom
 
 ### Command Center (default view)
@@ -154,6 +154,6 @@ Landing Page → Auth → Onboarding → Goal → (Blueprint auto-generated) →
 | File | Purpose |
 |---|---|
 | `README.md` | Project overview, quick start, tech stack, configuration |
-| `FEATURES.md` | Detailed description of all 18 feature areas |
-| `REPORT.md` | Architecture, security, testing, deployment, metrics |
+| `features.md` | Detailed description of all 18 feature areas |
+| `report.md` | Architecture, security, testing, deployment, metrics |
 | `WORKFLOW.md` | Step-by-step user flow through the application |

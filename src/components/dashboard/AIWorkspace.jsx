@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, Fragment } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useFounderStore } from '../../store/founderStore';
 import { useChatStore } from '../../store/chatStore';
 import { useBusinessStore } from '../../store/businessStore';
@@ -30,19 +31,63 @@ function ThinkBubble({ steps, current }) {
 }
 const tb = { wrap:{padding:'0.75rem 1rem',background:'rgba(99,102,241,0.05)',borderRadius:'10px',display:'flex',flexDirection:'column',gap:'0.375rem',marginBottom:'0.5rem'}, step:{display:'flex',alignItems:'center',gap:'0.375rem',fontSize:'0.75rem',transition:'all 0.3s'} };
 
+const ChatMessage = React.memo(function ChatMessage({ msg, profile }) {
+  return (
+    <div style={{...styles.message, ...(msg.role === 'user' ? styles.userMsg : styles.aiMsg)}}>
+      <div style={styles.msgAvatar}>
+        {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
+      </div>
+      <div style={styles.msgContent}>
+        <div style={styles.msgHeader}>
+          <span style={{fontWeight:600,fontSize:'0.8125rem'}}>{msg.role === 'user' ? profile?.name : 'AI Co-Founder'}</span>
+          <span style={{fontSize:'0.6875rem',color:'var(--color-text-muted)'}}>
+            {new Date(msg.timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}
+          </span>
+        </div>
+        <div style={styles.msgText}>{msg.content.split('\n').map((line, lineIdx) => {
+          if (line.startsWith('**') && line.endsWith('**')) return <strong key={`bold-${lineIdx}`} style={{display:'block',marginTop:'0.5rem'}}>{line.replace(/\*\*/g,'')}</strong>;
+          if (line.startsWith('**')) {
+            const parts = line.split('**');
+            return <p key={`pbold-${lineIdx}`} style={{margin:'0.25rem 0'}}>{parts.map((p, j) => j%2===1 ? <strong key={`seg-${lineIdx}-${j}`}>{p}</strong> : <Fragment key={`sg-${lineIdx}-${j}`}>{p}</Fragment>)}</p>;
+          }
+          if (line.match(/^\d\./)) return <p key={`enum-${lineIdx}`} style={{margin:'0.25rem 0',paddingLeft:'0.5rem'}}>{line}</p>;
+          if (line.startsWith('⚠️') || line.startsWith('🎯') || line.startsWith('📊') || line.startsWith('📋') || line.startsWith('🏗️') || line.startsWith('🧠') || line.startsWith('👥') || line.startsWith('💡')) return <p key={`icon-${lineIdx}`} style={{margin:'0.25rem 0'}}>{line}</p>;
+          return line ? <p key={`text-${lineIdx}`} style={{margin:'0.25rem 0'}}>{line}</p> : <br key={`br-${lineIdx}`} />;
+        })}</div>
+        {msg.confidence && (
+          <div style={styles.confidenceBar}>
+            <span style={{fontSize:'0.6875rem',fontWeight:600,color:getScoreColor(msg.confidence)}}>Confidence: {msg.confidence}%</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
 export default function AIWorkspace() {
-  const { profile } = useFounderStore();
-  const { messages, addMessage, updateMessage, isThinking, setThinking, setConfidence } = useChatStore();
-  const { blueprint } = useBusinessStore();
-  const { tasks } = useTaskStore();
+  const { profile, dnaScores } = useFounderStore(useShallow(s => ({ profile: s.profile, dnaScores: s.dnaScores })));
+  const { messages, addMessage, updateMessage, isThinking, setThinking, setConfidence } = useChatStore(useShallow(s => ({
+    messages: s.messages, addMessage: s.addMessage, updateMessage: s.updateMessage,
+    isThinking: s.isThinking, setThinking: s.setThinking, setConfidence: s.setConfidence,
+  })));
+  const { blueprint, businessHealth, startupScore, currentStage } = useBusinessStore(useShallow(s => ({
+    blueprint: s.blueprint, businessHealth: s.businessHealth, startupScore: s.startupScore, currentStage: s.currentStage,
+  })));
+  const { tasks } = useTaskStore(useShallow(s => ({ tasks: s.tasks })));
   const [input, setInput] = useState('');
+  const [emptyInputShake, setEmptyInputShake] = useState(false);
   const [activePanel, setActivePanel] = useState('business');
   const [thinkSteps, setThinkSteps] = useState([]);
   const [thinkCurrent, setThinkCurrent] = useState(0);
   const chatEndRef = useRef(null);
   const abortRef = useRef(null);
+  const tokenBufferRef = useRef('');
+  const flushTimerRef = useRef(null);
 
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior:'smooth' }); }, [messages, isThinking]);
+  useEffect(() => {
+    const id = setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior:'smooth' }), 100);
+    return () => clearTimeout(id);
+  }, [messages.length, isThinking]);
 
   useEffect(() => {
     return () => { abortRef.current?.(); };
@@ -62,7 +107,11 @@ export default function AIWorkspace() {
     const context = {
       profile,
       blueprint,
-      tasks: tasks.filter(t => t.status !== 'done')
+      businessHealth,
+      startupScore,
+      currentStage,
+      dnaScores,
+      tasks,
     };
 
     const msgId = `stream-${Date.now()}`;
@@ -70,7 +119,13 @@ export default function AIWorkspace() {
 
     abortRef.current = api.chatStream(userMsg, context,
       (token, fullText) => {
-        updateMessage(msgId, { content: fullText });
+        tokenBufferRef.current = fullText;
+        if (!flushTimerRef.current) {
+          flushTimerRef.current = requestAnimationFrame(() => {
+            updateMessage(msgId, { content: tokenBufferRef.current });
+            flushTimerRef.current = null;
+          });
+        }
       },
       (fullText) => {
         updateMessage(msgId, { content: fullText, confidence: 92 });
@@ -81,18 +136,22 @@ export default function AIWorkspace() {
         setThinking(false);
         const isNetwork = error === 'Failed to fetch' || error?.includes('NetworkError') || error?.includes('network');
         const msg = isNetwork
-          ? '⚠️ Cannot reach the server. Please check that your server is running and try again.'
-          : `⚠️ Error: ${error}`;
+          ? '⚠️ Cannot connect. Please check your internet connection and try again.'
+          : '⚠️ Something went wrong. Please try again.';
         addMessage({ role: 'assistant', content: msg, agent: 'ceo' });
       }
     );
   };
 
-  const handleSend = () => {
-    if (!input.trim() || isThinking) return;
+  const handleSend = (text) => {
+    const msg = (text || input).trim();
+    if (!msg || isThinking) {
+      setEmptyInputShake(true);
+      setTimeout(() => setEmptyInputShake(false), 300);
+      return;
+    }
     abortRef.current?.();
-    addMessage({ role: 'user', content: input.trim() });
-    const msg = input.trim();
+    addMessage({ role: 'user', content: msg });
     setInput('');
     generateResponse(msg);
   };
@@ -117,7 +176,7 @@ export default function AIWorkspace() {
               </p>
               <div style={styles.quickActions}>
                 {['What should I do next?','Analyze my competitors','Help me with pricing','Review my strategy'].map(q => (
-                  <button key={`qa-${q}`} style={styles.quickBtn} onClick={() => { setInput(q); }}>
+                  <button key={`qa-${q}`} style={styles.quickBtn} onClick={() => { setInput(q); setTimeout(() => handleSend(q), 50); }}>
                     {q}
                   </button>
                 ))}
@@ -126,34 +185,7 @@ export default function AIWorkspace() {
           )}
 
           {messages.map(msg => (
-            <div key={msg.id} style={{...styles.message, ...(msg.role === 'user' ? styles.userMsg : styles.aiMsg)}}>
-              <div style={styles.msgAvatar}>
-                {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
-              </div>
-              <div style={styles.msgContent}>
-                <div style={styles.msgHeader}>
-                  <span style={{fontWeight:600,fontSize:'0.8125rem'}}>{msg.role === 'user' ? profile?.name : 'AI Co-Founder'}</span>
-                  <span style={{fontSize:'0.6875rem',color:'var(--color-text-muted)'}}>
-                    {new Date(msg.timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}
-                  </span>
-                </div>
-                <div style={styles.msgText}>{msg.content.split('\n').map((line) => {
-                  if (line.startsWith('**') && line.endsWith('**')) return <strong key={`bold-${line}`} style={{display:'block',marginTop:'0.5rem'}}>{line.replace(/\*\*/g,'')}</strong>;
-                  if (line.startsWith('**')) {
-                    const parts = line.split('**');
-                    return <p key={`pbold-${line.slice(0,20)}`} style={{margin:'0.25rem 0'}}>{parts.map((p, j) => j%2===1 ? <strong key={`seg-${p.slice(0,5)}`}>{p}</strong> : <Fragment key={`sg-${p.slice(0,5)}`}>{p}</Fragment>)}</p>;
-                  }
-                  if (line.match(/^\d\./)) return <p key={`enum-${line}`} style={{margin:'0.25rem 0',paddingLeft:'0.5rem'}}>{line}</p>;
-                  if (line.startsWith('⚠️') || line.startsWith('🎯') || line.startsWith('📊') || line.startsWith('📋') || line.startsWith('🏗️') || line.startsWith('🧠') || line.startsWith('👥') || line.startsWith('💡')) return <p key={`icon-${line.slice(0,30)}`} style={{margin:'0.25rem 0'}}>{line}</p>;
-                  return line ? <p key={`text-${line.slice(0,20)}`} style={{margin:'0.25rem 0'}}>{line}</p> : <br key={`br-${Math.random()}`} />;
-                })}</div>
-                {msg.confidence && (
-                  <div style={styles.confidenceBar}>
-                    <span style={{fontSize:'0.6875rem',fontWeight:600,color:getScoreColor(msg.confidence)}}>Confidence: {msg.confidence}%</span>
-                  </div>
-                )}
-              </div>
-            </div>
+            <ChatMessage key={msg.id} msg={msg} profile={profile} />
           ))}
 
           {isThinking && (
@@ -167,7 +199,7 @@ export default function AIWorkspace() {
           <div ref={chatEndRef} />
         </div>
 
-        <div style={styles.chatInput}>
+        <div style={{...styles.chatInput, ...(emptyInputShake ? {animation: 'shake 0.3s'} : {})}}>
           <input
             type="text"
             placeholder="Ask your AI Co-Founder..."
@@ -177,7 +209,7 @@ export default function AIWorkspace() {
             style={styles.input}
             disabled={isThinking}
           />
-          <button className="btn btn-primary" onClick={handleSend} disabled={!input.trim() || isThinking} aria-label="Send message">
+          <button className="btn btn-primary" onClick={() => handleSend()} disabled={!input.trim() || isThinking} aria-label="Send message">
             <Send size={16} />
           </button>
         </div>
@@ -230,7 +262,9 @@ export default function AIWorkspace() {
           {activePanel === 'research' && (
             <div className="page-enter">
               <h4 style={styles.panelHeader}>Research Findings</h4>
-              <p style={{fontSize:'0.875rem',color:'var(--color-text-muted)',textAlign:'center',padding:'2rem 0'}}>Research data will appear here after you start using the dashboard</p>
+              <p style={{fontSize:'0.875rem',color:'var(--color-text-muted)',textAlign:'center',padding:'2rem 0'}}>
+                Research is not yet integrated into the dashboard. Use the Research page from the sidebar to conduct market research.
+              </p>
             </div>
           )}
 

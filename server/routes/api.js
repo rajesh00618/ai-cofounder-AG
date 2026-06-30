@@ -6,8 +6,8 @@ import { negotiateGoal } from '../engines/negotiation.js';
 import { runDecisionSimulation, runCompanySimulation, simulateCustomerReaction } from '../engines/simulation.js';
 import { getResearch, getOpportunities, getMorningBriefing } from '../engines/research.js';
 import { addMemoryNode, getMemoryNodes, getMemoryTimeline, addMemoryEdge, getMemoryGraph } from '../engines/memory.js';
-import { generateExecutionPlan, executeStep } from '../engines/execution.js';
-import { generateBlueprint, generateBlueprintTasks, generateScores } from '../engines/business.js';
+import { generateExecutionPlan, executeStep, generateFullPlan } from '../engines/execution.js';
+import { generateBlueprint, generateBlueprintTasks, generateScores, recalculateScores } from '../engines/business.js';
 import { generateDocument } from '../engines/documents.js';
 import { generateRoadmap, generateStageGuidance } from '../engines/roadmap.js';
 import { analyzeDNA, generateAdaptations } from '../engines/dna.js';
@@ -30,17 +30,27 @@ const router = express.Router();
  * This prevents unauthenticated users from consuming the server's AI quota.
  */
 const requireApiKey = (req, res, next) => {
-  const allowFallback = process.env.ALLOW_SERVER_KEY_FALLBACK === 'true';
-  const cachedKey = req.userId ? getApiKey(req.userId) : null;
-  const apiKey = cachedKey || req.headers['x-api-key'] || (allowFallback ? process.env.NVIDIA_API_KEY : null);
-  if (!apiKey) {
-    return res.status(401).json({ error: 'API key is required.' });
+  try {
+    const allowFallback = process.env.ALLOW_SERVER_KEY_FALLBACK === 'true';
+    const cachedKey = req.userId ? getApiKey(req.userId) : null;
+    const apiKey = cachedKey || req.headers['x-api-key'] || (allowFallback ? process.env.NVIDIA_API_KEY : null);
+    if (!apiKey) {
+      return res.status(401).json({ error: 'API key required. Set a valid API key in Settings.' });
+    }
+    req.apiKey = apiKey;
+    next();
+  } catch (error) {
+    res.status(500).json({ error: 'Authentication error' });
   }
-  req.apiKey = apiKey;
-  next();
 };
 
-const pick = (body, ...keys) => { for (const k of keys) { if (body[k] !== undefined && body[k] !== null) return body[k]; } return undefined; };
+const pick = (body, ...keys) => {
+  if (!body || typeof body !== 'object') return undefined;
+  for (const k of keys) {
+    if (body[k] !== undefined && body[k] !== null) return body[k];
+  }
+  return undefined;
+};
 
 const PROTOTYPE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
@@ -106,10 +116,9 @@ router.post('/chat/stream', requireApiKey, requireBody('message'), async (req, r
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
 
-    const full = await callOpenAIStream(req.apiKey, PROMPTS.CEO, prompt, (token, fullText) => {
+    const full = await callOpenAIStream(req.apiKey, PROMPTS.CEO, prompt, (token) => {
       const safeToken = sanitizeOutput(token);
-      const safeFull = sanitizeOutput(fullText);
-      res.write(`data: ${JSON.stringify({ token: safeToken, fullText: safeFull })}\n\n`);
+      res.write(`data: ${JSON.stringify({ token: safeToken })}\n\n`);
     }, 0.7, 4096, abortController.signal);
 
     if (!res.writableEnded) {
@@ -175,8 +184,8 @@ router.post('/engines/negotiate', requireApiKey, requireBody('goal'), async (req
 
 router.post('/simulate/decision', requireApiKey, requireBody('question'), async (req, res) => {
   try {
-    const { question } = req.body;
-    const result = await runDecisionSimulation(req.apiKey, question);
+    const { question, context } = req.body;
+    const result = await runDecisionSimulation(req.apiKey, question, context);
     res.json(result);
   } catch (error) {
     sendError(res, error);
@@ -185,8 +194,8 @@ router.post('/simulate/decision', requireApiKey, requireBody('question'), async 
 
 router.post('/simulate/company', requireApiKey, requireBody('question'), async (req, res) => {
   try {
-    const { question } = req.body;
-    const result = await runCompanySimulation(req.apiKey, question);
+    const { question, context } = req.body;
+    const result = await runCompanySimulation(req.apiKey, question, context);
     res.json(result);
   } catch (error) {
     sendError(res, error);
@@ -195,8 +204,8 @@ router.post('/simulate/company', requireApiKey, requireBody('question'), async (
 
 router.post('/simulate/customer', requireApiKey, requireBody('product'), async (req, res) => {
   try {
-    const { product, persona } = req.body;
-    const result = await simulateCustomerReaction(req.apiKey, product, persona || 'customer');
+    const { product, persona, context } = req.body;
+    const result = await simulateCustomerReaction(req.apiKey, product, persona || 'customer', context);
     res.json(result);
   } catch (error) {
     sendError(res, error);
@@ -220,12 +229,13 @@ router.post('/board', requireApiKey, requireBody('question'), async (req, res) =
 
 router.post('/board/chat', requireApiKey, requireBody('messages'), async (req, res) => {
   try {
-    const { messages } = req.body;
+    const { messages, context } = req.body;
+    const ctxStr = context ? `\n\nBusiness Context:\n${sanitizeForPrompt(JSON.stringify(context, null, 2).slice(0, 3000))}` : '';
     const formatted = messages.map(m => {
       const safeContent = typeof m.content === 'string' ? sanitizeForPrompt(m.content.slice(0, 5000)) : '';
       return `${m.role === 'user' ? 'Founder' : m.name || 'Board'}: ${safeContent}`;
     }).join('\n\n');
-    const prompt = `Here is the board discussion so far:\n\n${formatted}\n\nBoard members, continue the debate responding to the latest points raised.`;
+    const prompt = `Here is the board discussion so far:${ctxStr}\n\n${formatted}\n\nBoard members, continue the debate responding to the latest points raised.`;
     const response = await callOpenAI(req.apiKey, PROMPTS.BOARD_MEETING, prompt, 0.8);
     const parsed = extractJSON(response);
     if (!parsed || !parsed.responses || !Array.isArray(parsed.responses)) {
@@ -501,9 +511,13 @@ router.post('/business/blueprint', requireJwt, requireApiKey, requireBody('answe
 });
 
 router.get('/business/blueprint', requireJwt, requireApiKey, async (req, res) => {
-  const cached = getCachedBlueprint(req.userId);
-  if (cached) return res.json(cached);
-  res.status(404).json({ error: 'No blueprint found for this user' });
+  try {
+    const cached = getCachedBlueprint(req.userId);
+    if (cached) return res.json(cached);
+    res.status(404).json({ error: 'No blueprint found for this user' });
+  } catch (error) {
+    sendError(res, error);
+  }
 });
 
 router.post('/business/blueprint/tasks', requireJwt, requireApiKey, requireBody('answers'), async (req, res) => {
@@ -526,7 +540,29 @@ router.post('/business/blueprint/scores', requireJwt, requireApiKey, requireBody
   }
 });
 
+router.post('/business/scores/recalculate', requireJwt, requireApiKey, async (req, res) => {
+  try {
+    const { answers, blueprint, profile, tasks, currentStage } = req.body;
+    const scores = await recalculateScores(req.apiKey, answers, blueprint, profile, tasks, currentStage);
+    res.json(scores);
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
 // --- EXECUTION ---
+router.post('/execution/full-plan', requireApiKey, requireBody('context'), async (req, res) => {
+  try {
+    const body = req.body || {};
+    const context = body.context || {};
+    const blueprint = body.blueprint || {};
+    const plan = await generateFullPlan(req.apiKey, context, blueprint);
+    res.json(plan);
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
 router.post('/execution/plan', requireApiKey, requireBody('task'), async (req, res) => {
   try {
     const { task } = req.body;
@@ -583,14 +619,8 @@ router.post('/review/weekly', requireApiKey, async (req, res) => {
   }
 });
 
-// --- FAILURE PREDICTION ---
-router.post('/failure/prediction', requireApiKey, async (req, res) => {
-  try {
-    const context = sanitizeContext(req.body || {});
-    const prompt = `Business context: ${JSON.stringify(context)}`;
-
-    const systemPrompt = `You are a startup failure prediction engine. Analyze the provided business context and predict failure probability and key risks.
-Respond ONLY in JSON format:
+const FAILURE_PREDICTION_SYSTEM_PROMPT = `You are a startup failure prediction engine. Analyze the provided business context and predict failure probability and key risks.
+Respond ONLY in JSON format. No markdown, no code fences, no explanations.
 {
   "failureProbability": <number 0-100>,
   "topRisks": [
@@ -599,7 +629,13 @@ Respond ONLY in JSON format:
   "recommendation": "A 1-2 sentence actionable recommendation"
 }`;
 
-    const response = await callOpenAI(req.apiKey, systemPrompt, prompt, 0.7);
+// --- FAILURE PREDICTION ---
+router.post('/failure/prediction', requireApiKey, async (req, res) => {
+  try {
+    const context = sanitizeContext(req.body || {});
+    const prompt = `Business context: ${JSON.stringify(context)}`;
+
+    const response = await callOpenAI(req.apiKey, FAILURE_PREDICTION_SYSTEM_PROMPT, prompt, 0.7);
     const parsed = extractJSON(response);
     // Validate structure
     if (typeof parsed?.failureProbability !== 'number') {

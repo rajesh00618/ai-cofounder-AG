@@ -63,7 +63,7 @@ export default function AuthPage() {
         navigate(existingProfile ? '/dashboard' : '/onboarding');
       }
     } catch (err) {
-      setError(err.message);
+      setError('Something went wrong. Please check your credentials and try again.');
       setTimeout(() => setError(''), 4000);
     } finally {
       setLoading(false);

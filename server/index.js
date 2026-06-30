@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import 'dotenv/config';
 import { initDb } from './db/schema.js';
-import { getDb } from './db/database.js';
+import { getDb, closeDb } from './db/database.js';
 import apiRoutes from './routes/api.js';
 import authRoutes from './routes/auth.js';
 import { logger, requestLogger } from './services/logger.js';
@@ -16,12 +16,24 @@ import { createServer } from 'http';
 
 const validateEnv = () => {
   const required = ['JWT_SECRET', 'NVIDIA_API_KEY'];
-  const missing = required.filter(key => !process.env[key]);
+  const missing = required.filter(k => !process.env[k]);
   if (missing.length > 0) {
-    logger.error(`Missing required environment variables: ${missing.join(', ')}`);
+    logger.error(`Missing required env vars: ${missing.join(', ')}`);
     process.exit(1);
   }
-  if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
+
+  // Validate FRONTEND_URL for production
+  if (!process.env.FRONTEND_URL) {
+    logger.warn('FRONTEND_URL not set. CORS will default to http://localhost:5173. Set this in production.');
+  }
+
+  // Warn about optional Supabase
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+    logger.warn('Supabase credentials not configured. Database features will be unavailable.');
+  }
+
+  // Validate JWT_SECRET length
+  if (process.env.JWT_SECRET.length < 32) {
     logger.error('JWT_SECRET must be at least 32 characters');
     process.exit(1);
   }
@@ -63,14 +75,7 @@ app.use(express.json({ limit: '1mb' }));
 // Request Logging
 app.use(requestLogger);
 
-// Rate Limiters
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many requests' },
-});
+// Rate Limiters — specific limiters first, global last
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
@@ -85,10 +90,17 @@ const streamLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many stream requests' },
 });
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests' },
+});
 
-app.use(limiter);
 app.use('/api/auth', authLimiter);
 app.use('/api/chat/stream', streamLimiter);
+app.use('/api', globalLimiter);
 
 // Global request timeout — prevents long-running requests from hanging
 const REQUEST_TIMEOUT_MS = parseInt(process.env.REQUEST_TIMEOUT_MS, 10) || 120000;
@@ -112,7 +124,7 @@ app.post('/api/reminders/register', requireJwt, (req, res) => {
   if (!/^\+\d{7,15}$/.test(phone)) return res.status(400).json({ error: 'Invalid phone number format. Use +CountryCode (e.g., +1234567890).' });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Invalid email format.' });
   registerWhatsAppPhone(email, phone);
-  logger.info(`Registered ${email} -> ${phone} for WhatsApp reminders`);
+  logger.info(`Registered ${email.replace(/./g, '*')} -> ${phone.slice(0, 3)}**** for WhatsApp reminders`);
   res.json({ message: 'Phone registered for reminders' });
 });
 
@@ -164,6 +176,14 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
 
+// 413 handler — payload too large
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Request body too large' });
+  }
+  next(err);
+});
+
 // Global error handler — must be registered last. Sanitizes errors before
 // sending to the client (see services/errors.js).
 app.use(globalErrorHandler);
@@ -184,11 +204,22 @@ initDb().then(startServer).catch(err => {
   startServer();
 });
 
+// Unhandled rejection/exception handlers
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error(`[Process] Unhandled Rejection at: ${promise}`, reason);
+});
+
+process.on('uncaughtException', (err) => {
+  logger.error('[Process] Uncaught Exception:', err);
+  gracefulShutdown('UNCAUGHT_EXCEPTION');
+});
+
 // Graceful shutdown
 const gracefulShutdown = (signal) => {
   logger.info(`[Server] Received ${signal}, shutting down gracefully...`);
   stopBackgroundResearch();
   stopReminderScheduler();
+  closeDb();
   server.close(() => {
     logger.info('[Server] HTTP server closed');
     process.exit(0);

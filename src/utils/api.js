@@ -1,19 +1,22 @@
+import { useAppStore } from '../store/appStore';
+import { useAuthStore } from '../store/authStore';
+
 export const API_BASE = '/api';
 
 const getApiKey = () => {
   try {
-    const stored = JSON.parse(localStorage.getItem('ai-cofounder-app-storage'));
-    if (stored && stored.state && stored.state.apiKey) return stored.state.apiKey;
-  } catch {}
-  return null;
+    return useAppStore.getState().apiKey || '';
+  } catch {
+    return '';
+  }
 };
 
 const getToken = () => {
   try {
-    const stored = JSON.parse(localStorage.getItem('ai-cofounder-auth-storage'));
-    if (stored && stored.state && stored.state.token) return stored.state.token;
-  } catch {}
-  return null;
+    return useAuthStore.getState().token || '';
+  } catch {
+    return '';
+  }
 };
 
 const getHeaders = () => {
@@ -28,19 +31,31 @@ const getHeaders = () => {
 const API_TIMEOUT = 60000;
 const STREAM_TIMEOUT = 60000;
 
+const fetchWithRetry = async (url, options, retries = 2) => {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const res = await fetch(url, options);
+      return res;
+    } catch (err) {
+      if (i === retries) throw err;
+      if (err.name === 'AbortError') throw err;
+      await new Promise(r => setTimeout(r, Math.pow(2, i) * 500));
+    }
+  }
+};
+
 const apiPost = async (path, body) => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
   try {
     let serializedBody;
     try { serializedBody = JSON.stringify(body); } catch {
       throw new Error('Failed to serialize request data');
     }
-    const res = await fetch(`${API_BASE}${path}`, {
+    const headers = getHeaders();
+    const res = await fetchWithRetry(`${API_BASE}${path}`, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: { ...headers, 'Content-Type': 'application/json' },
       body: serializedBody,
-      signal: controller.signal,
+      signal: AbortSignal.timeout(API_TIMEOUT),
     });
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({ error: 'Request failed' }));
@@ -58,18 +73,16 @@ const apiPost = async (path, body) => {
       throw new Error('Request timed out. Please check your connection and try again.');
     }
     throw err;
-  } finally {
-    clearTimeout(timeoutId);
   }
 };
 
 const apiGet = async (path) => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
   try {
-    const res = await fetch(`${API_BASE}${path}`, {
-      headers: getHeaders(),
-      signal: controller.signal,
+    const headers = getHeaders();
+    const res = await fetchWithRetry(`${API_BASE}${path}`, {
+      method: 'GET',
+      headers,
+      signal: AbortSignal.timeout(API_TIMEOUT),
     });
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({ error: 'Request failed' }));
@@ -87,8 +100,6 @@ const apiGet = async (path) => {
       throw new Error('Request timed out. Please check your connection and try again.');
     }
     throw err;
-  } finally {
-    clearTimeout(timeoutId);
   }
 };
 
@@ -120,6 +131,7 @@ export const api = {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let lineBuffer = '';
       let streamDone = false;
       let accumulatedText = '';
 
@@ -130,9 +142,15 @@ export const api = {
           break;
         }
         buffer += decoder.decode(value, { stream: true });
+        const fullBuffer = buffer;
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
-        for (const line of lines) {
+        for (let i = 0; i < lines.length; i++) {
+          let line = lines[i];
+          if (i === 0 && lineBuffer) {
+            line = lineBuffer + line;
+            lineBuffer = '';
+          }
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
@@ -149,15 +167,21 @@ export const api = {
               }
               accumulatedText = data.fullText || accumulatedText + data.token;
               onToken?.(data.token, data.fullText);
-            } catch (e) {
-              console.warn('chatStream: failed to parse SSE data line', line.slice(6), e);
+            } catch {
+              if (i === lines.length - 1 && !fullBuffer.endsWith('\n')) {
+                lineBuffer = line;
+              }
             }
           }
         }
       }
     }).catch(err => {
       clearTimeout(timeoutId);
-      if (err.name !== 'AbortError') onError?.(err.message);
+      if (err.name === 'AbortError') {
+        onError?.('Request timed out. Please check your connection and try again.');
+      } else {
+        onError?.(err.message);
+      }
     });
 
     return () => {
@@ -172,10 +196,10 @@ export const api = {
   evaluateGoal: (goal) => apiPost('/engines/reality', { goal }),
   negotiateGoal: (goal) => apiPost('/engines/negotiate', { goal }),
   boardMeeting: (question) => apiPost('/board', { question }),
-  boardChat: (messages) => apiPost('/board/chat', { messages }),
-  simulateDecision: (question) => apiPost('/simulate/decision', { question }),
-  simulateCompany: (question) => apiPost('/simulate/company', { question }),
-  simulateCustomer: (product, persona) => apiPost('/simulate/customer', { product, persona }),
+  boardChat: (messages, context) => apiPost('/board/chat', { messages, context }),
+  simulateDecision: (question, context) => apiPost('/simulate/decision', { question, context }),
+  simulateCompany: (question, context) => apiPost('/simulate/company', { question, context }),
+  simulateCustomer: (product, persona, context) => apiPost('/simulate/customer', { product, persona, context }),
   getResearch: (context = {}, filter = 'all') => apiPost('/research', { ...context, filter }),
   getOpportunities: (context = {}) => apiPost('/research/opportunities', { ...context }),
   getMorningBriefing: (context = {}) => apiPost('/research/briefing', { ...context }),
@@ -200,58 +224,22 @@ export const api = {
   getBusinessBlueprint: () => apiGet('/business/blueprint'),
   generateBlueprintTasks: (answers, blueprint) => apiPost('/business/blueprint/tasks', { answers, blueprint }),
   generateBlueprintScores: (answers, blueprint, profile) => apiPost('/business/blueprint/scores', { answers, blueprint, profile }),
+  recalculateScores: (answers, blueprint, profile, tasks, currentStage) => apiPost('/business/scores/recalculate', { answers, blueprint, profile, tasks, currentStage }),
   generateFullPlan: async (context, blueprint) => {
     const goalText = context?.[1] || '';
-    const timeframeMatch = goalText.match(/\b(\d+)\s*(day|week|month|year)s?\b/i);
-    const timeframe = timeframeMatch ? `${timeframeMatch[1]} ${timeframeMatch[2]}${timeframeMatch[1] !== '1' ? 's' : ''}` : null;
-
-    const prompt = `You are a startup execution planner. Generate a complete phased execution plan to achieve the founder's goal within the stated timeframe.
-
-Return ONLY a JSON object with a "phases" array. The response must be valid JSON and nothing else.
-
-TIMEFRAME CONSTRAINT: The goal must be achieved within ${timeframe || 'the stated period'}. The total duration of ALL phases combined MUST NOT exceed ${timeframe || 'the goal timeframe'}. Break the timeframe into realistic phases — shorter goals mean shorter/denser phases.
-
-REQUIREMENTS:
-- The "phases" array contains phases that fit within the total timeframe
-- Each phase has "title" (string), "goal" (string), "duration" (string e.g. "1 week", "3 days"), "tasks" (array)
-- Each task has "title" (string), "description" (string), "priority" ("high"/"medium"/"low"), "estimatedTime" (string like "2 hrs"), "difficulty" ("easy"/"medium"/"hard")
-- Each phase has 3-5 tasks
-- Cover the full journey from start to goal completion — every phase must be necessary and fit within the total deadline
-
-FOUNDER GOAL: ${goalText}
-FOUNDER: ${context?.[5] || 'Unknown'}
-REALITY SCORE: ${context?.[3] || 'Unknown'}
-
-BUSINESS BLUEPRINT DATA:
-Executive Summary: ${blueprint?.executiveSummary?.slice(0, 300) || ''}
-Target Customer: ${blueprint?.targetCustomer || ''}
-Problem: ${blueprint?.problem || ''}
-Solution: ${blueprint?.solution || ''}
-Revenue Model: ${blueprint?.revenueModel || ''}
-Go-to-Market: ${blueprint?.gtmPlan || ''}
-Validation Plan: ${blueprint?.validationPlan || ''}
-MVP Plan: ${blueprint?.mvpPlan || ''}
-Competitors: ${blueprint?.competitors || ''}
-Risks: ${(blueprint?.risks || []).join(', ')}
-Success Metrics: ${(blueprint?.successMetrics || []).join(', ')}`;
-
-    const extractPlan = (raw) => {
-      let text = typeof raw === 'string' ? raw : (raw?.content || '');
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) text = jsonMatch[0];
-      const parsed = JSON.parse(text);
-      if (!parsed || typeof parsed !== 'object') throw new Error('AI returned non-object response');
-      return parsed;
-    };
+    const founder = context?.[5] || 'Unknown';
+    const realityScore = context?.[3] || 'Unknown';
+    const planContext = { goalText, founder, realityScore };
 
     let plan;
     try {
-      const res = await apiPost('/chat', { message: prompt, context: { goal: context?.[1], blueprint } });
-      plan = extractPlan(res);
-    } catch {
-      const retryPrompt = prompt + '\n\nYour previous response was not valid. Return ONLY a JSON object with a "phases" array. No markdown, no explanation, just JSON.';
-      const res = await apiPost('/chat', { message: retryPrompt, context: { goal: context?.[1], blueprint } });
-      plan = extractPlan(res);
+      plan = await apiPost('/execution/full-plan', { context: planContext, blueprint });
+    } catch (err) {
+      if (err.message?.includes('unavailable') || err.message?.includes('timed out') || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+        plan = await apiPost('/execution/full-plan', { context: planContext, blueprint });
+      } else {
+        throw err;
+      }
     }
     if (!plan?.phases || !Array.isArray(plan.phases)) {
       throw new Error('AI returned a plan without a phases array');

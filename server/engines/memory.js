@@ -1,6 +1,11 @@
 import { getDb } from '../db/database.js';
 import { v4 as uuidv4 } from 'uuid';
 
+const safeJSONParse = (str, fallback = {}) => {
+  if (!str) return fallback;
+  try { return JSON.parse(str); } catch { return fallback; }
+};
+
 const VALID_NODE_TYPES = new Set(['idea', 'task', 'customer', 'document', 'milestone', 'revenue', 'goal', 'project', 'research', 'briefing', 'trend', 'competitor', 'market', 'opportunity']);
 const VALID_RELATIONSHIPS = new Set(['related_to', 'depends_on', 'part_of', 'influences', 'blocks', 'enables', 'contradicts']);
 
@@ -30,7 +35,7 @@ export const getMemoryNodes = async (userId, founderId, limit = 100, offset = 0)
   if (error) throw error;
   return (data || []).map(r => ({
     ...r,
-    metadata: r.metadata ? JSON.parse(r.metadata) : {}
+    metadata: safeJSONParse(r.metadata)
   }));
 };
 
@@ -140,7 +145,7 @@ export const getMemoryGraph = async (userId, founderId, limit = 100, offset = 0)
   }
 
   return {
-    nodes: (nodes || []).map(r => ({ ...r, metadata: r.metadata ? JSON.parse(r.metadata) : {} })),
+    nodes: (nodes || []).map(r => ({ ...r, metadata: safeJSONParse(r.metadata) })),
     edges: [...edgeMap.values()],
   };
 };

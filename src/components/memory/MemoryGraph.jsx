@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useFounderStore } from '../../store/founderStore';
 import { Brain, Clock, Plus, Link2 } from 'lucide-react';
 import { api } from '../../utils/api';
@@ -183,7 +183,7 @@ export default function MemoryGraph() {
     .filter(([a, b]) => a !== -1 && b !== -1);
 
   const SVG_W = svgWidth, SVG_H = Math.max(350, Math.min(500, svgWidth * 0.7));
-  const positions = nodes.length > 0 ? forceLayout(nodes, edgePairs, SVG_W, SVG_H) : [];
+  const positions = useMemo(() => nodes.length > 0 ? forceLayout(nodes, edgePairs, SVG_W, SVG_H) : [], [nodes, edgePairs, SVG_W, SVG_H]);
   const usedPairs = edgePairs
     .map((pair, i) => ({ pair, edge: edges[i] }))
     .filter(({ pair: [a, b] }) => positions[a] && positions[b]);

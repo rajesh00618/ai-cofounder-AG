@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { useTaskStore } from '../../store/taskStore';
+import { useBusinessStore } from '../../store/businessStore';
+import { useFounderStore } from '../../store/founderStore';
 import { CheckSquare, Plus, Clock, Zap, CheckCircle2, Circle, Sparkles, Calendar, Loader2, Lightbulb } from 'lucide-react';
 import { api } from '../../utils/api';
 
 export default function TaskEngine() {
   const { tasks, sprints, currentSprintId, addTask, completeTask, updateTask } = useTaskStore();
+  const { recalculateScores } = useBusinessStore();
+  const { profile } = useFounderStore();
   const [newTask, setNewTask] = useState('');
   const [filter, setFilter] = useState('all');
   const [suggestions, setSuggestions] = useState([]);
@@ -15,6 +19,31 @@ export default function TaskEngine() {
   const done = tasks.filter(t => t.status === 'done').length;
   const total = tasks.length;
   const sprint = sprints.find(s => s.id === currentSprintId) || { goal: 'Initial Validation', week: 1, deadline: 'This Friday' };
+
+  const handleToggleComplete = async (task) => {
+    if (task.status === 'done') {
+      updateTask(task.id, { status: 'todo', completedAt: null });
+    } else {
+      completeTask(task.id);
+      try {
+        await Promise.all([
+          recalculateScores(),
+          profile?.id
+            ? api.addMemoryNode(profile.id, 'milestone', `Completed: ${task.title}`, { taskId: task.id, priority: task.priority }).catch(() => {})
+            : Promise.resolve(),
+        ]);
+      } catch {}
+    }
+  };
+
+  const handleStatusChange = async (taskId, newStatus) => {
+    updateTask(taskId, { status: newStatus, completedAt: newStatus === 'done' ? new Date().toISOString() : null });
+    if (newStatus === 'done') {
+      try {
+        await recalculateScores();
+      } catch {}
+    }
+  };
 
   const handleAdd = () => {
     if (!newTask.trim()) return;
@@ -104,7 +133,7 @@ export default function TaskEngine() {
       <div style={styles.taskList}>
         {filtered.map((task) => (
           <div key={task.id} style={styles.taskCard} className="page-enter">
-            <button onClick={() => task.status === 'done' ? updateTask(task.id, { status: 'todo', completedAt: null }) : completeTask(task.id)} style={styles.checkBtn}>
+            <button onClick={() => handleToggleComplete(task)} style={styles.checkBtn}>
               {task.status === 'done' ? <CheckCircle2 size={20} style={{ color: 'var(--color-success)' }} /> : <Circle size={20} style={{ color: 'var(--color-text-muted)' }} />}
             </button>
             <div style={{ flex: 1 }}>
@@ -116,7 +145,7 @@ export default function TaskEngine() {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span style={{ ...styles.priorityDot, background: priorityColor(task.priority) }} aria-label={`Priority: ${task.priority}`} />
-              <select value={task.status} onChange={e => updateTask(task.id, { status: e.target.value })} style={styles.statusSelect}>
+              <select value={task.status} onChange={e => handleStatusChange(task.id, e.target.value)} style={styles.statusSelect}>
                 <option value="todo">To Do</option>
                 <option value="in-progress">In Progress</option>
                 <option value="done">Done</option>

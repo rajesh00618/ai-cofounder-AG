@@ -31,7 +31,6 @@ export default function BusinessPlanningPage() {
     let cancelled = false;
     (async () => {
       setLoading(true); setBpError('');
-      for (let i = 0; i < BLUEPRINT_SECTIONS.length; i++) { setGenStep(i); await delay(200); if (cancelled) return; }
       try {
         const goalText = profile?.goal || '';
         const clarAnswers = profile?.clarificationAnswers || {};
@@ -44,6 +43,7 @@ export default function BusinessPlanningPage() {
           5: `Founder: ${profile?.experienceLevel}, Team: ${profile?.teamStatus}`,
         };
         const result = await api.generateBlueprintFromGoal(context);
+        for (let i = 0; i < BLUEPRINT_SECTIONS.length; i++) { setGenStep(i); if (cancelled) return; await delay(50); }
         result.id = generateId();
         result.createdAt = new Date().toISOString();
         if (!cancelled) {
@@ -55,6 +55,14 @@ export default function BusinessPlanningPage() {
           ]);
           const scores = scoresRes[0].status === 'fulfilled' ? scoresRes[0].value : null;
           const plan = scoresRes[1].status === 'fulfilled' ? scoresRes[1].value : null;
+
+          if (scoresRes[0].status === 'rejected') {
+            setBpError('Score generation encountered an issue. You can recalculate later from the dashboard.');
+          }
+          if (scoresRes[1].status === 'rejected') {
+            setBpError(prev => prev + ' Plan generation had an issue. You can generate a plan from the Task Engine later.');
+          }
+
           if (scores?.businessHealth && scores?.startupScore) {
             setBusinessHealth(scores.businessHealth);
             setStartupScore(scores.startupScore);
@@ -68,7 +76,7 @@ export default function BusinessPlanningPage() {
           }
         }
       } catch (e) {
-        if (!cancelled) setBpError('Blueprint generation failed: ' + e.message);
+        if (!cancelled) setBpError('We couldn\'t complete your blueprint. Please try again.');
       }
       if (!cancelled) setLoading(false);
     })();
@@ -77,7 +85,7 @@ export default function BusinessPlanningPage() {
 
   const handleExport = () => {
     if (!bp) return;
-    const lines = [
+    let text = [
       '=== Business Blueprint ===', '',
       `Executive Summary: ${bp.executiveSummary || ''}`, '',
       `Problem: ${bp.problem || ''}`, '',
@@ -90,7 +98,11 @@ export default function BusinessPlanningPage() {
       `Validation Plan: ${bp.validationPlan || ''}`, '',
       `MVP Plan: ${bp.mvpPlan || ''}`, '',
       'Success Metrics:', ...(bp.successMetrics || []).map(m => `  ✓ ${m}`),
-    ];
+    ].join('\n');
+    if (bp.risks) text += `\n\nRISKS:\n${Array.isArray(bp.risks) ? bp.risks.map(r => `• ${r}`).join('\n') : bp.risks}`;
+    if (bp.financials) text += `\n\nFINANCIALS:\n${Object.entries(bp.financials).map(([k, v]) => `${k}: ${v}`).join('\n')}`;
+    if (bp.roadmap) text += `\n\nROADMAP:\n${Object.entries(bp.roadmap).map(([k, v]) => `${k}: ${v}`).join('\n')}`;
+    const lines = text;
     const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -181,6 +193,11 @@ export default function BusinessPlanningPage() {
                 )}
               </div>
             </div>
+            {editing && (
+              <div style={{color:'var(--color-warning)',fontSize:'0.8rem',marginTop:'0.5rem'}}>
+                You have unsaved edits. Click "Done" before leaving to keep your changes.
+              </div>
+            )}
             <button className="btn btn-primary btn-lg" onClick={() => navigate('/dashboard')} style={{ width: '100%', marginTop: '1.5rem' }}>
               <Sparkles size={18} /> Enter Your Dashboard
             </button>

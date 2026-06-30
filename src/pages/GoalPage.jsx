@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFounderStore } from '../store/founderStore';
 import { useBusinessStore } from '../store/businessStore';
@@ -8,9 +8,16 @@ import { Target, Send, Brain, AlertTriangle, ArrowRight, ArrowLeft, Sparkles, Tr
 import { getScoreColor, generateId } from '../utils/helpers';
 import { api } from '../utils/api';
 
-const PHASES = { WELCOME: 0, GOAL_INPUT: 1, CLARIFYING: 2, REALITY: 3, NEGOTIATION: 4, GENERATING: 5, COMPLETE: 6 };
+const PHASES = { WELCOME: 0, GOAL_INPUT: 1, CLARIFYING: 2, REALITY: 3, NEGOTIATION: 4, GENERATING: 5 };
 
-function ThinkingAnimation({ elapsed, generating }) {
+const ThinkingAnimation = React.memo(function ThinkingAnimation({ generating }) {
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (!generating) { setElapsed(0); return; }
+    const start = Date.now();
+    const id = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [generating]);
   const label = generating ? 'Generating personalized questions' : 'Thinking';
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '1.5rem', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
@@ -20,7 +27,7 @@ function ThinkingAnimation({ elapsed, generating }) {
       </div>
     </div>
   );
-}
+});
 
 function ConfidenceMeter({ value, reason }) {
   const color = getScoreColor(value);
@@ -32,7 +39,7 @@ function ConfidenceMeter({ value, reason }) {
   );
 }
 
-function ScoreRadar({ scores }) {
+const ScoreRadar = React.memo(function ScoreRadar({ scores }) {
   const size = 200, cx = size/2, cy = size/2, r = 70;
   const dims = Object.keys(scores);
   const n = dims.length;
@@ -77,10 +84,11 @@ export default function GoalPage() {
   const [clarCustomMode, setClarCustomMode] = useState(false);
   const [clarCustomInput, setClarCustomInput] = useState('');
   const [pageError, setPageError] = useState('');
-  const [elapsed, setElapsed] = useState(0);
   const [lastGoalInput, setLastGoalInput] = useState('');
   const [generatingQuestions, setGeneratingQuestions] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const clarTimerRef = useRef(null);
+  const [showBackConfirm, setShowBackConfirm] = useState(false);
 
   useEffect(() => {
     const unsub = useFounderStore.persist.onFinishHydration(() => setHydrated(true));
@@ -88,11 +96,8 @@ export default function GoalPage() {
     return () => unsub();
   }, []);
   useEffect(() => {
-    if (!thinking && !generatingQuestions) { setElapsed(0); return; }
-    const start = Date.now();
-    const id = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000);
-    return () => clearInterval(id);
-  }, [thinking, generatingQuestions]);
+    return () => clearTimeout(clarTimerRef.current);
+  }, []);
   useEffect(() => { if (hydrated && !profile) navigate('/onboarding'); }, [hydrated, profile, navigate]);
 
   const handleGoalSubmit = async () => {
@@ -131,13 +136,23 @@ export default function GoalPage() {
     const updated = { ...clarAnswers, [qid]: answer };
     setClarAnswers(updated);
     if (clarStep < clarQuestions.length - 1) {
-      setTimeout(() => setClarStep(clarStep + 1), 250);
+      clearTimeout(clarTimerRef.current);
+      clarTimerRef.current = setTimeout(() => setClarStep(clarStep + 1), 250);
     } else {
       setClarificationAnswers(updated);
       setThinking(true);
       setPageError('');
       try {
-        const realityResult = await api.evaluateGoal(goalText);
+        const [realityResult, negResult] = await Promise.all([
+          api.evaluateGoal(goalText),
+          (async () => {
+            try {
+              return await api.negotiateGoal(goalText);
+            } catch {
+              return null;
+            }
+          })(),
+        ]);
         if (!realityResult?.dimensions || realityResult.score === undefined) throw new Error('AI returned incomplete reality assessment');
         const formattedReality = {
           scores: {
@@ -157,11 +172,10 @@ export default function GoalPage() {
         };
         setReality(formattedReality);
         setRealityScore(formattedReality);
-        if (formattedReality.overallScore < 50) {
-          const neg = await api.negotiateGoal(goalText);
+        if (formattedReality.overallScore < 50 && negResult) {
           const formattedNeg = {
             current: { label: goalText, probability: formattedReality.probability, risk: 'Very High' },
-            alternatives: neg.alternatives.map(a => ({
+            alternatives: negResult.alternatives.map(a => ({
               label: a.title,
               probability: a.probability === 'high' ? '60-80%' : a.probability === 'medium' ? '40-60%' : '20-40%',
               risk: a.probability === 'high' ? 'Low' : a.probability === 'medium' ? 'Medium' : 'High',
@@ -169,11 +183,13 @@ export default function GoalPage() {
           };
           setNegotiation(formattedNeg);
           setPhase(PHASES.NEGOTIATION);
+        } else if (formattedReality.overallScore < 50) {
+          setPhase(PHASES.NEGOTIATION);
         } else {
           setPhase(PHASES.REALITY);
         }
       } catch (error) {
-        setPageError('API Error: ' + error.message + ' — your answers are saved. Try again from the goal.');
+        setPageError('Something went wrong. Your answers are saved. Please try again.');
         setPhase(PHASES.CLARIFYING);
       }
       setThinking(false);
@@ -206,6 +222,14 @@ export default function GoalPage() {
       ]);
       const scores = results[0].status === 'fulfilled' ? results[0].value : null;
       const plan = results[1].status === 'fulfilled' ? results[1].value : null;
+
+      if (results[0].status === 'rejected') {
+        setPageError('Score generation encountered an issue. You can recalculate later from the dashboard.');
+      }
+      if (results[1].status === 'rejected') {
+        setPageError(prev => prev + ' Plan generation had an issue. You can generate a plan from the Task Engine later.');
+      }
+
       if (scores?.businessHealth && scores?.startupScore) {
         setBusinessHealth(scores.businessHealth);
         setStartupScore(scores.startupScore);
@@ -221,7 +245,7 @@ export default function GoalPage() {
 
       navigate('/dashboard');
     } catch (e) {
-      setPageError('Blueprint generation failed: ' + e.message);
+      setPageError('We couldn\'t complete your blueprint. Please try again.');
       setPhase(PHASES.NEGOTIATION);
     }
   };
@@ -284,7 +308,7 @@ export default function GoalPage() {
 
         {(thinking || generatingQuestions) && (
           <Card>
-            <ThinkingAnimation elapsed={elapsed} generating={generatingQuestions} />
+            <ThinkingAnimation generating={generatingQuestions} />
           </Card>
         )}
 
@@ -336,7 +360,16 @@ export default function GoalPage() {
             )}
 
             {clarStep === 0 && (
-              <button className="btn btn-ghost" onClick={() => { setPhase(PHASES.GOAL_INPUT); setGoalText(lastGoalInput || goalText); setPageError(''); setClarCustomMode(false); setClarCustomInput(''); setClarAnswers({}); setClarStep(0); }} style={{ marginTop: '1rem' }}>
+              <button className="btn btn-ghost" onClick={() => {
+                if (Object.keys(clarAnswers).length > 0) {
+                  setShowBackConfirm(true);
+                } else {
+                  setPhase(PHASES.GOAL_INPUT);
+                  setClarAnswers({});
+                  setClarStep(0);
+                  setPageError('');
+                }
+              }} style={{ marginTop: '1rem' }}>
                 <ArrowLeft size={14} /> Back to goal
               </button>
             )}
@@ -419,7 +452,7 @@ export default function GoalPage() {
               ))}
             </div>
             <p style={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.8125rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>You make the final decision. I'm here to inform, not override.</p>
-            <button className="btn btn-primary btn-lg" onClick={handleProceed} disabled={!selectedAlt} style={{ marginTop: '1rem', width: '100%', opacity: selectedAlt ? 1 : 0.4 }}>
+            <button className="btn btn-primary btn-lg" onClick={handleProceed} disabled={!selectedAlt} title={!selectedAlt ? 'Select an alternative first' : ''} style={{ marginTop: '1rem', width: '100%', opacity: selectedAlt ? 1 : 0.4 }}>
               Generate Blueprint <Sparkles size={18} />
             </button>
           </Card>
@@ -439,6 +472,27 @@ export default function GoalPage() {
               <span style={{ fontSize: '0.875rem' }}>This takes about 10 seconds</span>
             </div>
           </Card>
+        )}
+
+        {showBackConfirm && (
+          <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,0.5)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}}>
+            <div style={{background:'var(--color-surface)',padding:'2rem',borderRadius:'12px',maxWidth:'400px',textAlign:'center'}}>
+              <h3>Go back to your goal?</h3>
+              <p style={{margin:'1rem 0',fontSize:'0.9rem',color:'var(--color-text-muted)'}}>
+                You will lose your clarifying answers and will need to answer them again.
+              </p>
+              <div style={{display:'flex',gap:'1rem',justifyContent:'center'}}>
+                <button className="btn btn-ghost" onClick={() => setShowBackConfirm(false)}>Cancel</button>
+                <button className="btn btn-primary" onClick={() => {
+                  setShowBackConfirm(false);
+                  setPhase(PHASES.GOAL_INPUT);
+                  setClarAnswers({});
+                  setClarStep(0);
+                  setPageError('');
+                }}>Go Back</button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

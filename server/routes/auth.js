@@ -68,7 +68,7 @@ router.post('/register', async (req, res) => {
     }
 
     const JWT_SECRET = getJwtSecret();
-    const token = jwt.sign({ userId: id, email }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: id }, JWT_SECRET, { expiresIn: '7d' });
     res.status(201).json({ token, user: { id, name, email } });
   } catch (error) {
     sendError(res, error);
@@ -97,7 +97,7 @@ router.post('/login', async (req, res) => {
     }
 
     const JWT_SECRET = getJwtSecret();
-    const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
   } catch (error) {
     sendError(res, error);
@@ -129,6 +129,9 @@ router.post('/forgot-password', async (req, res) => {
     if (!user) return res.json({ message: 'If that email exists, a reset link has been sent.' });
 
     const resetToken = crypto.randomBytes(32).toString('hex');
+    // NOTE: SHA-256 is used here for simplicity, but bcrypt would be more
+    // resistant to timing attacks on the stored hash. Email sending is not yet
+    // implemented — the token is returned in the response for testing purposes.
     const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
     const expires = new Date(Date.now() + 3600000).toISOString();
 

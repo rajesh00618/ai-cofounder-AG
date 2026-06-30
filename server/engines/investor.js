@@ -11,7 +11,7 @@ Analyze the startup across these dimensions:
 - Traction & Validation
 - Risks & Red Flags
 
-Return JSON only:
+Return ONLY valid JSON. No markdown, no code fences, no explanations:
 {
   "verdict": "would invest / would not invest / need more data",
   "strengths": ["strength 1", "strength 2"],

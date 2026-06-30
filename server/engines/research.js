@@ -3,7 +3,7 @@ import { searchWebBatch } from '../services/search.js';
 import { logger } from '../services/logger.js';
 
 const RESEARCH_PROMPT = `You are an AI market researcher. Analyze the provided web search results and business context to produce realistic, sourced market research findings.
-Return valid JSON array of objects with: title, source (real source name), date (relative like "2 days ago"), priority (high/medium/low), category (trend/competitor/market/opportunity), summary`;
+Return ONLY valid JSON array. No markdown, no code fences, no explanations. Each object: title, source (real source name), date (relative like "2 days ago"), priority (high/medium/low), category (trend/competitor/market/opportunity), summary`;
 
 export const getResearch = async (apiKey, businessContext) => {
   const year = new Date().getFullYear();
@@ -28,7 +28,7 @@ export const getResearch = async (apiKey, businessContext) => {
 };
 
 const OPPORTUNITY_PROMPT = `You are an AI opportunity scout. Given a startup's context and real web data, identify 4 real funding opportunities, grants, accelerators, or events.
-Return JSON array: [{ title, deadline (relative), match (0-100), description }]`;
+Return ONLY valid JSON array. No markdown, no code fences, no explanations. [{ title, deadline (relative), match (0-100), description }]`;
 
 export const getOpportunities = async (apiKey, businessContext) => {
   const year = new Date().getFullYear();
@@ -51,7 +51,7 @@ export const getOpportunities = async (apiKey, businessContext) => {
 };
 
 const BRIEFING_PROMPT = `You are an AI co-founder's morning briefing generator. Generate a personalized morning briefing using real market data.
-Return JSON: { greeting (personalized), findings: [{ title, detail }], focus: "string" }`;
+Return ONLY valid JSON. No markdown, no code fences, no explanations. { greeting (personalized), findings: [{ title, detail }], focus: "string" }`;
 
 export const getMorningBriefing = async (apiKey, profile, businessContext) => {
   let searchResults = [];

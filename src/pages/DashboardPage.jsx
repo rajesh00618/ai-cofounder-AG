@@ -40,6 +40,7 @@ export default function DashboardPage() {
   const [isMobile, setIsMobile] = useState(false);
   const [transition, setTransition] = useState('');
 
+  // Note: duplicate resize listener also in Sidebar.jsx — kept for separation of concerns
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();

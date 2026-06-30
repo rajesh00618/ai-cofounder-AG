@@ -67,12 +67,13 @@ export const useTaskStore = create(
 
   getTodaysTasks: () => {
     const state = get();
-    const activeSprint = state.sprints.find(s => s.status === 'active');
-    if (activeSprint) {
-      const sprintTasks = state.tasks.filter(t => t.sprintId === activeSprint.id && t.status !== 'done');
-      if (sprintTasks.length > 0) return sprintTasks.slice(0, 4);
-    }
-    return state.tasks.filter(t => t.status !== 'done').slice(0, 4);
+    const sprintTasks = state.sprints.find(s => s.id === state.currentSprintId)
+      ? state.tasks.filter(t => state.sprints.find(s => s.id === state.currentSprintId)?.tasks?.includes(t.id) || t.sprintId === state.currentSprintId)
+      : [];
+    const pending = (sprintTasks.length > 0 ? sprintTasks : state.tasks).filter(t => t.status !== 'done');
+    const priorityOrder = { high: 0, medium: 1, low: 2 };
+    pending.sort((a, b) => (priorityOrder[a.priority] ?? 2) - (priorityOrder[b.priority] ?? 2));
+    return pending.slice(0, 4);
   },
 
   resetTasks: () => set({
@@ -85,6 +86,18 @@ export const useTaskStore = create(
     }),
     {
       name: 'ai-cofounder-task-storage',
+      version: 1,
+      migrate: (persisted, version) => {
+        if (version === 0) return { ...persisted, fullPlan: persisted?.fullPlan || null, taskError: null };
+        return persisted;
+      },
+      partialize: (state) => {
+        const { taskError: _te, ...rest } = state;
+        return rest;
+      },
+      onRehydrateStorage: () => (state, error) => {
+        if (error) console.error('[taskStore] Persist rehydration error:', error);
+      },
     }
   )
 );

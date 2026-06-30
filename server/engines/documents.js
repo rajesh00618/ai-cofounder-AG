@@ -1,7 +1,7 @@
 import { callOpenAI, extractJSON, sanitizeForPrompt } from '../services/ai.js';
 
 const PROMPT = `You are an AI document generator for startups. Given a document type and business context, generate professional content.
-Return JSON: { title, content (full document body with markdown formatting), sections: [{ heading, body }] }
+Return ONLY valid JSON. No markdown, no code fences, no explanations. { title, content (full document body with markdown formatting), sections: [{ heading, body }] }
 
 Available document types:
 - business-plan: Full business plan with executive summary, market analysis, strategy, financials

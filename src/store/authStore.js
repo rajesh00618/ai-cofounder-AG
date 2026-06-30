@@ -1,9 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { useBusinessStore } from './businessStore';
-import { useTaskStore } from './taskStore';
-import { useChatStore } from './chatStore';
-import { useAppStore } from './appStore';
+
 
 export const useAuthStore = create(
   persist(
@@ -18,26 +15,46 @@ export const useAuthStore = create(
 
   setAuthError: (error) => set({ authError: error }),
 
-  logout: () => {
-    const otherStoreKeys = [
-      'ai-cofounder-app-storage',
-      'ai-cofounder-chat-storage',
-      'ai-cofounder-business-storage',
-      'ai-cofounder-task-storage',
-    ];
-    for (const key of otherStoreKeys) {
-      try { localStorage.removeItem(key); } catch (e) { console.warn('Failed to clear persisted store on logout:', key, e); }
+  logout: async () => {
+    try {
+      const [bsMod, tsMod, csMod, asMod] = await Promise.all([
+        import('./businessStore'),
+        import('./taskStore'),
+        import('./chatStore'),
+        import('./appStore'),
+      ]);
+      bsMod.useBusinessStore.getState().resetBusiness?.();
+      tsMod.useTaskStore.getState().resetTasks?.();
+      csMod.useChatStore.getState().resetChat?.();
+      asMod.useAppStore.getState().resetApp?.();
+    } catch (e) {
+      console.warn('[Auth] Error resetting stores on logout:', e.message);
     }
-    // Reset session-scoped stores in memory (founder profile is NOT cleared so it persists on re-login)
-    try { useBusinessStore.getState().resetBusiness(); } catch (e) { console.error('Failed to reset business store:', e); }
-    try { useTaskStore.getState().resetTasks(); } catch (e) { console.error('Failed to reset task store:', e); }
-    try { useChatStore.getState().resetChat(); } catch (e) { console.error('Failed to reset chat store:', e); }
-    try { useAppStore.getState().resetApp(); } catch (e) { console.error('Failed to reset app store:', e); }
+    try {
+      ['ai-cofounder-auth-storage', 'ai-cofounder-app-storage', 'ai-cofounder-chat-storage', 'ai-cofounder-business-storage', 'ai-cofounder-task-storage', 'ai-cofounder-founder-storage'].forEach(key => {
+        try { localStorage.removeItem(key); } catch {}
+      });
+      ['ai-cofounder-whatsapp', 'ai-cofounder-reset-token'].forEach(key => {
+        try { localStorage.removeItem(key); } catch {}
+      });
+    } catch {}
     set({ user: null, token: null, authError: null });
   },
     }),
     {
       name: 'ai-cofounder-auth-storage',
+      version: 1,
+      migrate: (persisted, version) => {
+        if (version === 0) return { ...persisted, authError: null };
+        return persisted;
+      },
+      partialize: (state) => {
+        const { authError: _ae, ...rest } = state;
+        return rest;
+      },
+      onRehydrateStorage: () => (state, error) => {
+        if (error) console.error('[authStore] Persist rehydration error:', error);
+      },
     }
   )
 );

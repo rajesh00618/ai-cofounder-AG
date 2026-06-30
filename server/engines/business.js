@@ -55,7 +55,8 @@ export const generateBlueprintTasks = async (apiKey, answers, blueprint) => {
     logger.warn(`[Business] Failed to parse tasks: ${err.message}`);
     tasks = [];
   }
-  return Array.isArray(tasks) ? tasks.map(t => ({
+  return Array.isArray(tasks)
+    ? tasks.filter(t => t.title).map(t => ({
     title: t.title,
     priority: t.priority || 'medium',
     estimatedTime: t.estimatedTime || '1 hr',
@@ -70,6 +71,65 @@ Return EXACTLY this JSON (no markdown, no code fences):
   "startupScore": { "execution": 0-100, "business": 0-100, "customers": 0-100, "product": 0-100, "cash": 0-100, "aiConfidence": 0-100 }
 }
 Be realistic and critical — most early startups should score between 20-60. Only exceptional answers get higher.`;
+
+const RECALCULATE_SCORES_PROMPT = `You are a startup analyst evaluating progress. Given the original business blueprint, founder profile, and task completion data, recalculate the startup's scores and determine the current startup stage.
+
+Startup stages in order: idea → validation → mvp → launch → revenue → pmf → scale
+
+Consider:
+- Completed tasks should improve relevant scores and advance the stage
+- High-priority completed tasks have more impact
+- The ratio of completed to total tasks
+- Original blueprint quality still matters
+- A stage should advance only when the founder has demonstrated meaningful progress (tasks completed, scores improved)
+
+Return EXACTLY this JSON (no markdown, no code fences):
+{
+  "businessHealth": { "idea": 0-100, "validation": 0-100, "product": 0-100, "marketing": 0-100, "sales": 0-100, "finance": 0-100 },
+  "startupScore": { "execution": 0-100, "business": 0-100, "customers": 0-100, "product": 0-100, "cash": 0-100, "aiConfidence": 0-100 },
+  "currentStage": "idea | validation | mvp | launch | revenue | pmf | scale"
+}
+Be realistic — task completion should move scores but don't inflate them unreasonably. Stage should only advance if real progress is demonstrated.`;
+
+export const recalculateScores = async (apiKey, answers, blueprint, founderProfile, tasks, currentStage) => {
+  const completedTasks = (tasks || []).filter(t => t.status === 'done');
+  const totalTasks = (tasks || []).length;
+  const completionRateNum = totalTasks > 0 ? (completedTasks.length / totalTasks) : 0;
+  const completionRatePct = (completionRateNum * 100).toFixed(0);
+  const highPriorityDone = completedTasks.filter(t => t.priority === 'high').length;
+  const taskSummary = (tasks || []).map(t => `- [${t.status}] ${t.title} (priority: ${t.priority || 'medium'}, difficulty: ${t.difficulty || 'medium'})`).join('\n');
+  const normalizedAnswers = Array.isArray(answers)
+    ? Object.fromEntries(answers.map((v, i) => [i + 1, v]))
+    : (answers || {});
+
+  const userPrompt = `Founder: ${sanitizeForPrompt(founderProfile?.name || 'Unknown')}
+Experience: ${sanitizeForPrompt(founderProfile?.experienceLevel || 'First-time')}
+Current Stage: ${sanitizeForPrompt(currentStage || 'idea')}
+Completion Rate: ${completionRatePct}% (${completedTasks.length}/${totalTasks} tasks done)
+High Priority Tasks Done: ${highPriorityDone}
+
+Tasks:
+${taskSummary}
+
+Answers:
+${Object.entries(normalizedAnswers).map(([k,v]) => `- Q${sanitizeForPrompt(String(k))}: ${sanitizeForPrompt(String(v))}`).join('\n')}
+
+Blueprint:
+Executive Summary: ${sanitizeForPrompt(blueprint?.executiveSummary || '')}
+Problem: ${sanitizeForPrompt(blueprint?.problem || '')}
+Solution: ${sanitizeForPrompt(blueprint?.solution || '')}
+Target Customer: ${sanitizeForPrompt(blueprint?.targetCustomer || '')}
+Market Size: ${sanitizeForPrompt(blueprint?.marketSize || '')}
+Revenue Model: ${sanitizeForPrompt(blueprint?.revenueModel || '')}
+GTM Plan: ${sanitizeForPrompt(blueprint?.gtmPlan || '')}
+Validation Plan: ${sanitizeForPrompt(blueprint?.validationPlan || '')}
+MVP Plan: ${sanitizeForPrompt(blueprint?.mvpPlan || '')}
+Risks: ${sanitizeForPrompt(Array.isArray(blueprint?.risks) ? blueprint.risks.join(', ') : 'N/A')}
+Success Metrics: ${sanitizeForPrompt(Array.isArray(blueprint?.successMetrics) ? blueprint.successMetrics.join(', ') : 'N/A')}`;
+
+  const response = await callOpenAI(apiKey, RECALCULATE_SCORES_PROMPT, userPrompt, 0.3);
+  return extractJSON(response);
+};
 
 export const generateScores = async (apiKey, answers, blueprint, founderProfile) => {
   const userPrompt = `Founder: ${sanitizeForPrompt(founderProfile?.name || 'Unknown')}
@@ -90,8 +150,8 @@ Revenue Model: ${sanitizeForPrompt(blueprint?.revenueModel || '')}
 GTM Plan: ${sanitizeForPrompt(blueprint?.gtmPlan || '')}
 Validation Plan: ${sanitizeForPrompt(blueprint?.validationPlan || '')}
 MVP Plan: ${sanitizeForPrompt(blueprint?.mvpPlan || '')}
-Risks: ${sanitizeForPrompt((blueprint?.risks || []).join(', '))}
-Success Metrics: ${sanitizeForPrompt((blueprint?.successMetrics || []).join(', '))}`;
+Risks: ${sanitizeForPrompt(Array.isArray(blueprint?.risks) ? blueprint.risks.join(', ') : 'N/A')}
+Success Metrics: ${sanitizeForPrompt(Array.isArray(blueprint?.successMetrics) ? blueprint.successMetrics.join(', ') : 'N/A')}`;
 
   const response = await callOpenAI(apiKey, SCORES_PROMPT, userPrompt, 0.3);
   return extractJSON(response);

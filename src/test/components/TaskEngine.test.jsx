@@ -9,8 +9,16 @@ vi.mock('../../store/taskStore', () => ({
   useTaskStore: (selector) => mockUseTaskStore(selector),
 }));
 
+vi.mock('../../store/businessStore', () => ({
+  useBusinessStore: vi.fn(() => ({ recalculateScores: vi.fn() })),
+}));
+
+vi.mock('../../store/founderStore', () => ({
+  useFounderStore: vi.fn(() => ({ profile: null })),
+}));
+
 vi.mock('../../utils/api', () => ({
-  api: { getTaskSuggestions: vi.fn() },
+  api: { getTaskSuggestions: vi.fn(), addMemoryNode: vi.fn() },
 }));
 
 const mockAddTask = vi.fn();

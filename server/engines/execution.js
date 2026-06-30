@@ -1,4 +1,5 @@
-import { callOpenAI, extractJSON, sanitizeForPrompt } from '../services/ai.js';
+import { callOpenAI, PROMPTS, extractJSON, sanitizeForPrompt } from '../services/ai.js';
+import { logger } from '../services/logger.js';
 
 /**
  * @deprecated Remote code execution has been disabled for security.
@@ -15,7 +16,8 @@ import { callOpenAI, extractJSON, sanitizeForPrompt } from '../services/ai.js';
 
 export const generateExecutionPlan = async (apiKey, task) => {
   const prompt = `You are an AI execution engine. Given a task, generate a step-by-step execution plan.
-Return JSON: {
+Return ONLY valid JSON. No markdown, no code fences, no explanations.
+{
   "task": "the original task",
   "plan": {
     "estimatedTime": "estimated total time like ~5 minutes",
@@ -27,10 +29,49 @@ Return JSON: {
   return extractJSON(response);
 };
 
+export const generateFullPlan = async (apiKey, context, blueprint) => {
+  const { goalText, founder, experienceLevel, realityScore } = context;
+  const timeframeMatch = goalText?.match(/\b(\d+)\s*(day|week|month|year)s?\b/i);
+  const timeframe = timeframeMatch ? `${timeframeMatch[1]} ${timeframeMatch[2]}${timeframeMatch[1] !== '1' ? 's' : ''}` : 'the stated period';
+
+  const userPrompt = `FOUNDER GOAL: ${goalText || 'N/A'}
+FOUNDER: ${founder || experienceLevel || 'Unknown'}
+REALITY SCORE: ${realityScore || 'N/A'}
+
+TIMEFRAME: The goal must be achieved within ${timeframe}.
+
+BUSINESS BLUEPRINT DATA:
+Executive Summary: ${sanitizeForPrompt(blueprint?.executiveSummary || 'N/A').slice(0, 300)}
+Target Customer: ${sanitizeForPrompt(blueprint?.targetCustomer || 'N/A')}
+Problem: ${sanitizeForPrompt(blueprint?.problem || 'N/A')}
+Solution: ${sanitizeForPrompt(blueprint?.solution || 'N/A')}
+Revenue Model: ${sanitizeForPrompt(blueprint?.revenueModel || 'N/A')}
+Go-to-Market: ${sanitizeForPrompt(blueprint?.gtmPlan || 'N/A')}
+Validation Plan: ${sanitizeForPrompt(blueprint?.validationPlan || 'N/A')}
+MVP Plan: ${sanitizeForPrompt(blueprint?.mvpPlan || 'N/A')}
+Competitors: ${sanitizeForPrompt(blueprint?.competitors || 'N/A')}
+Risks: ${sanitizeForPrompt((blueprint?.risks || []).join(', '))}
+Success Metrics: ${sanitizeForPrompt((blueprint?.successMetrics || []).join(', '))}`;
+
+  let plan;
+  try {
+    const response = await callOpenAI(apiKey, PROMPTS.PLAN_GENERATION, userPrompt, 0.3);
+    plan = extractJSON(response);
+  } catch (err) {
+    logger.warn(`[Execution] First plan generation failed, retrying: ${err.message}`);
+    const response = await callOpenAI(apiKey, PROMPTS.PLAN_GENERATION, userPrompt, 0.3);
+    plan = extractJSON(response);
+  }
+  if (!plan?.phases || !Array.isArray(plan.phases)) {
+    throw new Error('AI returned a plan without a phases array');
+  }
+  return plan;
+};
+
 export const executeStep = async (apiKey, stepId, task) => {
   try {
     const prompt = `You are a code review engine. Generate only the file contents for the following task.
-DO NOT execute any code. Return JSON:
+DO NOT execute any code. Return ONLY valid JSON. No markdown, no code fences, no explanations.
 {
   "files": [
     {
@@ -59,6 +100,6 @@ DO NOT execute any code. Return JSON:
 
     return { output: outputs.join('\n') };
   } catch (err) {
-    return { output: `Generation error: ${err.message}` };
+    throw err;
   }
 };
