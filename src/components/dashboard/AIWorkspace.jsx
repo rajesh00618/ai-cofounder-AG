@@ -73,7 +73,7 @@ export default function AIWorkspace() {
   const { blueprint, businessHealth, startupScore, currentStage } = useBusinessStore(useShallow(s => ({
     blueprint: s.blueprint, businessHealth: s.businessHealth, startupScore: s.startupScore, currentStage: s.currentStage,
   })));
-  const { tasks } = useTaskStore(useShallow(s => ({ tasks: s.tasks })));
+  const { tasks, fullPlan } = useTaskStore(useShallow(s => ({ tasks: s.tasks, fullPlan: s.fullPlan })));
   const [input, setInput] = useState('');
   const [emptyInputShake, setEmptyInputShake] = useState(false);
   const [activePanel, setActivePanel] = useState('business');
@@ -112,6 +112,8 @@ export default function AIWorkspace() {
       currentStage,
       dnaScores,
       tasks,
+      fullPlan,
+      goal: profile?.goal || null,
     };
 
     const msgId = `stream-${Date.now()}`;
@@ -128,9 +130,37 @@ export default function AIWorkspace() {
         }
       },
       (fullText) => {
-        updateMessage(msgId, { content: fullText, confidence: 92 });
+        const cleanText = fullText.replace(/<!--PLAN-->[\s\S]*?<!--ENDPLAN-->/g, '').trim();
+        updateMessage(msgId, { content: cleanText || fullText, confidence: 92 });
         setConfidence(92);
         setThinking(false);
+
+        const planMatch = fullText.match(/<!--PLAN-->([\s\S]*?)<!--ENDPLAN-->/);
+        if (planMatch) {
+          try {
+            const planData = JSON.parse(planMatch[1].trim());
+            if (planData.phases && Array.isArray(planData.phases)) {
+              const { setFullPlan, addTask, createSprint } = useTaskStore.getState();
+              setFullPlan(planData);
+
+              const sprintId = createSprint({ name: planData.phases[0]?.title || 'Execution Plan', goal: planData.phases[0]?.goal || '' });
+              for (const phase of planData.phases) {
+                for (const task of (phase.tasks || [])) {
+                  addTask({ ...task, sprintId });
+                }
+              }
+
+              addMessage({
+                id: `plan-update-${Date.now()}`,
+                role: 'assistant',
+                content: `📋 **Plan updated** — ${planData.phases.length} phase(s), ${planData.phases.reduce((s, p) => s + (p.tasks?.length || 0), 0)} task(s) added.`,
+                timestamp: Date.now(),
+              });
+            }
+          } catch (e) {
+            console.warn('[PlanParse] Failed to parse plan update:', e);
+          }
+        }
       },
       (error) => {
         setThinking(false);
