@@ -61,10 +61,14 @@ export const useChatStore = create(
     }),
     {
       name: 'ai-cofounder-chat-storage',
-      version: 1,
+      version: 2,
       migrate: (persisted, version) => {
-        if (version === 0) return { ...persisted, isThinking: false, thinkingStep: '', chatError: null };
-        return persisted;
+        let state = persisted;
+        if (version === 0) state = { ...state, isThinking: false, thinkingStep: '', chatError: null };
+        if (version < 2 && Array.isArray(state.messages)) {
+          state.messages = state.messages.map(m => ({ ...m, content: m.content || '' }));
+        }
+        return state;
       },
       partialize: (state) => {
         const { isThinking: _it, thinkingStep: _ts, chatError: _ce, ...rest } = state;

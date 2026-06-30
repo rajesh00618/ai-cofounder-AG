@@ -44,7 +44,7 @@ const ChatMessage = React.memo(function ChatMessage({ msg, profile }) {
             {new Date(msg.timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}
           </span>
         </div>
-        <div style={styles.msgText}>{msg.content.split('\n').map((line, lineIdx) => {
+        <div style={styles.msgText}>{(msg.content || '').split('\n').map((line, lineIdx) => {
           if (line.startsWith('**') && line.endsWith('**')) return <strong key={`bold-${lineIdx}`} style={{display:'block',marginTop:'0.5rem'}}>{line.replace(/\*\*/g,'')}</strong>;
           if (line.startsWith('**')) {
             const parts = line.split('**');
@@ -138,7 +138,7 @@ export default function AIWorkspace() {
         const msg = isNetwork
           ? '⚠️ Cannot connect. Please check your internet connection and try again.'
           : '⚠️ Something went wrong. Please try again.';
-        addMessage({ role: 'assistant', content: msg, agent: 'ceo' });
+        updateMessage(msgId, { content: msg });
       }
     );
   };

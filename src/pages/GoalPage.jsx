@@ -39,8 +39,11 @@ function ConfidenceMeter({ value, reason }) {
   );
 }
 
-const ScoreRadar = React.memo(function ScoreRadar({ scores }) {
-  const size = 200, cx = size/2, cy = size/2, r = 70;
+const ScoreRadar = React.memo(({ scores }) => {
+  const size = 200;
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = 70;
   const dims = Object.keys(scores);
   const n = dims.length;
   const getPoint = (i, val) => {
@@ -48,26 +51,25 @@ const ScoreRadar = React.memo(function ScoreRadar({ scores }) {
     const dist = (val / 100) * r;
     return { x: cx + dist * Math.cos(angle), y: cy + dist * Math.sin(angle) };
   };
-  const points = dims.map((_, i) => getPoint(i, scores[dims[i]]));
-  const polygon = points.map(p => `${p.x},${p.y}`).join(' ');
+  const gridPts = [20, 40, 60, 80, 100].map(v => dims.map((_, i) => getPoint(i, v)));
+  const axisPts = dims.map((_, i) => getPoint(i, 100));
+  const dataPts = dims.map((_, i) => getPoint(i, scores[dims[i]]));
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: 'block', margin: '0 auto' }}>
-      {[20,40,60,80,100].map(v => {
-        const pts = dims.map((d) => getPoint(dims.indexOf(d), v));
-        return <polygon key={`sg-${v}`} points={pts.map(p=>`${p.x},${p.y}`).join(' ')} fill="none" stroke="var(--border)" strokeWidth="1" />;
-      })}
-      {dims.map((d) => {
-        const end = getPoint(dims.indexOf(d), 100);
-        return <line key={`sl-${d}`} x1={cx} y1={cy} x2={end.x} y2={end.y} stroke="var(--border)" strokeWidth="1" />;
-      })}
-      <polygon points={polygon} fill="rgba(196,154,108,0.1)" stroke="var(--accent)" strokeWidth="2" />
-      {dims.map((d) => {
-        const lp = getPoint(dims.indexOf(d), 120);
-        return <text key={`st-${d}`} x={lp.x} y={lp.y} fill="var(--text-tertiary)" fontSize="8" textAnchor="middle" dominantBaseline="middle">{d.split(' ')[0]}</text>;
-      })}
+      {gridPts.map((pts, i) => (
+        <polygon key={`sg-${i}`} points={pts.map(p => `${p.x},${p.y}`).join(' ')} fill="none" stroke="var(--border)" strokeWidth="1" />
+      ))}
+      {axisPts.map((end, i) => (
+        <line key={`sl-${i}`} x1={cx} y1={cy} x2={end.x} y2={end.y} stroke="var(--border)" strokeWidth="1" />
+      ))}
+      <polygon points={dataPts.map(p => `${p.x},${p.y}`).join(' ')} fill="rgba(196,154,108,0.1)" stroke="var(--accent)" strokeWidth="2" />
+      {dims.map((d, i) => (
+        <text key={`st-${i}`} x={getPoint(i, 120).x} y={getPoint(i, 120).y} fill="var(--text-tertiary)" fontSize="8" textAnchor="middle" dominantBaseline="middle">{d.split(' ')[0]}</text>
+      ))}
     </svg>
   );
-}
+});
+
 
 export default function GoalPage() {
   const navigate = useNavigate();

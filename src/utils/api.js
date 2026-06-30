@@ -165,8 +165,8 @@ export const api = {
                 onDone?.(data.fullText);
                 return;
               }
-              accumulatedText = data.fullText || accumulatedText + data.token;
-              onToken?.(data.token, data.fullText);
+              accumulatedText = data.fullText || accumulatedText + (data.token || '');
+              onToken?.(data.token, accumulatedText);
             } catch {
               if (i === lines.length - 1 && !fullBuffer.endsWith('\n')) {
                 lineBuffer = line;
