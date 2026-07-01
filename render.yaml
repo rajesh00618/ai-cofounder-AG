@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: ai-cofounder
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: FRONTEND_URL
+        value: https://ai-cofounder.onrender.com
+      - key: ALLOW_SERVER_KEY_FALLBACK
+        value: "true"
+      - key: AI_MODEL
+        value: meta/llama-4-maverick-17b-128e-instruct
+      - key: AI_BASE_URL
+        value: https://integrate.api.nvidia.com/v1
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
