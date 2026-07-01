@@ -133,7 +133,6 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile('dist/index.html', { root: '.' });
   });
 }
-}
 
 // Telegram chat ID registration (requires authentication)
 app.post('/api/reminders/register', requireJwt, async (req, res) => {
