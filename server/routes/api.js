@@ -122,7 +122,7 @@ router.post('/chat/stream', requireApiKey, requireBody('message'), async (req, r
     }, 0.7, 4096, abortController.signal);
 
     if (!res.writableEnded) {
-      res.write(`data: ${JSON.stringify({ done: true, fullText: full })}\n\n`);
+      res.write(`data: ${JSON.stringify({ done: true, fullText: sanitizeOutput(full) })}\n\n`);
       res.end();
     }
     req.removeListener('close', onClose);

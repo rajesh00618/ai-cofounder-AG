@@ -1,4 +1,4 @@
-import { getDb } from './database.js';
+import { getDb, resetDbClient } from './database.js';
 import { logger } from '../services/logger.js';
 
 // Source of truth for these constants is server/engines/memory.js
@@ -119,14 +119,29 @@ DROP INDEX IF EXISTS idx_users_whatsapp;
 ALTER TABLE users DROP COLUMN IF EXISTS whatsapp_phone;
 `,
   },
+  {
+    version: 3,
+    name: 'switch_to_telegram',
+    sql: `
+ALTER TABLE users RENAME COLUMN whatsapp_phone TO telegram_chat_id;
+DROP INDEX IF EXISTS idx_users_whatsapp;
+CREATE INDEX IF NOT EXISTS idx_users_telegram ON users(telegram_chat_id);
+`,
+    down: `
+DROP INDEX IF EXISTS idx_users_telegram;
+ALTER TABLE users RENAME COLUMN telegram_chat_id TO whatsapp_phone;
+CREATE INDEX IF NOT EXISTS idx_users_whatsapp ON users(whatsapp_phone);
+`,
+  },
 ];
 
 const LOCK_KEY = 'schema_migration_lock';
 
 const acquireLock = async (supabase) => {
   try {
-    const { error } = await supabase.from('schema_migrations').insert({ version: -1, name: LOCK_KEY }, { onConflict: 'version', ignoreDuplicates: true }).select('version').maybeSingle();
+    const { data, error } = await supabase.from('schema_migrations').insert({ version: -1, name: LOCK_KEY }, { onConflict: 'version', ignoreDuplicates: true }).select('version').maybeSingle();
     if (error) return false;
+    if (!data) return false;
     return true;
   } catch {
     return false;
@@ -196,6 +211,7 @@ export const initDb = async () => {
       }
     } finally {
       await releaseLock(supabase);
+      resetDbClient();
     }
 
     logger.info('Database schema is up to date.');

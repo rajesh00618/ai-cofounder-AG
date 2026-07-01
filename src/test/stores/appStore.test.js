@@ -81,13 +81,13 @@ describe('appStore', () => {
     expect(state.appError).toBeNull();
   });
 
-  it('partializes persisted state (includes apiKey)', () => {
+  it('partializes persisted state (excludes apiKey from localStorage)', () => {
     useAppStore.getState().setApiKey('sk-secret-key');
     useAppStore.getState().setPage('dashboard');
     const raw = localStorage.getItem('ai-cofounder-app-storage');
     expect(raw).not.toBeNull();
     const parsed = JSON.parse(raw);
     expect(parsed.state.currentPage).toBe('dashboard');
-    expect(parsed.state.apiKey).toBe('sk-secret-key');
+    expect(parsed.state.apiKey).toBeUndefined();
   });
 });

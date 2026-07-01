@@ -129,6 +129,14 @@ const runResearchCycle = async () => {
   }
 };
 
+const scheduleNext = () => {
+  _timer = setTimeout(async () => {
+    await runResearchCycle();
+    scheduleNext();
+  }, INTERVAL_MS);
+  if (_timer?.unref) _timer.unref();
+};
+
 export const startBackgroundResearch = () => {
   if (_timer) {
     logger.debug('[BackgroundResearch] Already running');
@@ -136,9 +144,8 @@ export const startBackgroundResearch = () => {
   }
 
   logger.info('[BackgroundResearch] Scheduler started');
+  scheduleNext();
   runResearchCycle();
-  _timer = setInterval(runResearchCycle, INTERVAL_MS);
-  if (_timer.unref) _timer.unref();
 };
 
 export const stopBackgroundResearch = () => {

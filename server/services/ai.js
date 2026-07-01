@@ -247,28 +247,35 @@ export const extractJSON = (text) => {
   if (codeBlocks.length > 0) {
     for (let i = codeBlocks.length - 1; i >= 0; i--) {
       const block = codeBlocks[i][1].trim();
-      const result = tryParse(block) || (logger.warn('[AI] fixTruncated applied to code block'), tryParse(fixTruncated(block)));
-      if (result !== undefined) return result;
+      let result = tryParse(block);
+      if (result === undefined) {
+        logger.warn('[AI] fixTruncated applied to code block');
+        result = tryParse(fixTruncated(block));
+      }
+      if (result != null) return result;
     }
   }
 
   // Direct parse attempt
   let result = tryParse(trimmed);
-  if (result !== undefined) return result;
+  if (result != null) return result;
 
   // Fix truncated JSON and try again
   logger.warn('[AI] fixTruncated applied to full response');
   result = tryParse(fixTruncated(trimmed));
-  if (result !== undefined) return result;
+  if (result != null) return result;
 
   // Find outermost { ... } block
   const jsonStart = trimmed.indexOf('{');
   const jsonEnd = trimmed.lastIndexOf('}');
   if (jsonStart !== -1) {
     const candidate = jsonEnd > jsonStart ? trimmed.slice(jsonStart, jsonEnd + 1) : trimmed.slice(jsonStart);
-    logger.warn('[AI] fixTruncated applied to JSON block');
-    result = tryParse(candidate) || tryParse(fixTruncated(candidate));
-    if (result !== undefined) return result;
+    result = tryParse(candidate);
+    if (result === undefined) {
+      logger.warn('[AI] fixTruncated applied to JSON block');
+      result = tryParse(fixTruncated(candidate));
+    }
+    if (result != null) return result;
   }
 
   // Find outermost [ ... ] block
@@ -276,9 +283,12 @@ export const extractJSON = (text) => {
   const arrEnd = trimmed.lastIndexOf(']');
   if (arrStart !== -1) {
     const candidate = arrEnd > arrStart ? trimmed.slice(arrStart, arrEnd + 1) : trimmed.slice(arrStart);
-    logger.warn('[AI] fixTruncated applied to array block');
-    result = tryParse(candidate) || tryParse(fixTruncated(candidate));
-    if (result !== undefined) return result;
+    result = tryParse(candidate);
+    if (result === undefined) {
+      logger.warn('[AI] fixTruncated applied to array block');
+      result = tryParse(fixTruncated(candidate));
+    }
+    if (result != null) return result;
   }
 
   throw new Error(`Invalid JSON response from AI. Response preview: ${text.slice(0, 200)}`);

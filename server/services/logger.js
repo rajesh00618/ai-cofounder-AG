@@ -53,14 +53,17 @@ const MAX_BUFFER_SIZE = 16384;
 
 let flushTimer = null;
 
-const flush = (target) => {
+const flush = async (target) => {
   const data = buffers[target];
   if (!data) return;
   buffers[target] = '';
   const file = target === 'error' ? getErrorFile() : getLogFile();
-  fs.promises.appendFile(file, data).catch((err) => {
+  try {
+    await fs.promises.appendFile(file, data);
+  } catch (err) {
+    buffers[target] = data + buffers[target];
     console.error(`[Logger] Failed to flush ${target} log:`, err.message);
-  });
+  }
 };
 
 const flushAll = () => {

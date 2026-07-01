@@ -171,7 +171,7 @@ export default function CommandCenter({ onNavigate }) {
               </div>
               {activeSprint && (
                 <div style={{ fontSize: '0.75rem', color: 'var(--accent)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <span style={{ fontWeight: 600 }}>{activeSprint.phaseTitle || 'Sprint ' + activeSprint.week}</span>
+                  <span style={{ fontWeight: 600 }}>{activeSprint.title || activeSprint.name || 'Active Sprint'}</span>
                   {activeSprint.goal && <span style={{ color: 'var(--text-muted)' }}>· {activeSprint.goal}</span>}
                 </div>
               )}

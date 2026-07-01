@@ -30,11 +30,7 @@ const sanitizeValue = (val) => {
 
 export const sanitizeInput = (obj) => {
   if (!obj || typeof obj !== 'object') return obj;
-  const sanitized = {};
-  for (const [key, value] of Object.entries(obj)) {
-    sanitized[key] = sanitizeValue(value);
-  }
-  return sanitized;
+  return obj;
 };
 
 export const getDb = () => {
@@ -72,7 +68,7 @@ export const runQuery = async (table, data) => {
 export const getQuery = async (table, column, value) => {
   const supabase = getDb();
   if (!supabase) return null;
-  const { data, error } = await supabase.from(table).select('*').eq(column, sanitizeValue(value)).maybeSingle();
+  const { data, error } = await supabase.from(table).select('*').eq(column, value).maybeSingle();
   if (error) throw error;
   return data;
 };
@@ -84,6 +80,15 @@ export const closeDb = () => {
     try { client.auth.signOut(); } catch {}
     client = null;
   }
+};
+
+export const resetDbClient = () => {
+  if (client) {
+    try { client.auth.signOut(); } catch {}
+  }
+  client = null;
+  clientUrl = null;
+  clientKey = null;
 };
 
 export const allQuery = async (table, filters = {}, options = {}) => {

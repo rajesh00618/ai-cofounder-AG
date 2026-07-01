@@ -34,7 +34,7 @@ export const useAuthStore = create(
       ['ai-cofounder-auth-storage', 'ai-cofounder-app-storage', 'ai-cofounder-chat-storage', 'ai-cofounder-business-storage', 'ai-cofounder-task-storage', 'ai-cofounder-founder-storage'].forEach(key => {
         try { localStorage.removeItem(key); } catch {}
       });
-      ['ai-cofounder-whatsapp', 'ai-cofounder-reset-token'].forEach(key => {
+      ['ai-cofounder-telegram', 'ai-cofounder-reset-token'].forEach(key => {
         try { localStorage.removeItem(key); } catch {}
       });
     } catch {}

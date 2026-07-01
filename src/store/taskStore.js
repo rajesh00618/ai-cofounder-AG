@@ -67,8 +67,8 @@ export const useTaskStore = create(
 
   getTodaysTasks: () => {
     const state = get();
-    const sprintTasks = state.sprints.find(s => s.id === state.currentSprintId)
-      ? state.tasks.filter(t => state.sprints.find(s => s.id === state.currentSprintId)?.tasks?.includes(t.id) || t.sprintId === state.currentSprintId)
+    const sprintTasks = state.currentSprintId
+      ? state.tasks.filter(t => t.sprintId === state.currentSprintId)
       : [];
     const pending = (sprintTasks.length > 0 ? sprintTasks : state.tasks).filter(t => t.status !== 'done');
     const priorityOrder = { high: 0, medium: 1, low: 2 };

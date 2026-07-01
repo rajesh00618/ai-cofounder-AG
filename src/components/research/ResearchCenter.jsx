@@ -128,7 +128,7 @@ export default function ResearchCenter() {
             <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}>No opportunities found. Generate your business blueprint first.</p>
           )}
           {Array.isArray(opportunities) && opportunities.map((opp) => (
-            <div key={`opp-${opp.title?.slice(0,20) || Math.random()}`} style={styles.oppCard}>
+            <div key={opp.id || `opp-${opp.title?.slice(0,20)}`} style={styles.oppCard}>
               <div style={{ flex: 1 }}>
                 <div style={styles.itemTitle}>{opp.title}</div>
                 <div style={styles.itemMeta}>

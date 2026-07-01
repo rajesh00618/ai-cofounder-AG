@@ -165,7 +165,7 @@ export const api = {
                 onDone?.(data.fullText);
                 return;
               }
-              accumulatedText = data.fullText || accumulatedText + (data.token || '');
+              accumulatedText = data.fullText ?? (accumulatedText + (data.token || ''));
               onToken?.(data.token, accumulatedText);
             } catch {
               if (i === lines.length - 1 && !fullBuffer.endsWith('\n')) {
@@ -259,6 +259,7 @@ export const api = {
   setApiKey: (apiKey) => apiPost('/auth/api-key', { apiKey }),
   getApiKeyStatus: () => apiGet('/auth/api-key'),
 
-  // WhatsApp
-  registerReminderPhone: (email, phone) => apiPost('/reminders/register', { email, phone }),
+  // Telegram reminders
+  registerReminderPhone: (email, chatId) => apiPost('/reminders/register', { email, chatId }),
+  testReminder: (chatId) => apiPost('/reminders/test', { chatId }),
 };

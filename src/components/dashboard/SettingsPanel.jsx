@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Key, Save, CheckCircle2, Server, AlertTriangle, Loader2, Smartphone, Lock, Mail, Send } from 'lucide-react';
+import { Settings, Key, Save, CheckCircle2, Server, AlertTriangle, Loader2, MessageCircle, Lock, Mail, Send } from 'lucide-react';
 import { useAppStore } from '../../store/appStore';
 import { useAuthStore } from '../../store/authStore';
 import { api, API_BASE } from '../../utils/api';
@@ -12,8 +12,9 @@ export default function SettingsPanel() {
   const [serverStatus, setServerStatus] = useState(null);
   const [serverKeyStatus, setServerKeyStatus] = useState(null);
 
-  const [phone, setPhone] = useState(() => { try { return localStorage.getItem('ai-cofounder-whatsapp') || ''; } catch { return ''; } });
-  const [phoneSaved, setPhoneSaved] = useState(false);
+  const [chatId, setChatId] = useState(() => { try { return localStorage.getItem('ai-cofounder-telegram') || ''; } catch { return ''; } });
+  const [chatIdSaved, setChatIdSaved] = useState(false);
+  const [testSending, setTestSending] = useState(false);
 
   const [resetEmail, setResetEmail] = useState('');
   const [resetSent, setResetSent] = useState(false);
@@ -56,23 +57,38 @@ export default function SettingsPanel() {
     }
   };
 
-  const handleSavePhone = async () => {
+  const handleSaveChatId = async () => {
     if (!user) {
-      alert('Please sign in to register for WhatsApp reminders.');
+      alert('Please sign in to register for Telegram reminders.');
       return;
     }
-    if (!phone || !/^\+\d{7,15}$/.test(phone)) {
-      alert('Enter a valid phone number with country code (e.g., +1234567890).');
+    if (!chatId || !chatId.trim()) {
+      alert('Enter your Telegram chat ID.');
       return;
     }
     try {
-      await api.registerReminderPhone(user.email, phone);
-      localStorage.setItem('ai-cofounder-whatsapp', phone);
-      setPhoneSaved(true);
-      setTimeout(() => setPhoneSaved(false), 2000);
+      await api.registerReminderPhone(user.email, chatId.trim());
+      localStorage.setItem('ai-cofounder-telegram', chatId.trim());
+      setChatIdSaved(true);
+      setTimeout(() => setChatIdSaved(false), 2000);
     } catch (err) {
-      alert('Failed to register phone. Check server logs.');
+      alert('Failed to register Telegram chat ID. Check server logs.');
     }
+  };
+
+  const handleTestReminder = async () => {
+    if (!chatId || !chatId.trim()) {
+      alert('Enter your Telegram chat ID first.');
+      return;
+    }
+    setTestSending(true);
+    try {
+      await api.testReminder(chatId.trim());
+      alert('Test message sent! Check your Telegram.');
+    } catch (err) {
+      alert('Failed to send test: ' + err.message);
+    }
+    setTestSending(false);
   };
 
   const handleForgotPassword = async () => {
@@ -156,18 +172,24 @@ export default function SettingsPanel() {
       </div>
 
       <div style={styles.card}>
-        <h3 style={styles.cardTitle}><Smartphone size={16} /> WhatsApp Reminders</h3>
+        <h3 style={styles.cardTitle}><MessageCircle size={16} /> Telegram Reminders</h3>
         <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginBottom: '0.75rem', lineHeight: 1.5 }}>
           Get daily reminders at 9 AM (what to do) and 6 PM (did you complete it?).<br />
-          Enter your phone number with country code (e.g., +1234567890).
+          Enter your Telegram chat ID. <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" style={{color:'var(--color-accent)'}}>Find your chat ID</a>.
         </p>
         <div style={styles.inputRow}>
-          <input type="tel" placeholder="+1234567890" value={phone} onChange={e => setPhone(e.target.value)} style={styles.input} />
-          <button className="btn btn-primary btn-sm" onClick={handleSavePhone}>
-            {phoneSaved ? <><CheckCircle2 size={14} /> Saved</> : <><Save size={14} /> Save</>}
+          <input type="text" placeholder="123456789" value={chatId} onChange={e => setChatId(e.target.value)} style={styles.input} />
+          <button className="btn btn-primary btn-sm" onClick={handleSaveChatId}>
+            {chatIdSaved ? <><CheckCircle2 size={14} /> Saved</> : <><Save size={14} /> Save</>}
           </button>
         </div>
-        <p style={styles.hint}>Phone saved to your account. Server needs TWILIO_ACCOUNT_SID configured to send.</p>
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+          <button className="btn btn-secondary btn-sm" onClick={handleTestReminder} disabled={testSending || !chatId.trim()}>
+            {testSending ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={14} />}
+            {' '}Send Test
+          </button>
+        </div>
+        <p style={styles.hint}>Chat ID saved to your account. Click "Send Test" to verify it works immediately.</p>
       </div>
 
       <div style={styles.card}>
@@ -206,7 +228,7 @@ export default function SettingsPanel() {
           <strong>AI Models:</strong> llama-4-maverick-17b, mistral-large, phi-4 (multi-model fallback)<br />
           <strong>Web Search:</strong> DuckDuckGo + Startpage (real-time)<br />
           <strong>Monitoring:</strong> Structured file logging<br />
-          <strong>Reminders:</strong> WhatsApp (Twilio) at 9 AM / 6 PM<br />
+          <strong>Reminders:</strong> Telegram at 9 AM / 6 PM<br />
           <strong>Streaming:</strong> SSE-based token streaming
         </p>
       </div>

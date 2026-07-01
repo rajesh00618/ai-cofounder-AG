@@ -46,7 +46,7 @@ export const useAppStore = create(
         return persisted;
       },
       partialize: (state) => {
-        const { appError: _ae, ...rest } = state;
+        const { appError: _ae, apiKey: _ak, ...rest } = state;
         return rest;
       },
       onRehydrateStorage: () => (state, error) => {

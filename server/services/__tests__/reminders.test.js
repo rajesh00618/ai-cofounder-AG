@@ -6,12 +6,12 @@ vi.mock('../../db/database.js', () => ({
   getDb: vi.fn(() => dbValue),
 }));
 
-const { registerWhatsAppPhone, getPhoneForEmail } = await import('../reminders.js');
+const { registerTelegramChatId, getTelegramChatIdForEmail } = await import('../reminders.js');
 
 describe('reminders', () => {
   it('handles null DB gracefully', async () => {
     dbValue = null;
-    await registerWhatsAppPhone('no@db.com', '+1111111111');
-    expect(await getPhoneForEmail('no@db.com')).toBeNull();
+    await registerTelegramChatId('no@db.com', '123456789');
+    expect(await getTelegramChatIdForEmail('no@db.com')).toBeNull();
   });
 });

@@ -24,6 +24,7 @@ export default function AIBoardMeeting() {
   const [debating, setDebating] = useState(false);
   const bottomRef = useRef(null);
   const mountedRef = useRef(false);
+  const msgCounterRef = useRef(0);
 
   useEffect(() => {
     mountedRef.current = true;

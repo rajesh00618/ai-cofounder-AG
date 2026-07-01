@@ -92,6 +92,7 @@ export default function MemoryGraph() {
   const svgRef = useRef(null);
   const [svgWidth, setSvgWidth] = useState(700);
   const mountedRef = useRef(false);
+  const reqIdRef = useRef(0);
 
   useEffect(() => {
     mountedRef.current = true;

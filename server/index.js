@@ -8,7 +8,7 @@ import { getDb, closeDb } from './db/database.js';
 import apiRoutes from './routes/api.js';
 import authRoutes from './routes/auth.js';
 import { logger, requestLogger } from './services/logger.js';
-import { startReminderScheduler, stopReminderScheduler, registerWhatsAppPhone } from './services/reminders.js';
+import { startReminderScheduler, stopReminderScheduler, registerTelegramChatId, sendMorningReminder } from './services/reminders.js';
 import { startBackgroundResearch, stopBackgroundResearch } from './services/backgroundResearch.js';
 import { globalErrorHandler } from './services/errors.js';
 import { requireJwt } from './routes/auth.js';
@@ -117,19 +117,34 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api', apiRoutes);
 
-// WhatsApp phone registration (requires authentication)
+// Telegram chat ID registration (requires authentication)
 app.post('/api/reminders/register', requireJwt, async (req, res) => {
   try {
-    const { email, phone } = req.body;
-    if (!email || !phone) return res.status(400).json({ error: 'Email and phone required' });
-    if (!/^\+\d{7,15}$/.test(phone)) return res.status(400).json({ error: 'Invalid phone number format. Use +CountryCode (e.g., +1234567890).' });
+    const { email, chatId } = req.body;
+    if (!email || !chatId) return res.status(400).json({ error: 'Email and Telegram chat ID required' });
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Invalid email format.' });
-    await registerWhatsAppPhone(email, phone);
-    logger.info(`Registered ${email.replace(/./g, '*')} -> ${phone.slice(0, 3)}**** for WhatsApp reminders`);
-    res.json({ message: 'Phone registered for reminders' });
+    const cleaned = chatId.toString().trim();
+    await registerTelegramChatId(email, cleaned);
+    logger.info(`Registered ${email.replace(/./g, '*')} for Telegram reminders`);
+    res.json({ message: 'Telegram chat ID registered for reminders' });
   } catch (error) {
     logger.error(`[Reminders] Registration failed: ${error.message}`);
-    res.status(500).json({ error: 'Failed to register phone' });
+    res.status(500).json({ error: 'Failed to register Telegram chat ID' });
+  }
+});
+
+// Send a test Telegram reminder (requires authentication)
+app.post('/api/reminders/test', requireJwt, async (req, res) => {
+  try {
+    const { chatId } = req.body;
+    if (!chatId) return res.status(400).json({ error: 'Telegram chat ID required' });
+    const cleaned = chatId.toString().trim();
+    await sendMorningReminder(cleaned, 'Test User', [{ title: 'Test task 1' }, { title: 'Test task 2' }]);
+    logger.info(`[Reminders] Test message sent to ${cleaned}`);
+    res.json({ message: 'Test Telegram message sent!' });
+  } catch (error) {
+    logger.error(`[Reminders] Test failed: ${error.message}`);
+    res.status(500).json({ error: 'Failed to send test message' });
   }
 });
 
