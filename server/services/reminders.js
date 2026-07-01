@@ -1,19 +1,43 @@
+import { getDb } from '../db/database.js';
 import { logger } from './logger.js';
-
-// In-memory registry for WhatsApp phone numbers (safe, never mutates process.env)
-const _whatsappRegistry = new Map();
-
-export const registerWhatsAppPhone = (email, phone) => {
-  _whatsappRegistry.set(email.toLowerCase(), phone);
-};
-
-export const getPhoneForEmail = (email) => {
-  return _whatsappRegistry.get(email.toLowerCase()) || null;
-};
 
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
 const TWILIO_WHATSAPP_NUMBER = process.env.TWILIO_WHATSAPP_NUMBER;
+
+export const registerWhatsAppPhone = async (email, phone) => {
+  try {
+    const supabase = getDb();
+    if (supabase) {
+      const { error } = await supabase
+        .from('users')
+        .update({ whatsapp_phone: phone })
+        .eq('email', email);
+      if (error) throw error;
+    }
+    logger.info(`[Reminders] Phone registered for ${email.replace(/./g, '*')}`);
+  } catch (err) {
+    logger.error(`[Reminders] Failed to persist phone for ${email.replace(/./g, '*')}: ${err.message}`);
+    throw err;
+  }
+};
+
+export const getPhoneForEmail = async (email) => {
+  try {
+    const supabase = getDb();
+    if (supabase) {
+      const { data } = await supabase
+        .from('users')
+        .select('whatsapp_phone')
+        .eq('email', email)
+        .maybeSingle();
+      if (data?.whatsapp_phone) return data.whatsapp_phone;
+    }
+  } catch (err) {
+    logger.warn(`[Reminders] DB lookup failed for ${email}: ${err.message}`);
+  }
+  return null;
+};
 
 const sendWhatsApp = async (to, message) => {
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_WHATSAPP_NUMBER) {
@@ -80,14 +104,17 @@ export const startReminderScheduler = () => {
 
     const sendRemindersForUsers = async (isMorning) => {
       try {
-        const { getDb } = await import('../db/database.js');
         const supabase = getDb();
         if (!supabase) return;
         let offset = 0;
         const PAGE_SIZE = 50;
         let allUsers = [];
         while (true) {
-          const { data: users } = await supabase.from('users').select('id, name, email').range(offset, offset + PAGE_SIZE - 1);
+          const { data: users } = await supabase
+            .from('users')
+            .select('id, name, email, whatsapp_phone')
+            .not('whatsapp_phone', 'is', null)
+            .range(offset, offset + PAGE_SIZE - 1);
           if (!users?.length) break;
           allUsers = allUsers.concat(users);
           offset += PAGE_SIZE;
@@ -106,13 +133,11 @@ export const startReminderScheduler = () => {
 
         for (const user of allUsers) {
           const userTasks = (tasksByUser[user.id] || []).slice(0, 10);
-          const phone = getPhoneForEmail(user.email);
-          if (phone) {
-            if (isMorning) {
-              await sendMorningReminder(phone, user.name, userTasks.filter(t => t.status === 'todo'));
-            } else {
-              await sendEveningReminder(phone, user.name, userTasks);
-            }
+          if (!user.whatsapp_phone) continue;
+          if (isMorning) {
+            await sendMorningReminder(user.whatsapp_phone, user.name, userTasks.filter(t => t.status === 'todo'));
+          } else {
+            await sendEveningReminder(user.whatsapp_phone, user.name, userTasks);
           }
         }
       } catch (err) {

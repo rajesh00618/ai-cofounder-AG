@@ -118,14 +118,19 @@ app.use('/api/auth', authRoutes);
 app.use('/api', apiRoutes);
 
 // WhatsApp phone registration (requires authentication)
-app.post('/api/reminders/register', requireJwt, (req, res) => {
-  const { email, phone } = req.body;
-  if (!email || !phone) return res.status(400).json({ error: 'Email and phone required' });
-  if (!/^\+\d{7,15}$/.test(phone)) return res.status(400).json({ error: 'Invalid phone number format. Use +CountryCode (e.g., +1234567890).' });
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Invalid email format.' });
-  registerWhatsAppPhone(email, phone);
-  logger.info(`Registered ${email.replace(/./g, '*')} -> ${phone.slice(0, 3)}**** for WhatsApp reminders`);
-  res.json({ message: 'Phone registered for reminders' });
+app.post('/api/reminders/register', requireJwt, async (req, res) => {
+  try {
+    const { email, phone } = req.body;
+    if (!email || !phone) return res.status(400).json({ error: 'Email and phone required' });
+    if (!/^\+\d{7,15}$/.test(phone)) return res.status(400).json({ error: 'Invalid phone number format. Use +CountryCode (e.g., +1234567890).' });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Invalid email format.' });
+    await registerWhatsAppPhone(email, phone);
+    logger.info(`Registered ${email.replace(/./g, '*')} -> ${phone.slice(0, 3)}**** for WhatsApp reminders`);
+    res.json({ message: 'Phone registered for reminders' });
+  } catch (error) {
+    logger.error(`[Reminders] Registration failed: ${error.message}`);
+    res.status(500).json({ error: 'Failed to register phone' });
+  }
 });
 
 app.get('/health', (req, res) => res.redirect('/api/health'));

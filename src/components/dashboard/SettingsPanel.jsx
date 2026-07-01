@@ -56,10 +56,23 @@ export default function SettingsPanel() {
     }
   };
 
-  const handleSavePhone = () => {
-    localStorage.setItem('ai-cofounder-whatsapp', phone);
-    setPhoneSaved(true);
-    setTimeout(() => setPhoneSaved(false), 2000);
+  const handleSavePhone = async () => {
+    if (!user) {
+      alert('Please sign in to register for WhatsApp reminders.');
+      return;
+    }
+    if (!phone || !/^\+\d{7,15}$/.test(phone)) {
+      alert('Enter a valid phone number with country code (e.g., +1234567890).');
+      return;
+    }
+    try {
+      await api.registerReminderPhone(user.email, phone);
+      localStorage.setItem('ai-cofounder-whatsapp', phone);
+      setPhoneSaved(true);
+      setTimeout(() => setPhoneSaved(false), 2000);
+    } catch (err) {
+      alert('Failed to register phone. Check server logs.');
+    }
   };
 
   const handleForgotPassword = async () => {
@@ -154,7 +167,7 @@ export default function SettingsPanel() {
             {phoneSaved ? <><CheckCircle2 size={14} /> Saved</> : <><Save size={14} /> Save</>}
           </button>
         </div>
-        <p style={styles.hint}>Phone stored locally. Server needs TWILIO_ACCOUNT_SID configured to send.</p>
+        <p style={styles.hint}>Phone saved to your account. Server needs TWILIO_ACCOUNT_SID configured to send.</p>
       </div>
 
       <div style={styles.card}>

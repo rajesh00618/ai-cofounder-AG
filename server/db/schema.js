@@ -107,6 +107,18 @@ DROP TABLE IF EXISTS founders;
 DROP TABLE IF EXISTS users;
 `,
   },
+  {
+    version: 2,
+    name: 'add_whatsapp_phone',
+    sql: `
+ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp_phone TEXT;
+CREATE INDEX IF NOT EXISTS idx_users_whatsapp ON users(whatsapp_phone);
+`,
+    down: `
+DROP INDEX IF EXISTS idx_users_whatsapp;
+ALTER TABLE users DROP COLUMN IF EXISTS whatsapp_phone;
+`,
+  },
 ];
 
 const LOCK_KEY = 'schema_migration_lock';
