@@ -114,7 +114,24 @@ export default function GoalPage() {
         { goal: goalText }
       );
       let parsed;
-      try { parsed = JSON.parse(result.content); } catch { parsed = null; }
+      try {
+        const extractJSON = (text) => {
+          const blocks = [...text.matchAll(/```(?:json)?\s*([\s\S]*?)```/g)];
+          if (blocks.length) {
+            for (let i = blocks.length - 1; i >= 0; i--) {
+              try { return JSON.parse(blocks[i][1].trim()); } catch {}
+            }
+          }
+          const arrStart = text.indexOf('[');
+          const arrEnd = text.lastIndexOf(']');
+          if (arrStart !== -1 && arrEnd > arrStart) return JSON.parse(text.slice(arrStart, arrEnd + 1));
+          const objStart = text.indexOf('{');
+          const objEnd = text.lastIndexOf('}');
+          if (objStart !== -1 && objEnd > objStart) return JSON.parse(text.slice(objStart, objEnd + 1));
+          return JSON.parse(text);
+        };
+        parsed = extractJSON(result.content);
+      } catch { parsed = null; }
       if (!Array.isArray(parsed) || parsed.length === 0) {
         setPageError("I couldn't generate good clarifying questions. Try again.");
         setGeneratingQuestions(false); return;
