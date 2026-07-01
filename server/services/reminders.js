@@ -43,27 +43,23 @@ const sendTelegram = async (chatId, message) => {
     return;
   }
 
-  try {
-    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: message,
-        parse_mode: 'HTML',
-      }),
-    });
+  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: message,
+      parse_mode: 'HTML',
+    }),
+  });
 
-    if (!res.ok) {
-      const errBody = await res.json().catch(() => ({}));
-      throw new Error(`Telegram error ${res.status}: ${errBody.description || res.statusText}`);
-    }
-
-    logger.info(`[Reminders] Telegram message sent to chat ${chatId}`);
-  } catch (err) {
-    logger.error(`[Reminders] Failed to send Telegram: ${err.message}`);
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({}));
+    throw new Error(`Telegram error ${res.status}: ${errBody.description || res.statusText}`);
   }
+
+  logger.info(`[Reminders] Telegram message sent to chat ${chatId}`);
 };
 
 export const sendMorningReminder = async (chatId, name, tasks) => {
@@ -130,10 +126,14 @@ const checkAndSend = async () => {
       for (const user of allUsers) {
         const userTasks = (tasksByUser[user.id] || []).slice(0, 10);
         if (!user.telegram_chat_id) continue;
-        if (isMorning) {
-          await sendMorningReminder(user.telegram_chat_id, user.name, userTasks.filter(t => t.status === 'todo'));
-        } else {
-          await sendEveningReminder(user.telegram_chat_id, user.name, userTasks);
+        try {
+          if (isMorning) {
+            await sendMorningReminder(user.telegram_chat_id, user.name, userTasks.filter(t => t.status === 'todo'));
+          } else {
+            await sendEveningReminder(user.telegram_chat_id, user.name, userTasks);
+          }
+        } catch (err) {
+          logger.error(`[Reminders] Failed to send to ${user.email}: ${err.message}`);
         }
       }
     } catch (err) {
