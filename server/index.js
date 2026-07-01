@@ -117,6 +117,24 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api', apiRoutes);
 
+// Serve built frontend in production (Docker deployment)
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static('dist'));
+}
+
+// API 404 — structured JSON response for unrecognised API routes
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
+
+// SPA fallback — serve index.html for all non-API GET requests (client-side routing)
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile('dist/index.html', { root: '.' });
+  });
+}
+}
+
 // Telegram chat ID registration (requires authentication)
 app.post('/api/reminders/register', requireJwt, async (req, res) => {
   try {
