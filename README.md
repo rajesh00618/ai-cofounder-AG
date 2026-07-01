@@ -45,7 +45,7 @@ Landing → Auth → Onboarding → Goal Setting → Blueprint (auto-generated) 
 | Simulator | Test decisions with virtual customers |
 | Daily Review | Daily progress check-in |
 | Weekly Review | AI-generated weekly performance summary |
-| Settings | API key, account, server status |
+| Settings | API key, account, Telegram reminders, server status |
 
 ## Tech Stack
 
@@ -60,13 +60,14 @@ Landing → Auth → Onboarding → Goal Setting → Blueprint (auto-generated) 
 Key environment variables (see `.env.example`):
 
 | Variable | Required | Default |
-|---|---|---|
+|---|---|---|---|
 | `NVIDIA_API_KEY` | Yes | — |
 | `SUPABASE_URL` | Yes | — |
 | `SUPABASE_SERVICE_KEY` | Yes | — |
 | `JWT_SECRET` | Yes | min 32 chars |
 | `AI_MODEL` | No | `meta/llama-4-maverick-17b-128e-instruct` |
 | `FRONTEND_URL` | No | `http://localhost:5173` |
+| `TELEGRAM_BOT_TOKEN` | No | — |
 
 ## Tests
 

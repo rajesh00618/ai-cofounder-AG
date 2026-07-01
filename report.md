@@ -36,7 +36,7 @@
 - **Retry with exponential backoff** — `fetchWithRetry` (500ms, 1000ms) for network/timeout errors
 - **Daily rotating logs** with async file buffering (no PII logged)
 - **Background research cycle** every 6 hours
-- **Twilio WhatsApp reminders** for task notifications
+- **Telegram reminders** (morning 9AM / evening 6PM) with task notifications; scheduled batch sending with per-user error isolation
 
 ### Deployment
 - **Docker**: Multi-stage build (deps → builder → runner), non-root user, read-only filesystem, seccomp profile
@@ -130,6 +130,9 @@
 - **Dashboard views**: 17
 - **Customer review rounds**: 10 (5 initial personas + 5 follow-up: PM, Privacy Officer, Performance Engineer, Startup Mentor, DevOps)
 - **Bugs fixed**: 60+ (security, privacy, performance, UX, code quality)
+   - Telegram send errors propagated to caller (was silently swallowed)
+   - Scheduled batch reminders wrap individual sends in try/catch so one failure doesn't break the batch
+   - Goal page JSON extraction handles markdown-wrapped AI responses
 - **Lines of code**: ~15,000+ (frontend + server)
 - **Test coverage**: High (all 331 tests passing, 47 test files, 0 ESLint errors)
 - **Build time**: ~500ms (Vite production build)

@@ -84,13 +84,19 @@ Full sprint and task management with:
 - Phase-sprint matching for full execution plan
 - Today's Tasks from active sprint
 
-## 17. Settings
+## 17. Telegram Reminders
+- Register Telegram chat ID in Settings
+- Morning reminder (9 AM) with today's pending tasks
+- Evening reminder (6 PM) asking if you completed your tasks
+- Test button to verify delivery immediately
+
+## 18. Settings
 - API key configuration
-- Theme (light)
+- Telegram reminders registration
 - Account management
 - Server status monitoring
 
-## 18. Security & Reliability
+## 19. Security & Reliability
 - JWT authentication with 7-day tokens
 - Rate limiting on auth and API routes
 - Helmet security headers
