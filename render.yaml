@@ -11,9 +11,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: FRONTEND_URL
-        value: https://ai-cofounder.onrender.com
-      - key: RENDER_EXTERNAL_URL
-        value: https://ai-cofounder.onrender.com
+        fromEnv: RENDER_EXTERNAL_URL
       - key: ALLOW_SERVER_KEY_FALLBACK
         value: "true"
       - key: AI_MODEL

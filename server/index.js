@@ -48,7 +48,7 @@ const PORT = process.env.PORT || 3001;
 app.set('trust proxy', 1);
 
 // Validate CORS origin at startup to prevent misconfiguration
-const corsOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
+const corsOrigin = process.env.FRONTEND_URL || process.env.RENDER_EXTERNAL_URL || 'http://localhost:5173';
 
 // Middleware
 app.use(cors({
