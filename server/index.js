@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import 'dotenv/config';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -185,17 +186,11 @@ app.post('/api/reminders/test', requireJwt, async (req, res) => {
 
 // Serve built frontend in production (Docker deployment)
 const distDir = path.resolve(__dirname, '..', 'dist');
-if (process.env.NODE_ENV === 'production') {
+const hasDist = fs.existsSync(path.join(distDir, 'index.html'));
+if (hasDist) {
   app.use(express.static(distDir, { index: false }));
-}
 
-// API 404 — structured JSON response for unrecognised API routes
-app.use('/api', (req, res) => {
-  res.status(404).json({ error: 'Not found' });
-});
-
-// SPA fallback — serve index.html for all non-API GET requests (client-side routing)
-if (process.env.NODE_ENV === 'production') {
+  // SPA fallback — serve index.html for all non-API GET requests (client-side routing)
   app.use((req, res, next) => {
     if (req.method === 'GET' && !req.path.startsWith('/api')) {
       res.sendFile(path.join(distDir, 'index.html'));
@@ -204,6 +199,11 @@ if (process.env.NODE_ENV === 'production') {
     }
   });
 }
+
+// API 404 — structured JSON response for unrecognised API routes
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
 
 // 404 handler for unmatched routes
 app.use((req, res) => {
