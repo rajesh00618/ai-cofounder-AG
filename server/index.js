@@ -191,7 +191,7 @@ app.use('/api', (req, res) => {
 
 // SPA fallback — serve index.html for all non-API GET requests (client-side routing)
 if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
+  app.get('/{*path}', (req, res) => {
     res.sendFile('dist/index.html', { root: '.' });
   });
 }
