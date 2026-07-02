@@ -3,6 +3,10 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import 'dotenv/config';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import { initDb } from './db/schema.js';
 import { getDb, closeDb } from './db/database.js';
 import apiRoutes from './routes/api.js';
@@ -180,8 +184,9 @@ app.post('/api/reminders/test', requireJwt, async (req, res) => {
 });
 
 // Serve built frontend in production (Docker deployment)
+const distDir = path.resolve(__dirname, '..', 'dist');
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static('dist'));
+  app.use(express.static(distDir));
 }
 
 // API 404 — structured JSON response for unrecognised API routes
@@ -192,7 +197,7 @@ app.use('/api', (req, res) => {
 // SPA fallback — serve index.html for all non-API GET requests (client-side routing)
 if (process.env.NODE_ENV === 'production') {
   app.get('/{*path}', (req, res) => {
-    res.sendFile('dist/index.html', { root: '.' });
+    res.sendFile(path.join(distDir, 'index.html'));
   });
 }
 
