@@ -138,7 +138,7 @@ const styles = {
   subtitle: { fontSize:'0.8125rem', color:'var(--color-text-tertiary)', marginTop:'0.125rem' },
   chatArea: { flex:1, overflowY:'auto', padding:'0.5rem 0', display:'flex', flexDirection:'column', gap:'0.75rem' },
   userRow: { display:'flex', justifyContent:'flex-end' },
-  userBubble: { maxWidth:'70%', padding:'0.75rem 1.25rem', background:'rgba(99,102,241,0.12)', border:'1px solid rgba(99,102,241,0.2)', borderRadius:'16px 16px 4px 16px', fontSize:'0.9375rem', color:'var(--color-text-primary)', lineHeight:1.6 },
+  userBubble: { maxWidth:'70%', padding:'0.75rem 1.25rem', background:'var(--accent-subtle)', border:'1px solid var(--accent)', borderRadius:'16px 16px 4px 16px', fontSize:'0.9375rem', color:'var(--color-text-primary)', lineHeight:1.6 },
   respCard: { padding:'1rem 1.25rem', background:'rgba(255,255,255,0.02)', borderRadius:'14px', border:'1px solid rgba(255,255,255,0.06)', borderLeft:'3px solid' },
   respHeader: { display:'flex', alignItems:'center', gap:'0.5rem', marginBottom:'0.375rem' },
   respText: { fontSize:'0.875rem', color:'var(--color-text-secondary)', lineHeight:1.7 },

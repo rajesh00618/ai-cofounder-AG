@@ -5,16 +5,27 @@ vi.mock(import('../../services/ai.js'), async (importOriginal) => {
   return {
     ...actual,
     callOpenAI: vi.fn(() => Promise.resolve(JSON.stringify({
-      riskTolerance: 70,
-      executionFocus: 65,
-      innovationBias: 80,
-      collaborationStyle: 'independent',
-      decisionSpeed: 'fast',
-      resilience: 75,
-      learningOrientation: 90,
-      DetailOrientation: 60,
-      leadershipStyle: 'visionary',
-      communicationStyle: 'direct'
+      dnaScores: {
+        'Decision-making': 70,
+        'Execution': 60,
+        'Consistency': 80,
+        'Learning speed': 50,
+        'Leadership': 40,
+        'Sales ability': 30,
+        'Technical skill': 60,
+        'Communication': 75,
+        'Focus': 55,
+        'Confidence': 65,
+      },
+      founderTwin: {
+        thinkStyle: 'analytical',
+        decideStyle: 'balanced',
+        learnStyle: 'building',
+        workPattern: 'focused',
+        failurePattern: 'stall',
+        recoveryPattern: 'structured',
+      },
+      adaptations: [{ weakness: 'Execution', action: 'Set daily goals', priority: 'high' }],
     })))
   };
 });
@@ -29,16 +40,13 @@ describe('analyzeDNA', () => {
 
     expect(result).toBeDefined();
     expect(typeof result).toBe('object');
-    expect(result).toHaveProperty('riskTolerance');
-    expect(result).toHaveProperty('executionFocus');
-    expect(result).toHaveProperty('innovationBias');
-    expect(result).toHaveProperty('collaborationStyle');
-    expect(result).toHaveProperty('decisionSpeed');
-    expect(result).toHaveProperty('resilience');
-    expect(result).toHaveProperty('learningOrientation');
-    expect(result).toHaveProperty('DetailOrientation');
-    expect(result).toHaveProperty('leadershipStyle');
-    expect(result).toHaveProperty('communicationStyle');
+    expect(result).toHaveProperty('dnaScores');
+    expect(result).toHaveProperty('founderTwin');
+    expect(result).toHaveProperty('adaptations');
+    expect(result.dnaScores).toHaveProperty('Decision-making');
+    expect(result.dnaScores).toHaveProperty('Execution');
+    expect(result.founderTwin).toHaveProperty('thinkStyle');
+    expect(result.founderTwin).toHaveProperty('decideStyle');
   });
 
   it('calls callOpenAI with the API key and profile', async () => {
@@ -51,20 +59,13 @@ describe('analyzeDNA', () => {
 
   it('handles edge cases like empty profile gracefully', async () => {
     callOpenAI.mockResolvedValue(JSON.stringify({
-      riskTolerance: 50,
-      executionFocus: 50,
-      innovationBias: 50,
-      collaborationStyle: 'balanced',
-      decisionSpeed: 'moderate',
-      resilience: 50,
-      learningOrientation: 50,
-      DetailOrientation: 50,
-      leadershipStyle: 'balanced',
-      communicationStyle: 'direct'
+      dnaScores: { 'Decision-making': 50, 'Execution': 50, 'Consistency': 50, 'Learning speed': 50, 'Leadership': 50, 'Sales ability': 50, 'Technical skill': 50, 'Communication': 50, 'Focus': 50, 'Confidence': 50 },
+      founderTwin: { thinkStyle: 'analytical', decideStyle: 'balanced', learnStyle: 'building', workPattern: 'focused', failurePattern: 'stall', recoveryPattern: 'structured' },
+      adaptations: [],
     }));
 
     const result = await analyzeDNA('test-key', {});
-    expect(result.riskTolerance).toBe(50);
+    expect(result.dnaScores['Decision-making']).toBe(50);
   });
 });
 

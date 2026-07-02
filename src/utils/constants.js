@@ -48,7 +48,7 @@ export const STARTUP_STAGES = [
 ];
 
 export const AI_AGENTS = [
-  { id: 'ceo', name: 'CEO AI', role: 'Business decisions, prioritization', color: '#6366f1', icon: '👔' },
+  { id: 'ceo', name: 'CEO AI', role: 'Business decisions, prioritization', color: '#C49A6C', icon: '👔' },
   { id: 'cto', name: 'CTO AI', role: 'Technical architecture', color: '#3b82f6', icon: '💻' },
   { id: 'cmo', name: 'CMO AI', role: 'Marketing strategy', color: '#ec4899', icon: '📢' },
   { id: 'sales', name: 'Sales AI', role: 'Customer acquisition', color: '#10b981', icon: '🤝' },

@@ -259,9 +259,9 @@ const styles = {
   },
   insightPanel: {
     padding: '1.25rem',
-    background: 'rgba(99,102,241,0.04)',
-    borderRadius: '16px',
-    border: '1px solid rgba(99,102,241,0.12)',
+    background: 'var(--accent-subtle)',
+
+    border: '1px solid var(--accent)',
   },
   insightTitle: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9375rem', fontWeight: 600, marginBottom: '1rem' },
   insightContent: { display: 'flex', flexDirection: 'column', gap: '0.75rem' },

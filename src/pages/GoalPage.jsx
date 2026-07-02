@@ -74,6 +74,8 @@ const ScoreRadar = React.memo(({ scores }) => {
 export default function GoalPage() {
   const navigate = useNavigate();
   const { profile, setGoal, setClarificationAnswers, setRealityScore, setNegotiationResult } = useFounderStore();
+  const { blueprint, setBlueprint, setBusinessHealth, setStartupScore } = useBusinessStore();
+  const { addTask, createSprint, setFullPlan } = useTaskStore();
   const [phase, setPhase] = useState(PHASES.WELCOME);
   const [goalText, setGoalText] = useState('');
   const [thinking, setThinking] = useState(false);
@@ -215,8 +217,6 @@ export default function GoalPage() {
     }
   };
 
-  const { setBlueprint, setBusinessHealth, setStartupScore } = useBusinessStore();
-
   const handleSelectAlternative = (alt) => { setSelectedAlt(alt); setNegotiationResult(alt); };
 
   const handleProceed = async () => {
@@ -224,11 +224,11 @@ export default function GoalPage() {
     setPageError('');
     try {
       const context = {
-        1: goalText,
-        2: Object.values(clarAnswers).join('; '),
-        3: `Reality Score: ${reality?.overallScore || 'N/A'} — ${reality?.recommendation || ''}`,
-        4: selectedAlt?.label || goalText,
-        5: `Founder: ${profile?.experienceLevel}, Team: ${profile?.teamStatus}`,
+        goal: goalText,
+        clarificationAnswers: Object.values(clarAnswers).join('; '),
+        realityAssessment: `Reality Score: ${reality?.overallScore || 'N/A'} — ${reality?.recommendation || ''}`,
+        selectedGoal: selectedAlt?.label || goalText,
+        founderProfile: `Founder: ${profile?.experienceLevel}, Team: ${profile?.teamStatus}`,
       };
       const bp = await api.generateBlueprintFromGoal(context);
       bp.id = generateId();
@@ -253,7 +253,6 @@ export default function GoalPage() {
         setBusinessHealth(scores.businessHealth);
         setStartupScore(scores.startupScore);
       }
-      const { createSprint, addTask, setFullPlan } = useTaskStore.getState();
       setFullPlan(plan);
       if (plan?.phases?.length) {
         plan.phases.forEach((phase, idx) => {

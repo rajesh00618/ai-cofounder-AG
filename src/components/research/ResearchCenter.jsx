@@ -156,10 +156,9 @@ const styles = {
   sleepBanner: { display: 'flex', gap: '0.75rem', padding: '1rem 1.25rem', background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: '14px', marginBottom: '1.5rem' },
   tabs: { display: 'flex', gap: '0.5rem', marginBottom: '1rem' },
   tab: { display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', fontSize: '0.8125rem', color: 'var(--color-text-secondary)', cursor: 'pointer' },
-  tabActive: { background: 'rgba(99,102,241,0.1)', borderColor: 'rgba(99,102,241,0.3)', color: 'var(--color-accent-light)' },
-  filters: { display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' },
-  filterBtn: { padding: '0.375rem 0.75rem', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '6px', fontSize: '0.75rem', color: 'var(--color-text-secondary)', cursor: 'pointer' },
-  filterActive: { background: 'rgba(99,102,241,0.1)', borderColor: 'rgba(99,102,241,0.3)', color: 'var(--color-accent-light)' },
+  tabActive: { background: 'var(--accent-subtle)', borderColor: 'var(--accent)', color: 'var(--accent)' },
+
+  filterActive: { background: 'var(--accent-subtle)', borderColor: 'var(--accent)', color: 'var(--accent)' },
   list: { display: 'flex', flexDirection: 'column', gap: '0.5rem' },
   researchCard: { display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.875rem 1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px' },
   typeDot: { width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 },

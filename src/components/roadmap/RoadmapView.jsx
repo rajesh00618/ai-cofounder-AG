@@ -61,25 +61,18 @@ export default function RoadmapView() {
           return (
             <div key={stage.id} style={styles.stageWrap}>
               <div style={styles.stageRow}>
-                <div style={{ ...styles.connector, background: i < currentIdx ? 'var(--color-success)' : i === currentIdx ? 'var(--gradient-primary)' : 'rgba(255,255,255,0.06)', opacity: i === 0 ? 0 : 1 }} />
+                <div style={{ ...styles.connector, background: i < currentIdx ? 'var(--color-success)' : i === currentIdx ? 'var(--gradient-primary)' : 'var(--border)', opacity: i === 0 ? 0 : 1 }} />
                 <div style={{
                   ...styles.stageCircle,
-                  background: status === 'complete' ? 'var(--color-success)' : status === 'current' ? 'var(--gradient-primary)' : 'rgba(255,255,255,0.06)',
-                  boxShadow: status === 'current' ? '0 0 20px rgba(99,102,241,0.3)' : 'none'
+                  background: status === 'complete' ? 'var(--color-success)' : status === 'current' ? 'var(--gradient-primary)' : 'var(--bg-elevated)',
+                  boxShadow: status === 'current' ? '0 0 20px rgba(196,154,108,0.3)' : 'none'
                 }}>
-                  {status === 'complete' ? <CheckCircle2 size={20} /> :
-                    status === 'current' ? <Clock size={20} /> :
-                      <Circle size={20} style={{ opacity: 0.3 }} />}
+                  {status === 'complete' ? <CheckCircle2 size={18} /> : status === 'current' ? <Circle size={18} /> : <div style={{width:18,height:18,borderRadius:'50%',border:'2px solid var(--border)'}} />}
                 </div>
-                <div style={{ ...styles.connector, background: i < currentIdx ? 'var(--color-success)' : 'rgba(255,255,255,0.06)', opacity: i === STARTUP_STAGES.length - 1 ? 0 : 1 }} />
               </div>
               <div style={styles.stageInfo}>
                 <span style={styles.stageEmoji}>{stage.icon}</span>
-                <span style={{ ...styles.stageName, color: status === 'current' ? 'var(--color-accent-light)' : status === 'complete' ? 'var(--color-success-light)' : 'var(--color-text-muted)', fontWeight: status === 'current' ? 700 : 500 }}>
-                  {stage.label}
-                </span>
-                {status === 'current' && <span className="badge badge-accent" style={{ fontSize: '0.5rem' }}>CURRENT</span>}
-                {status === 'complete' && <span className="badge badge-success" style={{ fontSize: '0.5rem' }}>DONE</span>}
+                <span style={styles.stageName}>{stage.label}</span>
               </div>
             </div>
           );
@@ -92,8 +85,8 @@ export default function RoadmapView() {
 const styles = {
   page: { maxWidth: '800px' },
   title: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.25rem' },
-  subtitle: { color: 'var(--color-text-tertiary)', fontSize: '0.875rem', marginBottom: '2rem' },
-  guidanceCard: { display: 'flex', gap: '0.75rem', padding: '1rem 1.25rem', background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.1)', borderRadius: '14px', marginBottom: '2rem', alignItems: 'flex-start' },
+  subtitle: { color: 'var(--color-text-tertiary)', fontSize: '0.875rem', marginBottom: '1.5rem' },
+  guidanceCard: { display: 'flex', gap: '0.75rem', padding: '1rem 1.25rem', background: 'var(--accent-subtle)', border: '1px solid var(--accent)', borderRadius: '14px', marginBottom: '2rem', alignItems: 'flex-start' },
   roadmap: { display: 'flex', flexDirection: 'column', gap: '0.5rem' },
   stageWrap: { display: 'flex', flexDirection: 'column', alignItems: 'center' },
   stageRow: { display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'center' },

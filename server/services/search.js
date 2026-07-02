@@ -3,10 +3,33 @@ import { logger } from './logger.js';
 const TIMEOUT = 8000;
 const MAX_RESULTS = 6;
 
+const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
+const TAVILY_ENDPOINT = 'https://api.tavily.com/search';
+
+const tavilySearch = async (query) => {
+  if (!TAVILY_API_KEY) return null;
+  const res = await fetch(TAVILY_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ api_key: TAVILY_API_KEY, query, max_results: MAX_RESULTS, search_depth: 'basic' }),
+    signal: AbortSignal.timeout(TIMEOUT),
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return (data.results || []).map(r => ({ title: r.title, url: r.url, snippet: r.content }));
+};
+
+// Legacy HTML scraping fallbacks — ToS may restrict automated scraping
+const SCRAPING_WARNING = 'Legacy HTML scraping fallback — set TAVILY_API_KEY for production use.';
 const SEARCH_PROVIDERS = [
+  {
+    name: 'tavily',
+    search: tavilySearch,
+  },
   {
     name: 'duckduckgo',
     search: async (query) => {
+      logger.warn(`[Search] ${SCRAPING_WARNING}`);
       const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
       const res = await fetch(url, {
         signal: AbortSignal.timeout(TIMEOUT),
@@ -29,6 +52,7 @@ const SEARCH_PROVIDERS = [
   {
     name: 'startpage',
     search: async (query) => {
+      logger.warn(`[Search] ${SCRAPING_WARNING}`);
       const url = `https://www.startpage.com/do/dsearch?query=${encodeURIComponent(query)}&cat=web`;
       const res = await fetch(url, {
         signal: AbortSignal.timeout(TIMEOUT),
@@ -54,10 +78,11 @@ export const searchWeb = async (query) => {
   for (const provider of SEARCH_PROVIDERS) {
     try {
       const results = await provider.search(query);
-      if (results.length > 0) {
+      if (results && results.length > 0) {
         logger.info(`[Search] ${provider.name} returned ${results.length} results for "${query.slice(0, 50)}"`);
         return results;
       }
+      if (provider.name === 'tavily' && results === null) continue;
     } catch (err) {
       logger.warn(`[Search] ${provider.name} failed: ${err.message}`);
     }

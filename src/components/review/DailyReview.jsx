@@ -163,5 +163,5 @@ const styles = {
   moodRow: { display: 'flex', gap: '0.75rem' },
   moodBtn: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.375rem', padding: '1rem 1.5rem', background: 'rgba(255,255,255,0.02)', border: '2px solid rgba(255,255,255,0.08)', borderRadius: '14px', cursor: 'pointer', transition: 'all 0.2s' },
   successCard: { textAlign: 'center', padding: '4rem 2rem' },
-  aiNote: { display: 'flex', alignItems: 'flex-start', gap: '0.5rem', padding: '1rem', background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: '12px', fontSize: '0.875rem', color: 'var(--color-text-secondary)', lineHeight: 1.6, textAlign: 'left', maxWidth: '500px', margin: '0 auto' },
+  aiNote: { display: 'flex', alignItems: 'flex-start', gap: '0.5rem', padding: '1rem', background: 'var(--accent-subtle)', border: '1px solid var(--accent)', borderRadius: '12px', fontSize: '0.875rem', color: 'var(--color-text-secondary)', lineHeight: 1.6, textAlign: 'left', maxWidth: '500px', margin: '0 auto' },
 };

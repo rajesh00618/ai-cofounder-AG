@@ -4,7 +4,7 @@ import { Brain, Clock, Plus, Link2 } from 'lucide-react';
 import { api } from '../../utils/api';
 
 const NODE_COLORS = {
-  idea: '#6366f1', task: '#f59e0b', customer: '#10b981',
+  idea: '#C49A6C', task: '#f59e0b', customer: '#10b981',
   document: '#3b82f6', milestone: '#a855f7', revenue: '#ec4899',
   goal: '#8b5cf6', project: '#06b6d4'
 };
@@ -243,7 +243,7 @@ export default function MemoryGraph() {
               {nodes.map((node, i) => {
                 const pos = positions[i];
                 if (!pos) return null;
-                const color = NODE_COLORS[node.type] || '#6366f1';
+                const color = NODE_COLORS[node.type] || 'var(--accent)';
                 return (
                   <g key={node.id} style={{ cursor: 'pointer' }}>
                     <circle cx={pos.x} cy={pos.y} r="28" fill={color} opacity="0.1" />
@@ -262,7 +262,7 @@ export default function MemoryGraph() {
                   <text x={SVG_W / 2} y={34} fill="white" fontSize="10" textAnchor="middle" fontWeight="700">{profile.name?.[0] || 'F'}</text>
                 </>
               )}
-              <defs><linearGradient id="grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#6366f1" /><stop offset="100%" stopColor="#a855f7" /></linearGradient></defs>
+              <defs><linearGradient id="grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#C49A6C" /><stop offset="100%" stopColor="#A07850" /></linearGradient></defs>
             </svg>
           </div>
 

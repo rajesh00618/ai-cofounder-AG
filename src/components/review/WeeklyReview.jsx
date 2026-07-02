@@ -26,7 +26,7 @@ function HealthTrend({ trend }) {
 function GradeBadge({ grade }) {
   const config = {
     A: { color: 'var(--color-success)', bg: 'rgba(34,197,94,0.1)' },
-    B: { color: 'var(--color-accent-light)', bg: 'rgba(99,102,241,0.1)' },
+    B: { color: 'var(--color-accent)', bg: 'var(--accent-subtle)' },
     C: { color: 'var(--color-warning)', bg: 'rgba(245,158,11,0.1)' },
     D: { color: 'var(--color-danger-light)', bg: 'rgba(249,115,22,0.1)' },
     F: { color: 'var(--color-danger)', bg: 'rgba(239,68,68,0.1)' }
@@ -231,8 +231,8 @@ export default function WeeklyReview() {
 
           <div style={{
             padding: '1.25rem',
-            background: 'rgba(99,102,241,0.05)',
-            border: '1px solid rgba(99,102,241,0.15)',
+            background: 'var(--accent-subtle)',
+            border: '1px solid var(--accent)',
             borderRadius: '14px'
           }}>
             <h3 style={{ ...styles.sectionTitle, marginBottom: '0.75rem' }}>

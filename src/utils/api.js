@@ -31,10 +31,16 @@ const getHeaders = () => {
 const API_TIMEOUT = 60000;
 const STREAM_TIMEOUT = 60000;
 
+const RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
+
 const fetchWithRetry = async (url, options, retries = 2) => {
   for (let i = 0; i <= retries; i++) {
     try {
       const res = await fetch(url, options);
+      if (!res.ok && i < retries && RETRYABLE_STATUSES.has(res.status)) {
+        await new Promise(r => setTimeout(r, Math.pow(2, i) * 500));
+        continue;
+      }
       return res;
     } catch (err) {
       if (i === retries) throw err;

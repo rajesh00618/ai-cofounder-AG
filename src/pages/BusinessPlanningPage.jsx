@@ -36,11 +36,11 @@ export default function BusinessPlanningPage() {
         const clarAnswers = profile?.clarificationAnswers || {};
         const reality = profile?.realityScore || {};
         const context = {
-          1: goalText,
-          2: Object.values(clarAnswers).join('; '),
-          3: `Reality Score: ${reality?.overallScore || 'N/A'} — ${reality?.recommendation || ''}`,
-          4: goalText,
-          5: `Founder: ${profile?.experienceLevel}, Team: ${profile?.teamStatus}`,
+          goal: goalText,
+          clarificationAnswers: Object.values(clarAnswers).join('; '),
+          realityAssessment: `Reality Score: ${reality?.overallScore || 'N/A'} — ${reality?.recommendation || ''}`,
+          selectedGoal: goalText,
+          founderProfile: `Founder: ${profile?.experienceLevel}, Team: ${profile?.teamStatus}`,
         };
         const result = await api.generateBlueprintFromGoal(context);
         for (let i = 0; i < BLUEPRINT_SECTIONS.length; i++) { setGenStep(i); if (cancelled) return; await delay(50); }
@@ -85,7 +85,7 @@ export default function BusinessPlanningPage() {
 
   const handleExport = () => {
     if (!bp) return;
-    let text = [
+    const parts = [
       '=== Business Blueprint ===', '',
       `Executive Summary: ${bp.executiveSummary || ''}`, '',
       `Problem: ${bp.problem || ''}`, '',
@@ -98,12 +98,12 @@ export default function BusinessPlanningPage() {
       `Validation Plan: ${bp.validationPlan || ''}`, '',
       `MVP Plan: ${bp.mvpPlan || ''}`, '',
       'Success Metrics:', ...(bp.successMetrics || []).map(m => `  ✓ ${m}`),
-    ].join('\n');
+    ];
+    let text = parts.join('\n');
     if (bp.risks) text += `\n\nRISKS:\n${Array.isArray(bp.risks) ? bp.risks.map(r => `• ${r}`).join('\n') : bp.risks}`;
     if (bp.financials) text += `\n\nFINANCIALS:\n${Object.entries(bp.financials).map(([k, v]) => `${k}: ${v}`).join('\n')}`;
     if (bp.roadmap) text += `\n\nROADMAP:\n${Object.entries(bp.roadmap).map(([k, v]) => `${k}: ${v}`).join('\n')}`;
-    const lines = text;
-    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+    const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = `blueprint-${bp.id || 'export'}.txt`;

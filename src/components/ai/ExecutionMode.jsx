@@ -48,7 +48,7 @@ export default function ExecutionMode() {
         if (!mountedRef.current) return;
         const result = await api.executeStep(i + 1, task);
         if (!mountedRef.current) return;
-        setStepOutputs(prev => [...prev, { step: i + 1, output: result?.output || 'Step completed (no detailed output)' }]);
+        setStepOutputs(prev => [...prev, { step: i + 1, output: result?.output || result?.status || 'Step completed' }]);
       }
 
       if (mountedRef.current) setCompleted(true);
@@ -61,7 +61,7 @@ export default function ExecutionMode() {
     return (
     <div style={styles.page} className="page-enter">
       <h2 style={styles.title}><Zap size={22} style={{color:'var(--color-warning)'}} /> Execution Mode</h2>
-      <p style={styles.subtitle}>AI executes tasks autonomously — not just advises, but builds</p>
+      <p style={styles.subtitle}>AI creates a detailed execution plan and guides you through each step</p>
 
       <div style={styles.inputRow}>
         <input type="text" placeholder="Tell the AI what to build (e.g., 'Build my landing page')" value={task} onChange={e => setTask(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleExecute()} style={styles.input} disabled={active} />
@@ -89,13 +89,13 @@ export default function ExecutionMode() {
               <div key={step.id} style={{
                 ...styles.step,
                 opacity: i <= currentStep ? 1 : 0.4,
-                borderColor: i < currentStep ? 'var(--color-success)' : i === currentStep ? 'var(--color-accent)' : 'rgba(255,255,255,0.06)',
-                background: i < currentStep ? 'rgba(16,185,129,0.05)' : i === currentStep ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.02)'
+                borderColor: i < currentStep ? 'var(--color-success)' : i === currentStep ? 'var(--color-accent)' : 'var(--border)',
+                background: i < currentStep ? 'rgba(125,184,125,0.08)' : i === currentStep ? 'var(--accent-subtle)' : 'var(--bg-card)'
               }}>
                 <div style={styles.stepLeft}>
-                  {i < currentStep ? <CheckCircle2 size={18} style={{color:'var(--color-success)'}} /> :
+                    {i < currentStep ? <CheckCircle2 size={18} style={{color:'var(--color-success)'}} /> :
                    i === currentStep ? <Loader2 size={18} style={{color:'var(--color-accent)',animation:'spin 1s linear infinite'}} /> :
-                   <div style={{width:18,height:18,borderRadius:'50%',border:'2px solid rgba(255,255,255,0.15)'}} />}
+                   <div style={{width:18,height:18,borderRadius:'50%',border:'2px solid var(--border-light)'}} />}
                   <div>
                     <div style={{fontWeight:600,fontSize:'0.875rem'}}>{step.label}</div>
                     {i === currentStep && stepOutputs[i] && <div style={{fontSize:'0.75rem',color:'var(--color-accent-light)'}}>Running...</div>}
@@ -132,8 +132,8 @@ export default function ExecutionMode() {
       {!plan && !active && (
         <div style={styles.emptyCard}>
           <Zap size={48} style={{opacity:0.2,marginBottom:'1rem'}} />
-          <p style={{fontSize:'1rem',fontWeight:500,marginBottom:'0.5rem'}}>What should the AI build for you?</p>
-          <p style={{fontSize:'0.875rem',color:'var(--color-text-tertiary)'}}>Describe any task — the AI will research, code, test, and deploy autonomously.</p>
+          <p style={{fontSize:'1rem',fontWeight:500,marginBottom:'0.5rem'}}>What should the AI plan for you?</p>
+          <p style={{fontSize:'0.875rem',color:'var(--color-text-tertiary)'}}>Describe any task — the AI will create a step-by-step execution plan.</p>
         </div>
       )}
     </div>
@@ -145,15 +145,15 @@ const styles = {
   title: { display:'flex', alignItems:'center', gap:'0.5rem', fontSize:'1.5rem', fontWeight:700, marginBottom:'0.25rem' },
   subtitle: { color:'var(--color-text-tertiary)', fontSize:'0.875rem', marginBottom:'1.5rem' },
   inputRow: { display:'flex', gap:'0.5rem', marginBottom:'0.75rem' },
-  input: { flex:1, padding:'0.75rem 1rem', fontSize:'0.875rem', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:'12px' },
+  input: { flex:1, padding:'0.75rem 1rem', fontSize:'0.875rem', background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:'12px' },
   examples: { display:'flex', gap:'0.5rem', flexWrap:'wrap', marginBottom:'1.5rem' },
-  exampleBtn: { padding:'0.375rem 0.875rem', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:'8px', fontSize:'0.75rem', color:'var(--color-text-secondary)', cursor:'pointer', transition:'all 0.2s' },
-  planCard: { padding:'1.5rem', background:'rgba(255,255,255,0.02)', borderRadius:'16px', border:'1px solid rgba(255,255,255,0.06)' },
+  exampleBtn: { padding:'0.375rem 0.875rem', background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'8px', fontSize:'0.75rem', color:'var(--color-text-secondary)', cursor:'pointer', transition:'all 0.2s' },
+  planCard: { padding:'1.5rem', background:'var(--bg-card)', borderRadius:'16px', border:'1px solid var(--border)' },
   planHeader: { display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.25rem' },
   steps: { display:'flex', flexDirection:'column', gap:'0.625rem' },
   step: { display:'flex', justifyContent:'space-between', alignItems:'center', padding:'0.875rem 1rem', borderRadius:'12px', border:'1px solid', transition:'all 0.3s' },
   stepLeft: { display:'flex', alignItems:'center', gap:'0.75rem' },
-  completeBanner: { display:'flex', gap:'0.75rem', padding:'1rem', background:'rgba(16,185,129,0.05)', border:'1px solid rgba(16,185,129,0.15)', borderRadius:'12px', marginTop:'1rem' },
-  errorBanner: { display:'flex', gap:'0.75rem', padding:'1rem', background:'rgba(239,68,68,0.05)', border:'1px solid rgba(239,68,68,0.15)', borderRadius:'12px', marginTop:'1rem' },
+  completeBanner: { display:'flex', gap:'0.75rem', padding:'1rem', background:'rgba(125,184,125,0.08)', border:'1px solid rgba(125,184,125,0.2)', borderRadius:'12px', marginTop:'1rem' },
+  errorBanner: { display:'flex', gap:'0.75rem', padding:'1rem', background:'rgba(196,112,112,0.08)', border:'1px solid rgba(196,112,112,0.2)', borderRadius:'12px', marginTop:'1rem' },
   emptyCard: { textAlign:'center', padding:'4rem 2rem', color:'var(--color-text-muted)' },
 };

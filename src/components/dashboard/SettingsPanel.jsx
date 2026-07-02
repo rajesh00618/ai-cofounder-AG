@@ -11,10 +11,13 @@ export default function SettingsPanel() {
   const [saved, setSaved] = useState(false);
   const [serverStatus, setServerStatus] = useState(null);
   const [serverKeyStatus, setServerKeyStatus] = useState(null);
+  const [keyError, setKeyError] = useState('');
 
   const [chatId, setChatId] = useState(() => { try { return localStorage.getItem('ai-cofounder-telegram') || ''; } catch { return ''; } });
   const [chatIdSaved, setChatIdSaved] = useState(false);
+  const [chatIdError, setChatIdError] = useState('');
   const [testSending, setTestSending] = useState(false);
+  const [testResult, setTestResult] = useState('');
 
   const [resetEmail, setResetEmail] = useState('');
   const [resetSent, setResetSent] = useState(false);
@@ -41,10 +44,8 @@ export default function SettingsPanel() {
   }, [user]);
 
   const handleSaveKey = async () => {
-    if (!user) {
-      alert('Please sign in to save your API key on the server.');
-      return;
-    }
+    setKeyError('');
+    if (!user) { setKeyError('Please sign in to save your API key on the server.'); return; }
     if (!key || !key.trim()) return;
     try {
       await api.setApiKey(key.trim());
@@ -53,40 +54,33 @@ export default function SettingsPanel() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
-      alert('Failed to save API key. Please check your key and try again.');
+      setKeyError('Failed to save API key. Please check your key and try again.');
     }
   };
 
   const handleSaveChatId = async () => {
-    if (!user) {
-      alert('Please sign in to register for Telegram reminders.');
-      return;
-    }
-    if (!chatId || !chatId.trim()) {
-      alert('Enter your Telegram chat ID.');
-      return;
-    }
+    setChatIdError('');
+    if (!user) { setChatIdError('Please sign in to register for Telegram reminders.'); return; }
+    if (!chatId || !chatId.trim()) { setChatIdError('Enter your Telegram chat ID.'); return; }
     try {
       await api.registerReminderPhone(user.email, chatId.trim());
       localStorage.setItem('ai-cofounder-telegram', chatId.trim());
       setChatIdSaved(true);
       setTimeout(() => setChatIdSaved(false), 2000);
     } catch (err) {
-      alert('Failed to register Telegram chat ID. Check server logs.');
+      setChatIdError('Failed to register Telegram chat ID. Check server logs.');
     }
   };
 
   const handleTestReminder = async () => {
-    if (!chatId || !chatId.trim()) {
-      alert('Enter your Telegram chat ID first.');
-      return;
-    }
+    setTestResult('');
+    if (!chatId || !chatId.trim()) { setChatIdError('Enter your Telegram chat ID first.'); return; }
     setTestSending(true);
     try {
       await api.testReminder(chatId.trim());
-      alert('Test message sent! Check your Telegram.');
+      setTestResult('Test message sent! Check your Telegram.');
     } catch (err) {
-      alert('Failed to send test: ' + err.message);
+      setTestResult('Failed to send test: ' + err.message);
     }
     setTestSending(false);
   };
@@ -134,30 +128,30 @@ export default function SettingsPanel() {
       <div style={styles.card}>
         <h3 style={styles.cardTitle}><Key size={16} /> AI API Key</h3>
         {serverStatus === null && (
-          <div style={{ ...styles.badge, background: 'rgba(99,102,241,0.05)', borderColor: 'rgba(99,102,241,0.1)', color: 'var(--color-text-muted)' }}>
+          <div style={{ ...styles.badge, background: 'var(--accent-subtle)', borderColor: 'var(--border)', color: 'var(--color-text-muted)' }}>
             <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> Checking server configuration...
           </div>
         )}
         {serverStatus === 'configured' && !apiKey && (
-          <div style={{ ...styles.badge, background: 'rgba(16,185,129,0.05)', borderColor: 'rgba(16,185,129,0.1)' }}>
+          <div style={{ ...styles.badge, background: 'rgba(125,184,125,0.08)', borderColor: 'rgba(125,184,125,0.15)' }}>
             <Server size={14} style={{ color: 'var(--color-success)' }} />
             <span style={{ color: 'var(--color-success-light)' }}>Server has an API key configured. AI will work without entering one.</span>
           </div>
         )}
         {serverStatus === 'no-key' && serverKeyStatus && !key && (
-          <div style={{ ...styles.badge, background: 'rgba(16,185,129,0.05)', borderColor: 'rgba(16,185,129,0.1)' }}>
+          <div style={{ ...styles.badge, background: 'rgba(125,184,125,0.08)', borderColor: 'rgba(125,184,125,0.15)' }}>
             <CheckCircle2 size={14} style={{ color: 'var(--color-success)' }} />
             <span style={{ color: 'var(--color-success-light)' }}>API key stored securely on the server.</span>
           </div>
         )}
         {serverStatus === 'no-key' && !serverKeyStatus && !apiKey && !key && (
-          <div style={{ ...styles.badge, background: 'rgba(239,68,68,0.05)', borderColor: 'rgba(239,68,68,0.1)' }}>
+          <div style={{ ...styles.badge, background: 'rgba(196,112,112,0.08)', borderColor: 'rgba(196,112,112,0.15)' }}>
             <AlertTriangle size={14} style={{ color: 'var(--color-danger)' }} />
             <span style={{ color: 'var(--color-danger-light)' }}>No API key configured. Add one below or in the .env file.</span>
           </div>
         )}
         {serverStatus === 'offline' && (
-          <div style={{ ...styles.badge, background: 'rgba(239,68,68,0.05)', borderColor: 'rgba(239,68,68,0.1)' }}>
+          <div style={{ ...styles.badge, background: 'rgba(196,112,112,0.08)', borderColor: 'rgba(196,112,112,0.15)' }}>
             <AlertTriangle size={14} style={{ color: 'var(--color-danger)' }} />
             <span style={{ color: 'var(--color-danger-light)' }}>Server is offline. Start it with: node server/index.js</span>
           </div>
@@ -168,6 +162,7 @@ export default function SettingsPanel() {
             {saved ? <><CheckCircle2 size={14} /> Saved</> : <><Save size={14} /> Save</>}
           </button>
         </div>
+        {keyError && <p style={{ fontSize: '0.75rem', color: 'var(--color-danger)', marginTop: '0.25rem' }}>{keyError}</p>}
         <p style={styles.hint}>Stored securely on the server (never in localStorage). <strong style={{color:'var(--color-success)'}}>Security note:</strong> After signing in, your API key is encrypted in memory on the server.</p>
       </div>
 
@@ -183,12 +178,14 @@ export default function SettingsPanel() {
             {chatIdSaved ? <><CheckCircle2 size={14} /> Saved</> : <><Save size={14} /> Save</>}
           </button>
         </div>
+        {chatIdError && <p style={{ fontSize: '0.75rem', color: 'var(--color-danger)', marginTop: '0.25rem' }}>{chatIdError}</p>}
         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
           <button className="btn btn-secondary btn-sm" onClick={handleTestReminder} disabled={testSending || !chatId.trim()}>
             {testSending ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={14} />}
             {' '}Send Test
           </button>
         </div>
+        {testResult && <p style={{ fontSize: '0.75rem', color: testResult.includes('Failed') ? 'var(--color-danger)' : 'var(--color-success)', marginTop: '0.25rem' }}>{testResult}</p>}
         <p style={styles.hint}>Chat ID saved to your account. Click "Send Test" to verify it works immediately.</p>
       </div>
 
@@ -207,7 +204,7 @@ export default function SettingsPanel() {
           {resetSent && <p style={{ fontSize: '0.75rem', color: 'var(--color-success)', marginTop: '0.25rem' }}>Reset link sent (check server console in dev mode).</p>}
         </div>
 
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '1rem' }}>
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
           <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', marginBottom: '0.5rem' }}>Change your password (requires reset token from forgot password):</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <input type="password" placeholder="New password (8+ chars)" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={styles.input} />
@@ -226,7 +223,7 @@ export default function SettingsPanel() {
         <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', lineHeight: 1.8 }}>
           <strong>AI Co-Founder v2.1</strong> — The world's first Startup Operating System.<br />
           <strong>AI Models:</strong> llama-4-maverick-17b, mistral-large, phi-4 (multi-model fallback)<br />
-          <strong>Web Search:</strong> DuckDuckGo + Startpage (real-time)<br />
+          <strong>Web Search:</strong> Tavily (primary), DuckDuckGo + Startpage (fallback)<br />
           <strong>Monitoring:</strong> Structured file logging<br />
           <strong>Reminders:</strong> Telegram at 9 AM / 6 PM<br />
           <strong>Streaming:</strong> SSE-based token streaming
@@ -240,10 +237,10 @@ const styles = {
   page: { maxWidth: '700px' },
   title: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.25rem' },
   subtitle: { color: 'var(--color-text-tertiary)', fontSize: '0.875rem', marginBottom: '1.5rem' },
-  card: { padding: '1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)', marginBottom: '1.25rem' },
+  card: { padding: '1.5rem', background: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--border)', marginBottom: '1.25rem' },
   cardTitle: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1rem', fontWeight: 600, marginBottom: '0.75rem' },
   inputRow: { display: 'flex', gap: '0.5rem', marginTop: '0.5rem' },
-  input: { flex: 1, padding: '0.625rem 1rem', fontSize: '0.875rem', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', color: 'var(--color-text-primary)' },
+  input: { flex: 1, padding: '0.625rem 1rem', fontSize: '0.875rem', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--color-text-primary)' },
   badge: { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.625rem 0.75rem', border: '1px solid', borderRadius: '8px', fontSize: '0.8125rem' },
   hint: { fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '0.5rem' },
 };

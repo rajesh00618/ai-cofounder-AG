@@ -100,11 +100,10 @@ router.post('/chat/stream', requireApiKey, requireBody('message'), async (req, r
   const abortController = new AbortController();
   const onClose = () => {
     abortController.abort();
-    if (!res.writableEnded) {
-      res.end();
-    }
+    try { if (!res.writableEnded) res.end(); } catch {}
   };
   req.on('close', onClose);
+  res.on('error', () => {});
 
   try {
     const { message, context } = req.body;
@@ -129,10 +128,12 @@ router.post('/chat/stream', requireApiKey, requireBody('message'), async (req, r
   } catch (error) {
     if (abortController.signal.aborted) return;
     logger.error(`[Chat Stream] ${error.message}`);
-    if (!res.writableEnded) {
-      res.write(`data: ${JSON.stringify({ error: 'Stream processing failed' })}\n\n`);
-      res.end();
-    }
+    try {
+      if (!res.writableEnded) {
+        res.write(`data: ${JSON.stringify({ error: 'Stream processing failed' })}\n\n`);
+        res.end();
+      }
+    } catch {}
     req.removeListener('close', onClose);
   }
 });

@@ -117,22 +117,39 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api', apiRoutes);
 
-// Serve built frontend in production (Docker deployment)
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static('dist'));
-}
+// Health endpoints — must be before the API 404 catch-all
+app.get('/health', (req, res) => res.redirect('/api/health'));
 
-// API 404 — structured JSON response for unrecognised API routes
-app.use('/api', (req, res) => {
-  res.status(404).json({ error: 'Not found' });
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    version: process.env.npm_package_version || '1.0.0',
+    uptime: process.uptime(),
+    apiKeyConfigured: !!process.env.NVIDIA_API_KEY,
+    memory: {
+      rss: Math.round(process.memoryUsage().rss / 1024 / 1024) + 'MB',
+      heap: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
+    },
+  });
 });
 
-// SPA fallback — serve index.html for all non-API GET requests (client-side routing)
-if (process.env.NODE_ENV === 'production') {
-  app.get('/{*path}', (req, res) => {
-    res.sendFile('dist/index.html', { root: '.' });
-  });
-}
+app.get('/api/health/ready', async (req, res) => {
+  const checks = { database: 'ok', ai: process.env.NVIDIA_API_KEY || process.env.AI_MODEL ? 'configured' : 'not configured' };
+  const supabase = getDb();
+  if (supabase) {
+    try {
+      await supabase.from('users').select('id').limit(1);
+      checks.database = 'ok';
+    } catch {
+      checks.database = 'error';
+    }
+  } else {
+    checks.database = 'not configured';
+  }
+  const isReady = checks.database !== 'error';
+  res.status(isReady ? 200 : 503).json({ status: isReady ? 'ready' : 'not ready', checks, timestamp: new Date().toISOString() });
+});
 
 // Telegram chat ID registration (requires authentication)
 app.post('/api/reminders/register', requireJwt, async (req, res) => {
@@ -140,8 +157,7 @@ app.post('/api/reminders/register', requireJwt, async (req, res) => {
     const { email, chatId } = req.body;
     if (!email || !chatId) return res.status(400).json({ error: 'Email and Telegram chat ID required' });
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Invalid email format.' });
-    const cleaned = chatId.toString().trim();
-    await registerTelegramChatId(email, cleaned);
+    await registerTelegramChatId(email, chatId.toString().trim());
     logger.info(`Registered ${email.replace(/./g, '*')} for Telegram reminders`);
     res.json({ message: 'Telegram chat ID registered for reminders' });
   } catch (error) {
@@ -155,9 +171,7 @@ app.post('/api/reminders/test', requireJwt, async (req, res) => {
   try {
     const { chatId } = req.body;
     if (!chatId) return res.status(400).json({ error: 'Telegram chat ID required' });
-    const cleaned = chatId.toString().trim();
-    await sendMorningReminder(cleaned, 'Test User', [{ title: 'Test task 1' }, { title: 'Test task 2' }]);
-    logger.info(`[Reminders] Test message sent to ${cleaned}`);
+    await sendMorningReminder(chatId.toString().trim(), 'Test User', [{ title: 'Test task 1' }, { title: 'Test task 2' }]);
     res.json({ message: 'Test Telegram message sent!' });
   } catch (error) {
     logger.error(`[Reminders] Test failed: ${error.message}`);
@@ -165,48 +179,22 @@ app.post('/api/reminders/test', requireJwt, async (req, res) => {
   }
 });
 
-app.get('/health', (req, res) => res.redirect('/api/health'));
+// Serve built frontend in production (Docker deployment)
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static('dist'));
+}
 
-app.get('/api/health', (req, res) => {
-  const health = {
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version || '1.0.0',
-    uptime: process.uptime(),
-    apiKeyConfigured: !!process.env.NVIDIA_API_KEY,
-    memory: {
-      rss: Math.round(process.memoryUsage().rss / 1024 / 1024) + 'MB',
-      heap: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
-    },
-  };
-  res.json(health);
+// API 404 — structured JSON response for unrecognised API routes
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'Not found' });
 });
 
-app.get('/api/health/ready', async (req, res) => {
-  const checks = {
-    database: 'ok',
-    ai: process.env.NVIDIA_API_KEY || process.env.AI_MODEL ? 'configured' : 'not configured',
-  };
-
-  const supabase = getDb();
-  if (supabase) {
-    try {
-      await supabase.from('users').select('id').limit(1);
-      checks.database = 'ok';
-    } catch {
-      checks.database = 'error';
-    }
-  } else {
-    checks.database = 'not configured';
-  }
-
-  const isReady = checks.database !== 'error';
-  res.status(isReady ? 200 : 503).json({
-    status: isReady ? 'ready' : 'not ready',
-    checks,
-    timestamp: new Date().toISOString(),
+// SPA fallback — serve index.html for all non-API GET requests (client-side routing)
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile('dist/index.html', { root: '.' });
   });
-});
+}
 
 // 404 handler for unmatched routes
 app.use((req, res) => {
@@ -244,6 +232,7 @@ initDb().then(startServer).catch(err => {
 // Unhandled rejection/exception handlers
 process.on('unhandledRejection', (reason, promise) => {
   logger.error(`[Process] Unhandled Rejection at: ${promise}`, reason);
+  gracefulShutdown('UNHANDLED_REJECTION');
 });
 
 process.on('uncaughtException', (err) => {
@@ -257,6 +246,7 @@ const gracefulShutdown = (signal) => {
   stopBackgroundResearch();
   stopReminderScheduler();
   closeDb();
+  server.closeAllConnections?.();
   server.close(() => {
     logger.info('[Server] HTTP server closed');
     process.exit(0);

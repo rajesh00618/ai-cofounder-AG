@@ -12,8 +12,10 @@ services:
         value: production
       - key: FRONTEND_URL
         value: https://ai-cofounder.onrender.com
+      - key: RENDER_EXTERNAL_URL
+        value: https://ai-cofounder.onrender.com
       - key: ALLOW_SERVER_KEY_FALLBACK
-        value: "true"
+        value: "false"
       - key: AI_MODEL
         value: meta/llama-4-maverick-17b-128e-instruct
       - key: AI_BASE_URL

@@ -202,7 +202,7 @@ export default function InvestorMode() {
 
               {/* Recommendation */}
               {result.recommendation && (
-                <div style={{ ...styles.section, background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.1)', borderRadius: '12px', padding: '1rem 1.25rem' }}>
+                <div style={{ ...styles.section, background: 'var(--accent-subtle)', border: '1px solid var(--accent)', borderRadius: '12px', padding: '1rem 1.25rem' }}>
                   <h4 style={{ ...styles.sectionTitle, marginBottom: '0.5rem' }}><Star size={16} style={{ color: 'var(--color-accent-light)' }} /> Recommendation</h4>
                   <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', lineHeight: 1.7 }}>{result.recommendation}</p>
                 </div>
@@ -274,33 +274,9 @@ const styles = {
 
   tabs: { display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexShrink: 0 },
   tab: { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1.25rem', fontSize: '0.875rem', fontWeight: 500, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', color: 'var(--color-text-tertiary)', cursor: 'pointer', transition: 'all 0.2s' },
-  tabActive: { background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', color: 'var(--color-accent-light)' },
+  tabActive: { background: 'var(--accent-subtle)', border: '1px solid var(--accent)', color: 'var(--accent)' },
 
-  evaluatePanel: { flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto', padding: '0.25rem 0' },
-  evalPrompt: { padding: '1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.06)' },
-
-  loadingState: { display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '2rem 1.25rem', fontSize: '0.875rem', color: 'var(--color-text-tertiary)' },
-  errorBox: { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: '10px', fontSize: '0.8125rem', color: 'var(--color-danger)' },
-
-  resultsArea: { display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '1rem' },
-
-  verdictCard: { display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: '14px', border: '2px solid' },
-  verdictIcon: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255,255,255,0.04)' },
-
-  scoresGrid: { display: 'grid', gap: '0.75rem' },
-  scoreRow: { display: 'flex', alignItems: 'center', gap: '0.25rem' },
-  scoreLabel: { fontSize: '0.8125rem', color: 'var(--color-text-secondary)', width: '140px', flexShrink: 0 },
-  scoreValue: { fontSize: '0.875rem', fontWeight: 700, width: '48px', textAlign: 'right' },
-
-  section: { marginBottom: '0.25rem' },
-  sectionTitle: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9375rem', fontWeight: 600, marginBottom: '0.75rem' },
-  list: { listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' },
-  listItem: { padding: '0.625rem 0.875rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', fontSize: '0.8125rem', color: 'var(--color-text-secondary)', lineHeight: 1.5, borderLeft: '2px solid rgba(255,255,255,0.06)' },
-
-  chatPanel: { flex: 1, display: 'flex', flexDirection: 'column' },
-  chatArea: { flex: 1, overflowY: 'auto', padding: '0.5rem 0', display: 'flex', flexDirection: 'column', gap: '0.75rem' },
-  userRow: { display: 'flex', justifyContent: 'flex-end' },
-  userBubble: { maxWidth: '70%', padding: '0.75rem 1.25rem', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '16px 16px 4px 16px', fontSize: '0.9375rem', color: 'var(--color-text-primary)', lineHeight: 1.6 },
+  userBubble: { maxWidth: '70%', padding: '0.75rem 1.25rem', background: 'var(--accent-subtle)', border: '1px solid var(--accent)', borderRadius: '16px 16px 4px 16px', fontSize: '0.9375rem', color: 'var(--color-text-primary)', lineHeight: 1.6 },
   investorMsg: { padding: '1rem 1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.06)', borderLeft: '3px solid var(--color-accent)' },
   investorHeader: { display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.375rem' },
   thinking: { display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', fontSize: '0.8125rem', color: 'var(--color-text-tertiary)' },
