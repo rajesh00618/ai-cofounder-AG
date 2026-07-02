@@ -23,11 +23,10 @@ COPY --from=builder --chown=appuser:nodejs /app/dist ./dist
 COPY --from=builder --chown=appuser:nodejs /app/public ./public
 RUN rm -rf /app/node_modules/.cache
 USER appuser
-EXPOSE 10000
+EXPOSE 3001
 ENV NODE_ENV=production \
-    NODE_OPTIONS="--max-old-space-size=512" \
-    PORT=10000
+    NODE_OPTIONS="--max-old-space-size=512"
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:${PORT:-10000}/api/health || exit 1
+  CMD curl -f http://localhost:${PORT:-3001}/api/health || exit 1
 ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", "server/index.js"]
